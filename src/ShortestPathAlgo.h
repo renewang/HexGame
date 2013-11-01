@@ -14,8 +14,6 @@
 
 #include "Graph.h"
 
-#define INF 1000000;
-
 using namespace std;
 
 template<class Type, class Val>
@@ -26,66 +24,64 @@ class ShortestPathAlgo
 
 private:
 	Graph* graph;
+	list<Node*>* shortestPath;
+	Val shortestPathSize;
 
-	list<Node*>*
-	dijkstraImpl(int indexOfSource, int indexOfDest)
+	/*
+	 * actual dijkstra algorithm implementation
+	 */
+	void dijkstraImpl(int indexOfSource, int indexOfDest)
 	{
+		const Val INF = numeric_limits<Val>::max();
 		vector<Node*>* close = new vector<Node*>; //visited
-		list<Node*>* v = graph->getAllVertices();
-		vector<Node*> vertices;
-		// TODO need to fix copy constructor
-		for (typename list<Node*>::iterator iter = v->begin(); iter != v->end();
-				++iter)
-		{
-			vertices.push_back(*iter);
-		}
-		list<Node*>* path = new list<Node*>;
-		Node* source = vertices.at(indexOfSource - 1);
+		const vector<Node*>* vertices = graph->getAllVertices();
 
-		//1. put the source in the close and all the its neighbors in the open
+		list<Node*>* path = new list<Node*>;
+		Node* source = vertices->at(indexOfSource - 1);
+
 		close->push_back(source);
 		path->push_back(source);
 
-		//2. start the iterations to put the nodes in open set into close set
-		Val* distance = new Val[vertices.size()];
-		bool* visited = new bool[vertices.size()];
-		int* hop = new int[vertices.size()];
+		Val* distance = new Val[vertices->size()];
+		bool* visited = new bool[vertices->size()]; //marked if the nodes have been visited (put in close set already)
+		int* hop = new int[vertices->size()];
 
-		for (unsigned i = 0; i < vertices.size(); i++)
+		for (unsigned i = 0; i < vertices->size(); i++)
 		{
-			distance[i] = INF
-			;
+			distance[i] = INF;
 			visited[i] = false;
 			hop[i] = 0;
 		}
-		for (unsigned i = 0; i < vertices.size(); i++)
-
+		for (unsigned i = 0; i < vertices->size(); i++)
 			visited[source->vertexIdex - 1] = true;
 
 		Val min = static_cast<Val>(0);
 		Node* current = source;
-		while (close->size() < vertices.size()
+		while (close->size() < vertices->size()
 				&& current->vertexIdex != indexOfDest)
 		{
-			Node* neigh = current->neighbors;
-			for (int j = 0; j < current->numOfNeighbors; j++)
+			list<Node*>* neighbors = current->neighbors;
+			list<Val>* edges = current->edges;
+			typename list<Node*>::iterator iterNeigh = neighbors->begin();
+			typename list<Val>::iterator iterEdge = edges->begin();
+
+			for (; iterNeigh != neighbors->end(); ++iterNeigh, ++iterEdge)
 			{
-				Val edgeVal = min + *(current->edges + j);
-				if (edgeVal < distance[neigh->vertexIdex - 1]
-						&& !visited[neigh->vertexIdex - 1])
+				Val edgeVal = min + *(iterEdge);
+
+				if (edgeVal < distance[(*iterNeigh)->vertexIdex - 1]
+						&& !visited[(*iterNeigh)->vertexIdex - 1])
 				{
-					distance[neigh->vertexIdex - 1] = edgeVal;
-					hop[neigh->vertexIdex - 1]++;
+					distance[(*iterNeigh)->vertexIdex - 1] = edgeVal;
+					hop[(*iterNeigh)->vertexIdex - 1]++;
 				}
-				neigh++;
 			}
 			/* TODO update here with a priority queue
 			 * find the min value of current outgoing edges from close set.
 			 */
-			Val curMin = INF
-			;
+			Val curMin = INF;
 			int curMinIndex = -1;
-			for (unsigned i = 0; i < vertices.size(); i++)
+			for (unsigned i = 0; i < vertices->size(); i++)
 			{
 				if (!visited[i] && distance[i] < curMin)
 				{
@@ -95,56 +91,83 @@ private:
 			}
 			min = curMin;
 			visited[curMinIndex] = true;
-			current = vertices.at(curMinIndex);
+			current = vertices->at(curMinIndex);
 			if (hop[curMinIndex] < static_cast<int>(close->size()))
 				path->pop_back();
 			close->push_back(current);
 			path->push_back(current);
 		}
+
+		shortestPath = path;
+		shortestPathSize = min;
+
 		delete close;
 		delete[] visited;
 		delete[] distance;
 		delete[] hop;
-		return path;
 	}
 	;
 
 public:
-	ShortestPathAlgo();
-	ShortestPathAlgo(Graph* graph) :
-			graph(graph)
+	/*
+	 * default constructor
+	 */
+	ShortestPathAlgo() :
+			graph(NULL), shortestPath(0), shortestPathSize(-1)
 	{
 	}
 	;
+	/*
+	 * constructor based on the given graph
+	 */
+	ShortestPathAlgo(Graph* graph) :
+			graph(graph), shortestPath(0), shortestPathSize(-1)
+	{
+	}
+	;
+	/*
+	 * destructor
+	 */
 	virtual ~ShortestPathAlgo()
 	{
 	}
 	;
-
+	/*
+	 * don't know what it is for...
+	 */
 	void
 	vertices(list<Node*> vertices); //list of vertices in G(V,E).
+	/*
+	 * return the shortest path given two nodes
+	 */
 	list<Node*>*
 	path(int indexNodeFrom, int indexNodeTo)
 	{
 		//find shortest path between u-w and returns the sequence of vertices representing shorest path u-v1-v2-É-vn-w.
-		return dijkstraImpl(indexNodeFrom, indexNodeTo);
+		if (shortestPath == 0)
+			dijkstraImpl(indexNodeFrom, indexNodeTo);
+		list<Node*>* pathVec = new list<Node*>(*shortestPath);
+		delete shortestPath;
+		shortestPath = 0;
+		return pathVec;
 	}
 	;
+	/*
+	 * return the cost of shortest path given two nodes
+	 */
 	Val path_size(int indexNodeFrom, int indexNodeTo)
 	{ //return the path cost associated with the shortest path
-		list<Node*>* path = dijkstraImpl(indexNodeFrom, indexNodeTo);
-		Val pathSize = static_cast<Val>(0);
-		int from = indexNodeFrom;
-		for (typename list<Node*>::iterator iter = path->begin();
-				iter != path->end(); ++iter)
-		{
-			iter++;
-			pathSize += graph->getEdgeValue(from, (*iter)->vertexIdex);
-			from = (*iter)->vertexIdex;
-		}
-		return pathSize;
+		if (shortestPathSize == -1)
+			dijkstraImpl(indexNodeFrom, indexNodeTo);
+		Val pathCost = shortestPathSize;
+		shortestPathSize = -1;
+		return pathCost;
 	}
 	;
+	/*
+	 * calculate the average shortest path cost of a graph
+	 */
+	//TODO implementation needs to be clarified
 	float averagePathSize()
 	{
 		float mean = 0;
