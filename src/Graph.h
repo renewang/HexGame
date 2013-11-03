@@ -16,6 +16,7 @@
 
 using namespace std;
 
+//TODO a better data structure to store edge. To solve the problem symmetric assignment for undirected graph
 template<class Type, class Val>
 struct Node
 {
@@ -25,11 +26,15 @@ struct Node
 	list<Val>* edges;
 	list<Node*>* neighbors;
 };
-
 template<class Type, class Val>
 class Graph
 {
 	typedef struct Node<Type, Val> Node;
+	struct Edge
+	{
+		Node* toNode, *fromNode;
+		Val weight;
+	};
 
 private:
 	unsigned numOfVertices; //size of Nodes or Vertex in Graph

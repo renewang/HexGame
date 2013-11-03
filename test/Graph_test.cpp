@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 #include "Graph.h"
 #include "ShortestPathAlgo.h"
+#include "PriorityQueue.h"
 
 using namespace std;
 template<typename T>
@@ -67,7 +68,7 @@ TEST_F(GraphTest,RandomGraphCheck)
 	for (unsigned i = 0; i < nodes->size(); i++)
 		sumOfNeighbors += (nodes->at(i))->numOfNeighbors;
 
-	EXPECT_EQ(sumOfNeighbors/2, randomG->getSizeOfEdges());
+	EXPECT_EQ(sumOfNeighbors / 2, randomG->getSizeOfEdges());
 
 	if (randomG != 0)
 		delete randomG;
@@ -91,6 +92,18 @@ TEST_F(GraphTest,BasicGraphCheck)
 	ShortestPathAlgo<int, int>* algo = new ShortestPathAlgo<int, int>(testG);
 	list<Node<int, int>*>* shortestPath = algo->path(1, 6);
 
+	int pathExpect[2] =
+	{ 1, 6 };
+	vector<int> shortestPathExpect;
+	shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect,
+			pathExpect + 2);
+	vector<int> shortestPathActual;
+	for (list<Node<int, int>*>::iterator iter = shortestPath->begin();
+			iter != shortestPath->end(); ++iter)
+	{
+		shortestPathActual.push_back((*iter)->vertexIdex);
+	}
+	EXPECT_EQ(shortestPathExpect, shortestPathActual);
 	EXPECT_EQ(5, algo->path_size(1, 6));
 
 	int pathSize = 0;
@@ -109,11 +122,75 @@ TEST_F(GraphTest,BasicGraphCheck)
 	EXPECT_FALSE(testG->isAdjacent(1, 2));
 	testG->addEdge(1, 2, 1);
 	EXPECT_TRUE(testG->isAdjacent(1, 2));
-	testG->setEdgeValue(1, 2, 10);
-	EXPECT_EQ(10, testG->getEdgeValue(1, 2));
+	testG->setEdgeValue(1, 6, 10);
+	EXPECT_EQ(10, testG->getEdgeValue(1, 6));
+
+	delete shortestPath;
+	algo->clean();
+	shortestPath = algo->path(1, 6);
+	shortestPathActual.clear();
+	shortestPathExpect.clear();
+	int pathExpect2[3] =
+	{ 1, 2, 6 };
+	shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect2,
+			pathExpect2 + 3);
+	for (list<Node<int, int>*>::iterator iter = shortestPath->begin();
+			iter != shortestPath->end(); ++iter)
+	{
+		shortestPathActual.push_back((*iter)->vertexIdex);
+	}
+	EXPECT_EQ(shortestPathExpect, shortestPathActual);
+	EXPECT_EQ(5, algo->path_size(1, 6));
+
+	delete shortestPath;
+	algo->clean();
+
+	testG->deleteEdge(1, 2);
+	shortestPath = algo->path(1, 6);
+	shortestPathActual.clear();
+	shortestPathExpect.clear();
+	int pathExpect3[3] =
+	{ 1, 3, 6 };
+	shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect3,
+			pathExpect3 + 3);
+	for (list<Node<int, int>*>::iterator iter = shortestPath->begin();
+			iter != shortestPath->end(); ++iter)
+	{
+		shortestPathActual.push_back((*iter)->vertexIdex);
+	}
+	EXPECT_EQ(shortestPathExpect, shortestPathActual);
+	EXPECT_EQ(5, algo->path_size(1, 6));
 
 	delete shortestPath;
 	delete testG;
+}
+
+TEST_F(GraphTest,PriorityQCheck)
+{
+	Graph<string, int>* randomG = new Graph<string, int>(5, 0.5, 10);
+	const vector<Node<string, int>*>* vertices = randomG->getAllVertices();
+	PriorityQueue<string, int>* testPQ = new PriorityQueue<string, int>;
+
+	for (unsigned i = 0; i < vertices->size(); i++)
+		testPQ->insert(vertices->at(i), 10 - i);
+
+	EXPECT_TRUE(testPQ->contains((*vertices)[vertices->size() - 1]));
+	Node<string, int>* node = new Node<string, int>;
+	node->vertexIdex = 100;
+	EXPECT_FALSE(testPQ->contains(node));
+	Node<string, int>* minNode = testPQ->top();
+	EXPECT_EQ(5, minNode->vertexIdex);
+	for (unsigned i = 0; i < vertices->size(); i++)
+	{
+		EXPECT_TRUE(testPQ->chgPrioirity((*vertices)[i], 5 - i));
+		minNode = testPQ->top();
+		EXPECT_EQ((int )i + 1, minNode->vertexIdex);
+	}
+	minNode = testPQ->minPrioirty();
+	EXPECT_EQ(5, minNode->vertexIdex);
+	minNode = testPQ->top();
+	EXPECT_EQ(4, minNode->vertexIdex);
+
 }
 void PrintOutMatrix(int** matrix, unsigned row, unsigned col)
 {
