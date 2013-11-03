@@ -1,8 +1,6 @@
 /*
  * Graph.h
  *
- *  Created on: Oct 26, 2013
- *      Author: renewang
  */
 
 #ifndef GRAPH_H_
@@ -13,6 +11,9 @@
 #include <iterator>
 #include <list>
 #include <cstring>
+#include <vector>
+#include <cassert>
+#include <algorithm>
 
 using namespace std;
 
@@ -23,26 +24,21 @@ struct Node
 	int vertexIdex;
 	unsigned numOfNeighbors;
 	Type vertexVal;
-	list<Val>* edges;
-	list<Node*>* neighbors;
+	list<Val> edges;
+	list<Node*> neighbors;
 };
 template<class Type, class Val>
 class Graph
 {
 	typedef struct Node<Type, Val> Node;
-	struct Edge
-	{
-		Node* toNode, *fromNode;
-		Val weight;
-	};
 
 private:
 	unsigned numOfVertices; //size of Nodes or Vertex in Graph
 	unsigned numOfEdges; //size of Edges in Graph
 	float density; //density of connected edges to generate the random Graph
 	float distance; //maximal distance to generate random Graph
-	vector<Node*>* repGraph; //adjacent list implementation of Graph representation
-	Val** repMatrix; //adjacent matrix implementation of Graph representation
+	vector<Node> repGraph; //adjacent list implementation of Graph representation
+	vector<vector<Val> > repMatrix; //adjacent matrix implementation of Graph representation
 	Val minDistance;
 
 	void initGraph()
@@ -51,17 +47,13 @@ private:
 		distance = 0.0;
 		density = 0;
 		numOfVertices = 0;
-		repGraph = 0;
-		repMatrix = 0;
 		minDistance = static_cast<Val>(1);
 	}
 	;
-	void initNode(Node* node, int index)
+	void initNode(Node& node, int index)
 	{
-		node->vertexIdex = (index + 1);
-		node->numOfNeighbors = 0;
-		node->neighbors = new list<Node*>;
-		node->edges = new list<Val>;
+		node.vertexIdex = (index + 1);
+		node.numOfNeighbors = 0;
 	}
 	;
 	void randomGraphGenerator()
@@ -69,13 +61,13 @@ private:
 		//initialize random seed with current time
 		srand(clock());
 
-		for (typename vector<Node*>::iterator iterSelf = repGraph->begin();
-				iterSelf != repGraph->end(); ++iterSelf)
+		for (typename vector<Node>::iterator iterSelf = repGraph.begin();
+				iterSelf != repGraph.end(); ++iterSelf)
 		{ // for each vertex
-			Node* n = *iterSelf;
-			typename vector<Node*>::iterator iterNeigh = iterSelf;
+			Node* n = &(*iterSelf);
+			typename vector<Node>::iterator iterNeigh = iterSelf;
 			iterNeigh++;
-			for (; iterNeigh != repGraph->end(); ++iterNeigh)
+			for (; iterNeigh != repGraph.end(); ++iterNeigh)
 			{ // determine if this edge should be generated according to the density
 				float prob = (float) rand() / RAND_MAX;
 				assert(prob > 0 && prob < 1);
@@ -88,136 +80,121 @@ private:
 
 					assert(val >= minDistance && val <= distance);
 
-					(n->neighbors)->push_back(*iterNeigh);
-					(n->edges)->push_back(val);
+					(n->neighbors).push_back(&(*iterNeigh));
+					(n->edges).push_back(val);
 
 					//undirected graph, need a symmetric assignment
-					Node* neigh = *iterNeigh;
-					(neigh->neighbors)->push_back(*iterSelf);
-					(neigh->edges)->push_back(val);
+					Node* neigh = &(*iterNeigh);
+					(neigh->neighbors).push_back(&(*iterSelf));
+					(neigh->edges).push_back(val);
 
 					numOfEdges++;
 				}
 			}
-			n->numOfNeighbors = (n->neighbors->size());
+			n->numOfNeighbors = (n->neighbors.size());
 			assert(
 					n->numOfNeighbors >= 0 && n->numOfNeighbors < numOfVertices
-							&& n->numOfNeighbors == n->edges->size());
+							&& n->numOfNeighbors == n->edges.size());
 		}
 	}
 	;
 	void toArrayGraphRep()
 	{
 		//allocate memory
-		deallocRepMatrix();
+		if (repMatrix.size() != 0)
+			repMatrix.clear();
 
-		repMatrix = new Val*[numOfVertices];
+		repMatrix.reserve(numOfVertices);
 		for (unsigned i = 0; i < numOfVertices; i++)
 		{
-			repMatrix[i] = new Val[numOfVertices];
-			memset(repMatrix[i], 0, numOfVertices);
+			vector<Val> vec(numOfVertices, 0);
+			repMatrix.push_back(vec);
 		}
 
 		//transform the representation from list to matrix
-		for (typename vector<Node*>::iterator iterSelf = repGraph->begin();
-				iterSelf != repGraph->end(); ++iterSelf)
+		for (typename vector<Node>::iterator iterSelf = repGraph.begin();
+				iterSelf != repGraph.end(); ++iterSelf)
 		{
-			Node* node = static_cast<Node*>(*iterSelf);
-			Node* neighs = node->neighbors;
-			Val* edges = node->edges;
+			Node* node = &(*iterSelf);
+			list<Node*> neighs = node->neighbors;
+			list<Val> edges = node->edges;
 			int idxOfSelf = node->vertexIdex - 1;
-			for (int i = 0; i < node->numOfNeighbors; i++)
+			typename list<Node*>::iterator iterNeigh = neighs.begin();
+			typename list<Val>::iterator iterEdge = edges.begin();
+			for (; iterNeigh != neighs.end(); ++iterNeigh, ++iterEdge)
 			{
-				if (neighs == 0 || edges == 0)
-					break;
-				int idxOfNeigh = neighs->vertexIdex - 1;
-				repMatrix[idxOfSelf][idxOfNeigh] = *edges;
-				repMatrix[idxOfNeigh][idxOfSelf] = *edges;
-				neighs++;
-				edges++;
+				int idxOfNeigh = (*iterNeigh)->vertexIdex - 1;
+				repMatrix[idxOfSelf][idxOfNeigh] = (*iterEdge);
+				repMatrix[idxOfNeigh][idxOfSelf] = (*iterEdge);
 			}
 		}
 	}
 	;
 	void toListGraphRep()
 	{ //given a adjacent matrix representation of graph G, transform it to adjacent list
-		if (repGraph != 0)
-			delete repGraph;
 
-		repGraph = new vector<Node*>();
 		for (unsigned i = 0; i < numOfVertices; i++)
 		{
-			Node* node = new Node;
+			Node node;
 			initNode(node, i);
-			repGraph->push_back(node);
+			repGraph.push_back(node);
 		}
-		for (typename vector<Node*>::iterator iterSelf = repGraph->begin();
-				iterSelf != repGraph->end(); ++iterSelf)
+		for (typename vector<Node>::iterator iterSelf = repGraph.begin();
+				iterSelf != repGraph.end(); ++iterSelf)
 		{
-			Node* node = (*iterSelf);
-			typename vector<Node*>::iterator iterNeigh = iterSelf;
+			Node* node = &(*iterSelf);
+			typename vector<Node>::iterator iterNeigh = iterSelf;
 			iterNeigh++;
 			for (unsigned j = node->vertexIdex; j < numOfVertices; j++)
 			{
-				Node* neigh = *iterNeigh;
+				Node* neigh = &(*iterNeigh);
 				if (repMatrix[node->vertexIdex - 1][j] > 0)
 				{
 					//assign neighbors to node
-					(node->neighbors)->push_back(neigh);
-					(node->edges)->push_back(
-							repMatrix[node->vertexIdex - 1][j]);
+					(node->neighbors).push_back(neigh);
+					(node->edges).push_back(repMatrix[node->vertexIdex - 1][j]);
 
 					//symmetric assignment to node's neighbor for undirected graph
-					(neigh->neighbors)->push_back(node);
-					(neigh->edges)->push_back(
+					(neigh->neighbors).push_back(node);
+					(neigh->edges).push_back(
 							repMatrix[node->vertexIdex - 1][j]);
 				}
 				iterNeigh++;
 			}
+			assert((node->neighbors).size() == (node->edges).size());
+			node->numOfNeighbors = (node->neighbors).size();
 		}
-	}
-	;
-	void deallocRepMatrix()
-	{
-		if (repMatrix != 0)
-		{
-			for (unsigned i = 0; i < numOfVertices; i++)
-				delete repMatrix[i];
-			delete[] repMatrix;
-		}
-		repMatrix = 0;
 	}
 	;
 	/*
-	 * to provide the functionality to retrieve node in repGraph
+	 * to provide the functionality to retrieve node's pointer
 	 */
 	Node* findNodeByIndex(int index)
 	{
-		assert(index > 0 && index <= static_cast<int>(numOfVertices));
-		return repGraph->at(index - 1);
+		assert(index >= 1 && index <= static_cast<int>(numOfVertices));
+		return &(repGraph[index - 1]);
 	}
-	;
 	/*
 	 * to provide the functionality to retrieve node of neighbors
 	 */
-	Node* findNeighborByIndex(Node* node, int index)
+	Node* findNeighborByIndex(Node node, int index)
 	{
-		list<Node*>* neighbors = node->neighbors;
-		for (typename list<Node*>::iterator iter = neighbors->begin();
-				iter != neighbors->end(); ++iter)
+		list<Node*> neighbors = node.neighbors;
+		for (typename list<Node*>::iterator iter = neighbors.begin();
+				iter != neighbors.end(); ++iter)
 		{
 			if (index == (*iter)->vertexIdex)
 				return (*iter);
 		}
 		return NULL;
 	}
-	Val findEdgeByIndex(Node* node, int index)
+	Val findEdgeByIndex(Node node, int index)
 	{
-		list<Node*>* neighbors = node->neighbors;
-		list<Val>* edges = node->edges;
-		typename list<Node*>::iterator iterNeigh = neighbors->begin();
-		typename list<Val>::iterator iterEdge = edges->begin();
-		for (; iterNeigh != neighbors->end(); ++iterNeigh, ++iterEdge)
+		list<Node*> neighbors = node.neighbors;
+		list<Val> edges = node.edges;
+		typename list<Node*>::iterator iterNeigh = neighbors.begin();
+		typename list<Val>::iterator iterEdge = edges.begin();
+		for (; iterNeigh != neighbors.end(); ++iterNeigh, ++iterEdge)
 		{
 			if (index == (*iterNeigh)->vertexIdex)
 			{
@@ -248,12 +225,11 @@ public:
 		this->distance = distance;
 
 		//allocate memory for the list of graph representation
-		repGraph = new vector<Node*>();
 		for (unsigned i = 0; i < numOfVertices; i++)
 		{
-			Node* n = new Node;
+			Node n;
 			initNode(n, i);
-			repGraph->push_back(n);
+			repGraph.push_back(n);
 		}
 		randomGraphGenerator();
 	}
@@ -264,29 +240,28 @@ public:
 	Graph(Val** clientGraph, int numOfVertices)
 	{
 		initGraph();
-		this->repMatrix = clientGraph;
+		repMatrix.reserve(numOfVertices);
+		for (int i = 0; i < numOfVertices; i++)
+		{
+			vector<Val> vec(clientGraph[i], clientGraph[i] + numOfVertices);
+			repMatrix.push_back(vec);
+		}
 		this->numOfVertices = numOfVertices;
 		toListGraphRep();
 	}
 	/*
-	 * copy constructor
-	 */
-	/*Graph(Graph& graph){
-
-	 }*/
-	/*
 	 * get the underlying list representation of vertices.
 	 */
-	inline const vector<Node*>* getAllVertices()
+	inline const vector<Node> getAllVertices()
 	{
-		return repGraph;
+		return vector<Node>(repGraph);
 	}
 	/*
 	 * get the size of vertices
 	 */
 	inline int getSizeOfVertices() //V (G): returns the number of vertices in the graph
 	{
-		return repGraph->size() == numOfVertices ? numOfVertices : -1;
+		return repGraph.size() == numOfVertices ? numOfVertices : -1;
 	}
 	;
 	/*
@@ -305,28 +280,28 @@ public:
 		Node* nodeA = findNodeByIndex(idxOfNodeA);
 		Node* nodeB = findNodeByIndex(idxOfNodeB);
 
-		Node* nodeSearched, *node;
+		Node* nodeSearched = (
+				nodeA->numOfNeighbors < nodeB->numOfNeighbors ? nodeB : nodeA);
+		Node* node = (
+				nodeA->numOfNeighbors < nodeB->numOfNeighbors ? nodeA : nodeB);
 
-		nodeSearched =
-				nodeA->numOfNeighbors < nodeB->numOfNeighbors ? nodeB : nodeA;
-		node = nodeA->numOfNeighbors < nodeB->numOfNeighbors ? nodeA : nodeB;
-
-		return nodeSearched
-				== findNeighborByIndex(node, nodeSearched->vertexIdex);
+		Node* neigh = findNeighborByIndex(*node, nodeSearched->vertexIdex);
+		return nodeSearched == neigh;
 	}
 	;
 	/*
 	 * return the neighbors of a node
 	 */
-	vector<int>& getNeighbors(int idxOfNode)
+	vector<int> getNeighbors(int idxOfNode)
 	{ //neighbors (G, x): lists all nodes y such that there is an edge from x to y.
 		Node* node = findNodeByIndex(idxOfNode);
-		vector<int>* neighIndicesVec = new vector<int>;
-		list<Node*>* neigh = node->neighbors;
-		for (typename list<Node*>::iterator iter = neigh->begin();
-				iter != neigh->end(); ++iter)
-			neighIndicesVec->push_back((*iter)->vertexIdex);
-		return *neighIndicesVec;
+
+		vector<int> neighIndicesVec;
+		list<Node*> neigh = node->neighbors;
+		for (typename list<Node*>::iterator iter = neigh.begin();
+				iter != neigh.end(); ++iter)
+			neighIndicesVec.push_back((*iter)->vertexIdex);
+		return neighIndicesVec;
 	}
 	;
 	/*
@@ -337,13 +312,13 @@ public:
 		Node* nodeFrom = findNodeByIndex(indexOfNodeFrom);
 		Node* nodeTo = findNodeByIndex(indexOfNodeTo);
 
-		(nodeFrom->neighbors)->push_back(nodeTo);
-		(nodeFrom->edges)->push_back(value);
+		(nodeFrom->neighbors).push_back(nodeTo);
+		(nodeFrom->edges).push_back(value);
 		nodeFrom->numOfNeighbors++;
 
 		//symmetric assignment
-		(nodeTo->neighbors)->push_back(nodeFrom);
-		(nodeTo->edges)->push_back(value);
+		(nodeTo->neighbors).push_back(nodeFrom);
+		(nodeTo->edges).push_back(value);
 
 		nodeTo->numOfNeighbors++;
 
@@ -360,8 +335,8 @@ public:
 			Node* nodeFrom = findNodeByIndex(indexOfNodeFrom);
 			Node* nodeTo = findNodeByIndex(indexOfNodeTo);
 
-			list<Node*>* neighbors = nodeFrom->neighbors;
-			list<Val>* edges = nodeFrom->edges;
+			list<Node*>* neighbors = &(nodeFrom->neighbors);
+			list<Val>* edges = &(nodeFrom->edges);
 
 			typename list<Node*>::iterator iterNeigh = neighbors->begin();
 			typename list<Val>::iterator iterEdge = edges->begin();
@@ -378,8 +353,8 @@ public:
 			}
 
 			//symmetric assignment
-			neighbors = nodeTo->neighbors;
-			edges = nodeTo->edges;
+			neighbors = &(nodeTo->neighbors);
+			edges = &(nodeTo->edges);
 			iterNeigh = neighbors->begin();
 			iterEdge = edges->begin();
 
@@ -392,7 +367,6 @@ public:
 					nodeTo->numOfNeighbors--;
 					break;
 				}
-				neighbors++;
 			}
 			numOfEdges--;
 		}
@@ -403,11 +377,8 @@ public:
 	 */
 	Type getNodeValue(int indexOfNode)
 	{ //get_node_value (G, x): returns the value associated with the node x.
-		Node* node = findNodeByIndex(indexOfNode);
-		if (node != 0)
-			return node->vertexVal;
-		else
-			return NULL;
+		Node node = repGraph[indexOfNode];
+		return node.vertexVal;
 	}
 	;
 	/*
@@ -415,8 +386,8 @@ public:
 	 */
 	void setNodeValue(int indexOfNode, Val value)
 	{ // set_node_value(G, x, a): sets the value associated with the node x to a.
-		Node* node = findNodeByIndex(indexOfNode);
-		node->vertexVal = value;
+		Node node = repGraph[indexOfNode];
+		node.vertexVal = value;
 	}
 	;
 	/*
@@ -441,7 +412,7 @@ public:
 				nodeSearched = nodeFrom;
 			}
 
-			return findEdgeByIndex(node, nodeSearched->vertexIdex);
+			return findEdgeByIndex(*node, nodeSearched->vertexIdex);
 		}
 		return value;
 	}
@@ -456,8 +427,8 @@ public:
 			Node* nodeFrom = findNodeByIndex(indexOfNodeFrom);
 			Node* nodeTo = findNodeByIndex(indexOfNodeTo);
 
-			list<Node*>* neighbors = nodeFrom->neighbors;
-			list<Val>* edges = nodeFrom->edges;
+			list<Node*>* neighbors = &(nodeFrom->neighbors);
+			list<Val>* edges = &(nodeFrom->edges);
 			typename list<Node*>::iterator iterNeigh = neighbors->begin();
 			typename list<Val>::iterator iterEdge = edges->begin();
 
@@ -471,8 +442,8 @@ public:
 			}
 
 			//symmetric assignment
-			neighbors = nodeTo->neighbors;
-			edges = nodeTo->edges;
+			neighbors = &(nodeTo->neighbors);
+			edges = &(nodeTo->edges);
 			iterNeigh = neighbors->begin();
 			iterEdge = edges->begin();
 
@@ -492,17 +463,14 @@ public:
 	 */
 	virtual ~Graph()
 	{
-		if (repGraph != 0)
-			delete repGraph;
-		//deallocRepMatrix();
 	}
 	;
 	/*
 	 * to print underlying graph matrix representation
 	 */
-	void printRepGraph()
+	bool printRepGraph()
 	{
-		cout << "size of vertices = " << repGraph->size() << "\n";
+		cout << "size of vertices = " << repGraph.size() << "\n";
 		toArrayGraphRep();
 
 		cout << setw(9) << " ";
@@ -518,6 +486,7 @@ public:
 			}
 			cout << "\n";
 		}
+		return true;
 	}
 	;
 

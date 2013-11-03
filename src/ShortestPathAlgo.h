@@ -1,8 +1,6 @@
 /*
  * ShortestPathAlgo.h
  *
- *  Created on: Oct 30, 2013
- *      Author: renewang
  */
 
 #ifndef SHORTESTPATHALGO_H_
@@ -25,8 +23,8 @@ class ShortestPathAlgo
 	typedef PriorityQueue<Type, Val> PriorityQueue;
 
 private:
-	Graph* graph;
-	list<Node*>* shortestPath;
+	Graph& graph;
+	list<Node> shortestPath;
 	Val shortestPathSize;
 
 	/*
@@ -34,47 +32,49 @@ private:
 	 */
 	void dijkstraImpl(int indexOfSource, int indexOfDest)
 	{
-		vector<Node*>* close = new vector<Node*>; //visited or close set
-		PriorityQueue* open = new PriorityQueue; //unvisited or open set
-		const vector<Node*>* vertices = graph->getAllVertices(); //get the all vertices in graph
+		const vector<Node> vertices = graph.getAllVertices(); //get the all vertices in graph
+		vector<Node*> close; //visited or close set
+		PriorityQueue open; //unvisited or open set
+		const Node* source = &(vertices[indexOfSource - 1]); //get the source node
 		const Val INF = numeric_limits<Val>::max(); //set the INF as the maximal value of the type
+		Val* distance = new Val[vertices.size()]; //store the min distance between source to any node
+		bool* visited = new bool[vertices.size()]; //marked if the nodes have been visited (put in close set already)
+		int* prevNode = new int[vertices.size()]; //store the previous node in path of the min distance between source to any node
 
-		Node* source = vertices->at(indexOfSource - 1);
-
-		close->push_back(source); //initialize the close set with source node
-		shortestPath->push_back(source);
-
-		//initialize PriorityQueue with all infinity
-		for (unsigned i = 0; i < vertices->size(); i++)
+		//initialize all temporary arrays provided for calculation and PriorityQueue with all infinity priority
+		for (unsigned i = 0; i < vertices.size(); i++)
 		{
-			if ((i + 1) != static_cast<unsigned>(source->vertexIdex))
-				open->insert(vertices->at(i), INF);
+			if ((i + 1) == static_cast<unsigned>(source->vertexIdex))
+			{
+				visited[source->vertexIdex - 1] = true;
+				distance[source->vertexIdex - 1] = 0;
+			}
+			else
+			{
+				visited[i] = false;
+				distance[i] = INF;
+				open.insert(&(vertices[i]), INF);
+				prevNode[i] = -1;
+			}
 		}
-
-		Val* distance = new Val[vertices->size()];
-		bool* visited = new bool[vertices->size()]; //marked if the nodes have been visited (put in close set already)
-		int* prevNode = new int[vertices->size()];
-
-		for (unsigned i = 0; i < vertices->size(); i++)
-		{
-			distance[i] = INF;
-			visited[i] = false;
-			prevNode[i] = -1;
-		}
-		for (unsigned i = 0; i < vertices->size(); i++)
-			visited[source->vertexIdex - 1] = true;
+		close.push_back(const_cast<Node*>(source)); //initialize the close set with source node
 
 		Val min = static_cast<Val>(0);
-		Node* current = source;
-		while (close->size() < vertices->size()
+		Node* current = const_cast<Node*>(source);
+
+		/*
+		 * terminate condition: all vertices are visited. close set has size = graph's node size or
+		 * the target/destination node has been reached
+		 */
+		while (close.size() < vertices.size()
 				&& current->vertexIdex != indexOfDest)
 		{
-			list<Node*>* neighbors = current->neighbors;
-			list<Val>* edges = current->edges;
-			typename list<Node*>::iterator iterNeigh = neighbors->begin();
-			typename list<Val>::iterator iterEdge = edges->begin();
+			list<Node*> neighbors = current->neighbors;
+			list<Val> edges = current->edges;
+			typename list<Node*>::iterator iterNeigh = neighbors.begin();
+			typename list<Val>::iterator iterEdge = edges.begin();
 
-			for (; iterNeigh != neighbors->end(); ++iterNeigh, ++iterEdge)
+			for (; iterNeigh != neighbors.end(); ++iterNeigh, ++iterEdge)
 			{
 				Val edgeVal = min + *(iterEdge);
 
@@ -84,30 +84,31 @@ private:
 					distance[(*iterNeigh)->vertexIdex - 1] = edgeVal;
 					prevNode[(*iterNeigh)->vertexIdex - 1] =
 							current->vertexIdex;
-					open->chgPrioirity((*iterNeigh), edgeVal);
+					open.chgPrioirity((*iterNeigh), edgeVal);
 				}
 			}
 
-			current = open->minPrioirty();
+			current = const_cast<Node*>(open.minPrioirty());
 			min = distance[current->vertexIdex - 1];
 			visited[current->vertexIdex - 1] = true;
-
-			while ((shortestPath->back())->vertexIdex != source->vertexIdex
-					&& prevNode[current->vertexIdex - 1]
-							!= (shortestPath->back())->vertexIdex)
-				shortestPath->pop_back();
-
-			if (prevNode[current->vertexIdex - 1] != (shortestPath->back())->vertexIdex)
-				shortestPath->push_back(
-						vertices->at(prevNode[current->vertexIdex - 1] - 1));
-
-			close->push_back(current);
-			shortestPath->push_back(current);
+			close.push_back(current);
 		}
+		if (min != INF)
+			shortestPathSize = min;
+		else
+			shortestPathSize = 0; //unreachable
 
-		shortestPathSize = min;
+		//trace back the shortest path
+		while (current->vertexIdex != source->vertexIdex
+				&& prevNode[current->vertexIdex - 1] > 0)
+		{
+			shortestPath.push_front(*current);
+			current = const_cast<Node*>(&(vertices[prevNode[current->vertexIdex
+					- 1] - 1]));
+		}
+		shortestPath.push_front(*source);
 
-		delete close;
+		//free memory
 		delete[] visited;
 		delete[] distance;
 		delete[] prevNode;
@@ -121,16 +122,14 @@ public:
 	ShortestPathAlgo() :
 			graph(NULL), shortestPathSize(-1)
 	{
-		shortestPath = new list<Node*>;
 	}
 	;
 	/*
 	 * constructor based on the given graph
 	 */
-	ShortestPathAlgo(Graph* graph) :
+	ShortestPathAlgo(Graph& graph) :
 			graph(graph), shortestPathSize(-1)
 	{
-		shortestPath = new list<Node*>;
 	}
 	;
 	/*
@@ -138,26 +137,19 @@ public:
 	 */
 	virtual ~ShortestPathAlgo()
 	{
-		delete shortestPath;
 	}
 	;
 	/*
-	 * don't know what it is for...
-	 */
-	void
-	vertices(list<Node*> vertices); //list of vertices in G(V,E).
-	/*
 	 * return the shortest path given two nodes
 	 */
-	list<Node*>*
-	path(int indexNodeFrom, int indexNodeTo)
+	list<Node> path(int indexNodeFrom, int indexNodeTo)
 	{
 		//find shortest path between u-w and returns the sequence of vertices representing shorest path u-v1-v2-É-vn-w.
-		if (shortestPath == 0 || shortestPath->size() == 0)
+		if (shortestPath.size() == 0)
 			dijkstraImpl(indexNodeFrom, indexNodeTo);
-		list<Node*>* pathVec = new list<Node*>(*shortestPath);
-		shortestPath->clear();
-		return pathVec;
+		list<Node> pathVec(shortestPath);
+		shortestPath.clear();
+		return list<Node>(pathVec);
 	}
 	;
 	/*
@@ -177,26 +169,49 @@ public:
 	 */
 	void clean()
 	{
-		shortestPath->clear();
+		shortestPath.clear();
 		shortestPathSize = -1;
 	}
 	/*
 	 * calculate the average shortest path cost of a graph
 	 */
-	float averagePathSize()
+	double averageAllPathSize()
+	{
+		double mean = 0;
+		int count = 0;
+		for (int i = 1; i < graph.getSizeOfVertices(); i++)
+		{
+			for (int j = i + 1; j <= graph.getSizeOfVertices(); j++)
+			{
+				float minPathSize = path_size(i, j);
+				if (minPathSize > 0)
+				{
+					mean += minPathSize;
+					count++;
+				}
+				clean();
+			}
+		}
+		return (mean / static_cast<double>(count));
+	}
+	/*
+	 * calculate the average shortest path cost of a given node
+	 */
+	double averagePathSize(int indexOfSource)
 	{
 		float mean = 0;
 		int count = 0;
-		for (int i = 1; i < graph->getSizeOfVertices(); i++)
+		for (int j = 1; j <= graph.getSizeOfVertices(); j++)
 		{
-			for (int j = i + 1; j <= graph->getSizeOfVertices(); j++)
+			float minPathSize = path_size(indexOfSource, j);
+			if (minPathSize > 0)
 			{
-				mean += path_size(i, j);
-				clean();
+				mean += minPathSize;
 				count++;
 			}
+			clean();
 		}
-		return (mean / static_cast<float>(count));
+		return (mean / static_cast<double>(count));
 	}
 };
 

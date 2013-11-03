@@ -1,8 +1,6 @@
 /*
  * PriorityQueue.h
  *
- *  Created on: Nov 1, 2013
- *      Author: renewang
  */
 
 #ifndef PRIORITYQUEUE_H_
@@ -23,7 +21,7 @@ class PriorityQueue
 private:
 	struct NodePriority
 	{
-		Node* node;
+		const Node* node;
 		Val priority;
 
 		friend bool operator ==(NodePriority& a, NodePriority& b)
@@ -33,27 +31,27 @@ private:
 	};
 	struct MyComparator
 	{
-		bool operator()(NodePriority* a, NodePriority* b)
+		bool operator()(NodePriority& a, NodePriority& b)
 		{
-			return a->priority > b->priority; //calls your operator
+			return a.priority > b.priority; //calls your operator
 		}
 	};
 	/*
 	 * find the corresponding element in tracker
 	 */
-	typename vector<NodePriority*>::iterator findElement(NodePriority* qElement)
+	typename vector<NodePriority>::iterator findElement(NodePriority& qElement)
 	{
-		typename vector<NodePriority*>::iterator iter = nodeTracker.begin();
+		typename vector<NodePriority>::iterator iter = nodeTracker.begin();
 
 		for (; iter != nodeTracker.end(); ++iter)
 		{
-			if (*(*iter) == *qElement)
+			if ((*iter) == qElement)
 				break;
 		}
 		return iter;
 	}
 	;
-	vector<NodePriority*> nodeTracker;
+	vector<NodePriority> nodeTracker;
 
 public:
 	PriorityQueue()
@@ -62,62 +60,64 @@ public:
 	;
 	virtual ~PriorityQueue()
 	{
+		nodeTracker.clear();
 	}
 	;
-	bool chgPrioirity(Node* node, Val priority)
+	bool chgPrioirity(const Node* node, Val priority)
 	{
 		//changes the priority (node value) of queue element.
 		bool isSuccess = false;
 		if (contains(node))
 		{
-			NodePriority* newqElement = new NodePriority;
-			newqElement->node = node;
-			newqElement->priority = priority;
-			typename vector<NodePriority*>::iterator chgIter = findElement(
+			NodePriority newqElement;
+			newqElement.node = node;
+			newqElement.priority = priority;
+			typename vector<NodePriority>::iterator chgIter = findElement(
 					newqElement);
 			if (chgIter != nodeTracker.end())
 			{
-				(*chgIter)->priority = priority;
-				make_heap(nodeTracker.begin(), nodeTracker.end(), MyComparator());
-				delete newqElement;
+				chgIter->priority = priority;
+				make_heap(nodeTracker.begin(), nodeTracker.end(),
+						MyComparator());
 				isSuccess = true;
 			}
 		}
 		return isSuccess;
 	}
 	;
-	Node* minPrioirty()
+	const Node* minPrioirty()
 	{
 		//removes the top element of the queue.
-		Node* minNode = top();
-		pop_heap(nodeTracker.begin(), nodeTracker.end(),MyComparator());
+		const Node* minNode = top();
+		pop_heap(nodeTracker.begin(), nodeTracker.end(), MyComparator());
 		nodeTracker.pop_back();
 		return minNode;
 	}
 	;
-	bool contains(Node* node)
+	bool contains(const Node* node)
 	{
 		//does the queue contain queue_element.
-		NodePriority* newqElement = new NodePriority;
-		newqElement->node = node;
-		return findElement(newqElement) != nodeTracker.end();
+		NodePriority newqElement;
+		newqElement.node = node;
+		bool isContained = findElement(newqElement) != nodeTracker.end();
+		return isContained;
 	}
 	;
-	void insert(Node* node, Val priority)
+	void insert(const Node* node, Val priority)
 	{
 		//insert queue_element into queue
-		NodePriority* qElement = new NodePriority;
-		qElement->node = node;
-		qElement->priority = priority;
+		NodePriority qElement;
+		qElement.node = node;
+		qElement.priority = priority;
 		nodeTracker.push_back(qElement);
 	}
 	;
-	Node* top()
+	const Node* top()
 	{
 		//returns the top element of the queue.
 		make_heap(nodeTracker.begin(), nodeTracker.end(), MyComparator());
-		NodePriority* topNode = nodeTracker.front();
-		return topNode->node;
+		NodePriority topNode = nodeTracker.front();
+		return topNode.node;
 	}
 	;
 	unsigned size()
