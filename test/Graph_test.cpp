@@ -112,22 +112,22 @@ TEST_F(GraphTest,PriorityQCheck)
 	EXPECT_TRUE(testPQ.contains(&(vertices[vertices.size() - 1])));
 
 	Node<string, int> node;
-	node.vertexIdex = 100;
+	node.vertexindex = 100;
 	EXPECT_FALSE(testPQ.contains(&node));
 
 	// test PriorityQueue top and minPriority
 	Node<string, int>* minNode = const_cast<Node<string, int>*>(testPQ.top());
-	EXPECT_EQ(5, minNode->vertexIdex);
+	EXPECT_EQ(5, minNode->vertexindex);
 	for (unsigned i = 0; i < vertices.size(); i++)
 	{
 		EXPECT_TRUE(testPQ.chgPrioirity(&(vertices[i]), 5 - i));
 		minNode = const_cast<Node<string, int>*>(testPQ.top());
-		EXPECT_EQ((int )i + 1, minNode->vertexIdex);
+		EXPECT_EQ((int )i + 1, minNode->vertexindex);
 	}
 	minNode = const_cast<Node<string, int>*>(testPQ.minPrioirty());
-	EXPECT_EQ(5, minNode->vertexIdex);
+	EXPECT_EQ(5, minNode->vertexindex);
 	minNode = const_cast<Node<string, int>*>(testPQ.top());
-	EXPECT_EQ(4, minNode->vertexIdex);
+	EXPECT_EQ(4, minNode->vertexindex);
 
 }
 TEST_F(GraphTest,BasicGraphCheck)
@@ -169,7 +169,7 @@ TEST_F(GraphTest,BasicGraphCheck)
 	for (list< Node<int, int> >::iterator iter = shortestPath.begin();
 			iter != shortestPath.end(); ++iter)
 	{
-		shortestPathActual.push_back((*iter).vertexIdex);
+		shortestPathActual.push_back((*iter).vertexindex);
 	}
 	EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
 	EXPECT_EQ(5, algo.path_size(1, 6));
@@ -181,12 +181,12 @@ TEST_F(GraphTest,BasicGraphCheck)
 
 	int pathSize = 0;
 	list< Node<int, int> >::iterator iter = shortestPath.begin();
-	int from = (*iter).vertexIdex;
+	int from = (*iter).vertexindex;
 	++iter;
 	for (; iter != shortestPath.end(); ++iter)
 	{
-		pathSize += testG.getEdgeValue(from, (*iter).vertexIdex);
-		from = (*iter).vertexIdex;
+		pathSize += testG.getEdgeValue(from, (*iter).vertexindex);
+		from = (*iter).vertexindex;
 	}
 	EXPECT_EQ(5, pathSize);
 
@@ -214,7 +214,7 @@ TEST_F(GraphTest,BasicGraphCheck)
 	for ( list<Node<int, int> >::iterator iter = shortestPath.begin();
 			iter != shortestPath.end(); ++iter)
 	{
-		shortestPathActual.push_back((*iter).vertexIdex);
+		shortestPathActual.push_back((*iter).vertexindex);
 	}
 	EXPECT_EQ(shortestPathExpect, shortestPathActual);
 	EXPECT_EQ(5, algo.path_size(1, 6));
@@ -236,7 +236,7 @@ TEST_F(GraphTest,BasicGraphCheck)
 	for (list< Node<int, int> >::iterator iter = shortestPath.begin();
 			iter != shortestPath.end(); ++iter)
 	{
-		shortestPathActual.push_back((*iter).vertexIdex);
+		shortestPathActual.push_back((*iter).vertexindex);
 	}
 	EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
 	EXPECT_EQ(5, algo.path_size(1, 6));
@@ -260,7 +260,7 @@ TEST_F(GraphTest,BasicGraphCheck)
 		for (list< Node<int, int> >::iterator iter = shortestPath.begin();
 				iter != shortestPath.end(); ++iter)
 		{
-			shortestPathActual.push_back((*iter).vertexIdex);
+			shortestPathActual.push_back((*iter).vertexindex);
 		}
 		EXPECT_TRUE( ArraysMatch(shortestPathExpect, shortestPathActual));
 		EXPECT_EQ(5, algo.path_size(1, 6));
@@ -279,7 +279,7 @@ TEST_F(GraphTest,BasicGraphCheck)
 	for (list< Node<int, int> >::iterator iter = shortestPath.begin();
 			iter != shortestPath.end(); ++iter)
 	{
-		shortestPathActual.push_back((*iter).vertexIdex);
+		shortestPathActual.push_back((*iter).vertexindex);
 	}
 	EXPECT_TRUE( ArraysMatch(shortestPathExpect, shortestPathActual));
 	EXPECT_EQ(5, algo.path_size(1, 6));
@@ -304,7 +304,7 @@ TEST_F(GraphTest, AlternativeGraphCheck)
 	for (list< Node<int, int> >::iterator iter = shortestPath.begin();
 			iter != shortestPath.end(); ++iter)
 	{
-		shortestPathActual.push_back((*iter).vertexIdex);
+		shortestPathActual.push_back((*iter).vertexindex);
 	}
 	EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
 	EXPECT_EQ(5, algo.path_size(1, 6));
@@ -317,7 +317,7 @@ TEST_F(GraphTest, AlternativeGraphCheck)
 	for (list< Node<string, double> >::iterator iter = shortestPathD.begin();
 			iter != shortestPathD.end(); ++iter)
 	{
-		shortestPathActual.push_back((*iter).vertexIdex);
+		shortestPathActual.push_back((*iter).vertexindex);
 	}
 	EXPECT_TRUE( ArraysMatch(shortestPathExpect, shortestPathActual));
 	EXPECT_FLOAT_EQ(5.0, algoD.path_size(1, 6));
@@ -331,7 +331,7 @@ TEST_F(GraphTest,RandomGraphCheck)
 	const vector<Node<string, int> > nodes = randomG.getAllVertices();
 	int sumOfNeighbors = 0;
 	for (unsigned i = 0; i < nodes.size(); i++)
-		sumOfNeighbors += nodes[i].numOfNeighbors;
+		sumOfNeighbors += nodes[i].numofneighbors;
 
 	EXPECT_EQ(sumOfNeighbors / 2, randomG.getSizeOfEdges());
 	ShortestPathAlgo<string, int> algo(randomG);
@@ -349,30 +349,14 @@ TEST_F(GraphTest,RandomGraphCheck)
 		list< Node<string, int> > shortestPath = algo2.path(1, 50);
 		int pathSize = 0;
 		list< Node<string, int> >::iterator iter = shortestPath.begin();
-		int from = (*iter).vertexIdex;
+		int from = (*iter).vertexindex;
 		++iter;
 		for (; iter != shortestPath.end(); ++iter)
 		{
-			pathSize += randomG2.getEdgeValue(from, (*iter).vertexIdex);
-			from = (*iter).vertexIdex;
+			pathSize += randomG2.getEdgeValue(from, (*iter).vertexindex);
+			from = (*iter).vertexindex;
 		}
 		EXPECT_EQ(pathSize, algo2.path_size(1, 50));
-	}
-}
-void PrintOutMatrix(int** matrix, unsigned row, unsigned col)
-{
-	cout << setw(9) << " ";
-	for (unsigned i = 0; i < col; i++)
-		cout << i + 1 << setw(5) << " ";
-	cout << "\n";
-	for (unsigned i = 0; i < row; i++)
-	{
-		cout << setw(5) << i + 1;
-		for (unsigned j = 0; j < col; j++)
-		{
-			cout << setw(5) << matrix[i][j] << " ";
-		}
-		cout << "\n";
 	}
 }
 int main(int argc, char **argv)

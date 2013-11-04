@@ -1,5 +1,6 @@
 /*
  * PriorityQueue.h
+ * This file defines a customized priority queue to accelerate Dijkstra algorithm
  *
  */
 
@@ -11,121 +12,144 @@
 #include <deque>
 #include <algorithm>
 
-using namespace std;
-
+/* PriorityQueue Class is used to hold the distance from the source node
+ * and for the purpose to return the node with minimal distance
+ * The template Type and Val should be consistent with the Graph
+ *
+ * Sample Usage:
+ *
+ * Graph<string, double> randomG(5, 0.5, 10);
+ * PriorityQueue<string, double> testPQ;
+ * for (unsigned i = 0; i < vertices.size(); i++)
+ *   testPQ.insert(&(vertices[i]), 10 - i);
+ * Node<string, double>* minNode = const_cast<Node<string, double>*>(testPQ.minPrioirty());
+ */
 template<class Type, class Val>
-class PriorityQueue
-{
-	typedef Node<Type, Val> Node;
+class PriorityQueue {
+  typedef Node<Type, Val> Node;
 
-private:
-	struct NodePriority
-	{
-		const Node* node;
-		Val priority;
+  //NodePriority structure is used to hold the node and priority of the node.
+  //In shortest path calculation should be the total weight of the path leading to the node.
+ private:
+  struct NodePriority {
+    const Node* node;
+    Val priority;  //priority of the node or the total weight of the path leading to the node
 
-		friend bool operator ==(NodePriority& a, NodePriority& b)
-		{
-			return (a.node)->vertexIdex == (b.node)->vertexIdex;
-		}
-	};
-	struct MyComparator
-	{
-		bool operator()(NodePriority& a, NodePriority& b)
-		{
-			return a.priority > b.priority; //calls your operator
-		}
-	};
-	/*
-	 * find the corresponding element in tracker
-	 */
-	typename vector<NodePriority>::iterator findElement(NodePriority& qElement)
-	{
-		typename vector<NodePriority>::iterator iter = nodeTracker.begin();
+    friend bool operator ==(NodePriority& a, NodePriority& b) {
+      return (a.node)->vertexindex == (b.node)->vertexindex;
+    }
+  };
+  //NodeComparator is used to define how to compare the node object in make_heap function
+  struct NodeComparator {
+    bool operator()(NodePriority& a, NodePriority& b) {
+      return a.priority > b.priority;  //calls your operator
+    }
+  };
+  //Find the corresponding element in tracker
+  typename std::vector<NodePriority>::iterator findElement(
+      NodePriority& qelement) {
+    typename std::vector<NodePriority>::iterator iter = nodetracker.begin();
 
-		for (; iter != nodeTracker.end(); ++iter)
-		{
-			if ((*iter) == qElement)
-				break;
-		}
-		return iter;
-	}
-	;
-	vector<NodePriority> nodeTracker;
+    for (; iter != nodetracker.end(); ++iter) {
+      if ((*iter) == qelement)
+        break;
+    }
+    return iter;
+  }
+  ;
+  std::vector<NodePriority> nodetracker;  //the underlying representation of priority queue, is used to hold the elements
 
-public:
-	PriorityQueue()
-	{
-	}
-	;
-	virtual ~PriorityQueue()
-	{
-		nodeTracker.clear();
-	}
-	;
-	bool chgPrioirity(const Node* node, Val priority)
-	{
-		//changes the priority (node value) of queue element.
-		bool isSuccess = false;
-		if (contains(node))
-		{
-			NodePriority newqElement;
-			newqElement.node = node;
-			newqElement.priority = priority;
-			typename vector<NodePriority>::iterator chgIter = findElement(
-					newqElement);
-			if (chgIter != nodeTracker.end())
-			{
-				chgIter->priority = priority;
-				make_heap(nodeTracker.begin(), nodeTracker.end(),
-						MyComparator());
-				isSuccess = true;
-			}
-		}
-		return isSuccess;
-	}
-	;
-	const Node* minPrioirty()
-	{
-		//removes the top element of the queue.
-		const Node* minNode = top();
-		pop_heap(nodeTracker.begin(), nodeTracker.end(), MyComparator());
-		nodeTracker.pop_back();
-		return minNode;
-	}
-	;
-	bool contains(const Node* node)
-	{
-		//does the queue contain queue_element.
-		NodePriority newqElement;
-		newqElement.node = node;
-		bool isContained = findElement(newqElement) != nodeTracker.end();
-		return isContained;
-	}
-	;
-	void insert(const Node* node, Val priority)
-	{
-		//insert queue_element into queue
-		NodePriority qElement;
-		qElement.node = node;
-		qElement.priority = priority;
-		nodeTracker.push_back(qElement);
-	}
-	;
-	const Node* top()
-	{
-		//returns the top element of the queue.
-		make_heap(nodeTracker.begin(), nodeTracker.end(), MyComparator());
-		NodePriority topNode = nodeTracker.front();
-		return topNode.node;
-	}
-	;
-	unsigned size()
-	{
-		//return the number of queue_elements.
-		return nodeTracker.size();
-	}
-	;
+ public:
+  //Default constructor, takes no parameters
+  PriorityQueue() {
+  }
+  ;
+  //Default destructor, takes no parameters
+  virtual ~PriorityQueue() {
+  }
+  ;
+  //Change the priority or the total weight of the path leading to the specified node
+  //Input:
+  //node: the current end node of a trial path
+  //priority: the priority of the end node needs to be changed
+  //Output:
+  //A boolean variable to indicate if the change of priority is successful.
+  //TRUE: change priority of the specified node is successful
+  //FALSE: change priority of the specified node is unsuccessful
+  bool chgPrioirity(const Node* node, Val priority) {
+    bool issuccess = false;
+    if (contains(node)) {
+      NodePriority newqelement;
+      newqelement.node = node;
+      newqelement.priority = priority;
+      typename std::vector<NodePriority>::iterator chgiter = findElement(
+          newqelement);
+      if (chgiter != nodetracker.end()) {
+        chgiter->priority = priority;
+        make_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
+        issuccess = true;
+      }
+    }
+    return issuccess;
+  }
+  ;
+  //Return the Node with the minimal priority or the total weight
+  //Input: NONE
+  //Output: the node associating with the minimal priority or the total weight of a path
+  const Node* minPrioirty() {
+    //removes the top element of the queue.
+    const Node* minnode = top();
+    pop_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
+    nodetracker.pop_back();
+    return minnode;
+  }
+  ;
+  //Test if the priority queue contains the specified node
+  //Input:
+  //node: the inquiring node
+  //Output:
+  //the boolean value to indicate if the node is contained in the queue or not
+  //TRUE: the node is contained in the priority queue
+  //FALSE: the node is not contained in the priroity queue
+  bool contains(const Node* node) {
+    NodePriority newqelement;
+    newqelement.node = node;
+    bool iscontained = findElement(newqelement) != nodetracker.end();
+    return iscontained;
+  }
+  ;
+  //Insert element into queue
+  //Input:
+  //node: the node needs to be inserted
+  //priority:  the corresponding priority of the node
+  //Output: NONE
+  void insert(const Node* node, Val priority) {
+
+    NodePriority qelement;
+    qelement.node = node;
+    qelement.priority = priority;
+    nodetracker.push_back(qelement);
+  }
+  ;
+  //Returns the top element of the queue.
+  //Input: NONE
+  //Output:
+  //Return the Node object with the minimal priority or weight.
+  //Calling this function won't remove top node from queue
+  const Node* top() {
+    make_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
+    NodePriority topnode = nodetracker.front();
+    return topnode.node;
+  }
+  ;
+  //Return the number of queue_elements.
+  //Input: NONE
+  //Output:
+  //The size of current priority queue
+  unsigned size() {
+    return nodetracker.size();
+  }
+  ;
 };
 
 #endif /* PRIORITYQUEUE_H_ */
