@@ -7,22 +7,20 @@
 #ifndef GRAPH_H_
 #define GRAPH_H_
 
-#include <iostream>
+#include <list>
+#include <vector>
+#include <string>
 #include <iomanip>
 #include <iterator>
-#include <list>
-#include <cstring>
-#include <vector>
-#include <cassert>
 #include <algorithm>
+#include <iostream>
 
-/*TODO: Make Node structure as private member of Graph to gain the better encapsulation.
- * Node structure is used to hold the vertex information which contains:
- *
- * To generate a Node uses string type as its label and sample usage of initialization:
- * Node<string, double> node;
- *
- */
+#include <cstring>
+#include <cassert>
+#include <cstdlib>
+
+#include "PlainParser.h"
+
 template<class Type, class Val>
 struct Node {
   int vertexindex;  //an unique identifier starting from 1 to the number of vertices, automatically assigned when constructing the graph class
@@ -63,9 +61,14 @@ struct Node {
  */
 template<class Type, class Val>
 class Graph {
-  typedef struct Node<Type, Val> Node;
-
+  typedef Node<Type, Val> Node;
  private:
+  /* Node structure is used to hold the vertex information which contains:
+   *
+   * To generate a Node uses string type as its label and sample usage of initialization:
+   * Node<string, double> node;
+   *
+   */
   unsigned numofvertices;  //size of Nodes or Vertex in Graph
   unsigned numofedges;  //size of Edges in Graph
   float density;  //density of connected edges to generate the random Graph
@@ -75,6 +78,20 @@ class Graph {
   Val mindistance;
   ;  //hold the minimal distance which should equal to 1
   bool isundirected;  //indicator for a undirected graph
+
+  struct MyTransfom {
+   public:
+    Val operator()(const std::string str) {
+      Val value = NULL;
+      if (typeid(Val) == typeid(int)) {
+        value = static_cast<Val>(atoi(str.c_str()));
+      } else if (typeid(Val) == typeid(double)
+          || typeid(Val) == typeid(float)) {
+        value = static_cast<Val>(atof(str.c_str()));
+      }
+      return value;
+    }
+  };
 
   //Private function to initialize the members of Graph in constructors
   void initGraph() {
@@ -262,28 +279,55 @@ class Graph {
     this->numofvertices = numofvertices;
     toListGraphRep();
   }
-  //Get the underlying adjacent list representation of vertices.
+  //Constructor to generate a graph according to the input file
+  //TODO modify to pass an AbstractParser type
+  Graph(PlainParser& parser) {
+    initGraph();
+    std::vector<std::vector<std::string> > graphfromtext = parser.getData();
+    int graphsize = atoi(graphfromtext[0][0].c_str());
+    if (graphsize <= 0)
+      return;
+
+    this->numofvertices = graphsize;
+
+    //initialize vector
+    repmatrix.reserve(graphsize);
+    for (unsigned i = 0; i < numofvertices; i++) {
+      std::vector<Val> vec(numofvertices, 0);
+      repmatrix.push_back(vec);
+    }
+
+    for (unsigned i = 1; i < graphfromtext.size(); i++) {
+      std::vector<Val> vecTrans(graphfromtext[i].size());
+      transform(graphfromtext[i].begin(), graphfromtext[i].end(),
+                vecTrans.begin(), MyTransfom());
+      assert(graphfromtext[i].size() == 3);
+      repmatrix[vecTrans[0]][vecTrans[1]] = vecTrans[2];
+    }
+    toListGraphRep();
+  }
+//Get the underlying adjacent list representation of vertices.
   inline const std::vector<Node> getAllVertices() {
     return std::vector<Node>(repgraph);
   }
-  //Get the size of vertices
+//Get the size of vertices
   inline int getSizeOfVertices() {
     return repgraph.size() == numofvertices ? numofvertices : -1;
   }
   ;
-  //Get the size of edges
+//Get the size of edges
   inline int getSizeOfEdges() {
     return numofedges;
   }
   ;
-  //Test if two nodes is adjacent
-  //Input:
-  //idxofnodea: the vertexindex of first node
-  //idxofnodeb: the vertexindex of second node
-  //Output:
-  //The boolean variable to indicate if the specified two nodes are connected.
-  //TRUE: is connected or at adjacency
-  //FALSE: is not connected or not at adjacency
+//Test if two nodes is adjacent
+//Input:
+//idxofnodea: the vertexindex of first node
+//idxofnodeb: the vertexindex of second node
+//Output:
+//The boolean variable to indicate if the specified two nodes are connected.
+//TRUE: is connected or at adjacency
+//FALSE: is not connected or not at adjacency
   bool isAdjacent(int idxofnodea, int idxofnodeb) {
     Node* nodea = findNodeByIndex(idxofnodea);
     Node* nodeb = findNodeByIndex(idxofnodeb);
@@ -296,11 +340,11 @@ class Graph {
     return nodesearched == neigh;
   }
   ;
-  //Return the neighbors of a node
-  //Input:
-  //idxofnode: the vertexindex of the inquiring node
-  //Output:
-  //The vector which stores the vertexindices of the neighbors of the inquiring node
+//Return the neighbors of a node
+//Input:
+//idxofnode: the vertexindex of the inquiring node
+//Output:
+//The vector which stores the vertexindices of the neighbors of the inquiring node
   std::vector<int> getNeighbors(int idxofnode) {
     Node* node = findNodeByIndex(idxofnode);
 
@@ -312,12 +356,12 @@ class Graph {
     return neighindicesvec;
   }
   ;
-  //Add Edge between the two specified nodes with the specified value
-  //Input:
-  //indexofsource: the vertexindex of the source node
-  //indexofdest: the vertexindex of the destination node
-  //value: the weight of intending adding edge
-  //Output: NONE
+//Add Edge between the two specified nodes with the specified value
+//Input:
+//indexofsource: the vertexindex of the source node
+//indexofdest: the vertexindex of the destination node
+//value: the weight of intending adding edge
+//Output: NONE
   void addEdge(int indexofsource, int indexofdest, Val value) {
     Node* nodefrom = findNodeByIndex(indexofsource);
     Node* nodeto = findNodeByIndex(indexofdest);
@@ -337,11 +381,11 @@ class Graph {
     numofedges++;
   }
   ;
-  //Delete the edge between the specified nodes
-  //Input:
-  //indexofnodefrom: the vertexindex of the source node
-  //indexofnodeto, the vertexindex of the destination node
-  //Output: None
+//Delete the edge between the specified nodes
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexofnodeto, the vertexindex of the destination node
+//Output: None
   void deleteEdge(int indexofnodefrom, int indexofnodeto) {
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
       Node* nodefrom = findNodeByIndex(indexofnodefrom);
@@ -382,31 +426,31 @@ class Graph {
     }
   }
   ;
-  //Get the value of the Node
-  //Input:
-  //indexofnode: the vertexindex of the inquiring node
-  //Output:
-  //The label or representing value of the inquiring node
+//Get the value of the Node
+//Input:
+//indexofnode: the vertexindex of the inquiring node
+//Output:
+//The label or representing value of the inquiring node
   Type getNodeValue(int indexofnode) {
     Node node = repgraph[indexofnode];
     return node.vertexvalue;
   }
   ;
-  //Set value of the Node
-  //Input:
-  //indexofnode: the vertexindex of the inquiring node
-  //value: The label or the representing value of the inquiring node
-  //Output: None
+//Set value of the Node
+//Input:
+//indexofnode: the vertexindex of the inquiring node
+//value: The label or the representing value of the inquiring node
+//Output: None
   void setNodeValue(int indexofnode, Val value) {
     repgraph[indexofnode].vertexvalue = value;
   }
   ;
-  //Get edge value between specified two nodes
-  //Input:
-  //indexofnodefrom: the vertexindex of the source node
-  //indexOfnodeto: the vertexindex of the destination node
-  //Output:
-  //Return the weight of edge between the input nodes
+//Get edge value between specified two nodes
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexOfnodeto: the vertexindex of the destination node
+//Output:
+//Return the weight of edge between the input nodes
   Val getEdgeValue(int indexofnodefrom, int indexofnodeto) {
     Val value = NULL;
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
@@ -426,12 +470,12 @@ class Graph {
     return value;
   }
   ;
-  //Set the edge between specified two nodes with the specified value
-  //Input:
-  //indexofnodefrom: the vertexindex of the source node
-  //indexofnodeto: the vertexindex of the destination node
-  //value: the weight of edge
-  //Output: NONE
+//Set the edge between specified two nodes with the specified value
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexofnodeto: the vertexindex of the destination node
+//value: the weight of edge
+//Output: NONE
   void setEdgeValue(int indexofnodefrom, int indexofnodeto, Val value) {
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
       Node* nodefrom = findNodeByIndex(indexofnodefrom);
@@ -466,11 +510,11 @@ class Graph {
     }
   }
   ;
-  //deconstructor
+//deconstructor
   virtual ~Graph() {
   }
   ;
-  //Print the underlying adjacent matrix representation
+//Print the underlying adjacent matrix representation
   bool printRepGraph() {
     std::cout << "size of vertices = " << repgraph.size() << "\n";
     toArrayGraphRep();
@@ -487,6 +531,14 @@ class Graph {
       std::cout << "\n";
     }
     return true;
+  }
+
+  const std::vector<std::vector<Val> >& getRepmatrix() const {
+    return repmatrix;
+  }
+
+  void setRepmatrix(const std::vector<std::vector<Val> >& repmatrix) {
+    this->repmatrix = repmatrix;
   }
   ;
 
