@@ -7,13 +7,15 @@
 #ifndef GRAPH_H_
 #define GRAPH_H_
 
+#include <map>
 #include <list>
 #include <vector>
 #include <string>
+#include <utility>
 #include <iomanip>
 #include <iterator>
-#include <algorithm>
 #include <iostream>
+#include <algorithm>
 
 #include <cstring>
 #include <cassert>
@@ -21,19 +23,6 @@
 
 #include "PlainParser.h"
 
-template<class Type, class Val>
-struct Node {
-  int vertexindex;  //an unique identifier starting from 1 to the number of vertices, automatically assigned when constructing the graph class
-  unsigned numofneighbors;  //the number of connected vertices
-  Type vertexvalue;  //the label or value of the vertex which should be descriptive such as string. But users are free to specify their own type in template syntax.
-
-  //TODO: will combine edges and neighbors lists to form a better data structure
-  //a double linked list to store the weight of the connected edge.
-  //The type of edges are user defined but recommend to restrict to numeric type such as double, float and integer
-
-  std::list<Val> edges;
-  std::list<Node*> neighbors;  //a double linked list to store the connected node.
-};
 /*
  * Graph Class is used as a representation of graph. It contain three constructor:
  * Graph(): default constructor which simply a empty graph with all its members initialized as default value.
@@ -59,26 +48,37 @@ struct Node {
  *   }
  * Graph<string, double> testDG(testDouble, 6);
  */
+//TODO add directed graph support and correct edge calculations
 template<class Type, class Val>
 class Graph {
-  typedef Node<Type, Val> Node;
  private:
+  /* Edge structure
+   *
+   */
+  struct Edge {
+    int indexoffromnode;
+    int indexoftonode;
+    Val weight;
+  };
   /* Node structure is used to hold the vertex information which contains:
    *
    * To generate a Node uses string type as its label and sample usage of initialization:
    * Node<string, double> node;
    *
    */
-  unsigned numofvertices;  //size of Nodes or Vertex in Graph
-  unsigned numofedges;  //size of Edges in Graph
-  float density;  //density of connected edges to generate the random Graph
-  float distance;  //maximal distance to generate random Graph
-  std::vector<Node> repgraph;  //adjacent list implementation of Graph representation
-  std::vector<std::vector<Val> > repmatrix;  //adjacent matrix implementation of Graph representation
-  Val mindistance;
-  ;  //hold the minimal distance which should equal to 1
-  bool isundirected;  //indicator for a undirected graph
+  struct Node {
+    int vertexindex;  //an unique identifier starting from 1 to the number of vertices, automatically assigned when constructing the graph class
+    unsigned numofneighbors;  //the number of connected vertices
+    Type vertexvalue;  //the label or value of the vertex which should be descriptive such as string. But users are free to specify their own type in template syntax.
 
+    //TODO: will combine edges and neighbors lists to form a better data structure
+    //a double linked list to store the weight of the connected edge.
+    //The type of edges are user defined but recommend to restrict to numeric type such as double, float and integer
+
+    //std::list<Val> edges;
+    //std::list<Node*> neighbors;  //a double linked list to store the connected node.
+    std::list<Edge> neighbors;
+  };
   struct MyTransfom {
    public:
     Val operator()(const std::string str) {
@@ -92,12 +92,21 @@ class Graph {
       return value;
     }
   };
+  unsigned numofvertices;  //size of Nodes or Vertex in Graph
+  unsigned numofedges;  //size of Edges in Graph
+  float density;  //density of connected edges to generate the random Graph
+  float distance;  //maximal distance to generate random Graph
+  std::vector<Node> repgraph;  //adjacent list implementation of Graph representation
+  std::vector<std::vector<Val> > repmatrix;  //adjacent matrix implementation of Graph representation
+  Val mindistance;
+  ;  //hold the minimal distance which should equal to 1
+  bool isundirected;  //indicator for a undirected graph
 
   //Private function to initialize the members of Graph in constructors
   void initGraph() {
-    numofedges = 0;
-    distance = 0.0;
     density = 0;
+    distance = 0.0;
+    numofedges = 0;
     numofvertices = 0;
     isundirected = true;
     mindistance = static_cast<Val>(1);
@@ -111,12 +120,16 @@ class Graph {
   ;
   //Implementation of Monte Carlo simulation
   void randomGraphGenerator() {
+    if (!this->isundirected) {
+      std::cerr << "random generate is not supported directed graph now!\n";
+      return;
+    }
     //initialize random seed with current time
     srand(clock());
 
     for (typename std::vector<Node>::iterator iterself = repgraph.begin();
         iterself != repgraph.end(); ++iterself) {  // for each vertex
-      Node* n = &(*iterself);
+      Node* nodefrom = &(*iterself);
       typename std::vector<Node>::iterator iterneigh = iterself;
       iterneigh++;
 
@@ -131,21 +144,27 @@ class Graph {
 
           assert(val >= mindistance && val <= distance);
 
-          (n->neighbors).push_back(&(*iterneigh));
-          (n->edges).push_back(val);
+          Node* nodeto = &(*iterneigh);
+
+          Edge edge;
+          edge.indexoffromnode = nodefrom->vertexindex;
+          edge.indexoftonode = nodeto->vertexindex;
+          edge.weight = val;
+          (nodefrom->neighbors).push_back(edge);
 
           //undirected graph, need a symmetric assignment
-          Node* neigh = &(*iterneigh);
-          (neigh->neighbors).push_back(&(*iterself));
-          (neigh->edges).push_back(val);
-
-          numofedges++;
+          Edge symedge;
+          symedge.indexoffromnode = nodefrom->vertexindex;
+          symedge.indexoftonode = nodeto->vertexindex;
+          symedge.weight = val;
+          (nodeto->neighbors).push_back(symedge);
+          this->numofedges++;
         }
       }
-      n->numofneighbors = (n->neighbors.size());
+      nodefrom->numofneighbors = (nodefrom->neighbors.size());
       assert(
-          n->numofneighbors >= 0 && n->numofneighbors < numofvertices
-              && n->numofneighbors == n->edges.size());
+          nodefrom->numofneighbors >= 0
+              && nodefrom->numofneighbors < numofvertices);
     }
   }
   ;
@@ -165,16 +184,14 @@ class Graph {
     for (typename std::vector<Node>::iterator iterself = repgraph.begin();
         iterself != repgraph.end(); ++iterself) {
       Node* node = &(*iterself);
-      std::list<Node*> neighs = node->neighbors;
-      std::list<Val> edges = node->edges;
+      std::list<Edge> neighs = node->neighbors;
       int idxofself = node->vertexindex - 1;
-      typename std::list<Node*>::iterator iterneigh = neighs.begin();
-      typename std::list<Val>::iterator iteredge = edges.begin();
-      for (; iterneigh != neighs.end(); ++iterneigh, ++iteredge) {
-        int idxofneigh = (*iterneigh)->vertexindex - 1;
-        repmatrix[idxofself][idxofneigh] = (*iteredge);
+      typename std::list<Edge>::iterator iterneigh = neighs.begin();
+      for (; iterneigh != neighs.end(); ++iterneigh) {
+        int idxofneigh = (*iterneigh).indexoftonode - 1;
+        repmatrix[idxofself][idxofneigh] = (*iterneigh).weight;
         if (isundirected)
-          repmatrix[idxofneigh][idxofself] = (*iteredge);
+          repmatrix[idxofneigh][idxofself] = (*iterneigh).weight;
       }
     }
   }
@@ -195,19 +212,26 @@ class Graph {
       for (unsigned j = node->vertexindex; j < numofvertices; j++) {
         Node* neigh = &(*iterneigh);
         if (repmatrix[node->vertexindex - 1][j] > 0) {
+          Edge edge;
+          edge.indexoffromnode = node->vertexindex;
+          edge.indexoftonode = neigh->vertexindex;
+          edge.weight = repmatrix[node->vertexindex - 1][j];
           //assign neighbors to the node
-          (node->neighbors).push_back(neigh);
-          (node->edges).push_back(repmatrix[node->vertexindex - 1][j]);
+          (node->neighbors).push_back(edge);
 
           if (isundirected) {
             //symmetric assignment to node's neighbor for undirected graph
-            (neigh->neighbors).push_back(node);
-            (neigh->edges).push_back(repmatrix[node->vertexindex - 1][j]);
+            Edge symedge;
+            symedge.indexoffromnode = neigh->vertexindex;
+            symedge.indexoftonode = node->vertexindex;
+            symedge.weight = repmatrix[node->vertexindex - 1][j];
+            //assign neighbors to the node
+            (neigh->neighbors).push_back(symedge);
           }
+          this->numofedges++;
         }
         iterneigh++;
       }
-      assert((node->neighbors).size() == (node->edges).size());
       node->numofneighbors = (node->neighbors).size();
     }
   }
@@ -220,25 +244,23 @@ class Graph {
 
   //Provide the functionality to retrieve the Node pointer of a connected node given the source node object
   //and the index of connected node
-  Node* findNeighborByIndex(Node node, int index) {
-    std::list<Node*> neighbors = node.neighbors;
-    for (typename std::list<Node*>::iterator iter = neighbors.begin();
+  int findNeighborByIndex(Node* node, int index) {
+    std::list<Edge> neighbors = node->neighbors;
+    for (typename std::list<Edge>::iterator iter = neighbors.begin();
         iter != neighbors.end(); ++iter) {
-      if (index == (*iter)->vertexindex)
-        return (*iter);
+      if (index == (*iter).indexoftonode)
+        return (*iter).indexoftonode;
     }
-    return NULL;
+    return 0;
   }
   //Provide the functionality to retrieve edge of a neighboring node given the source node object
   //and the index of connected node
-  Val findEdgeByIndex(Node node, int index) {
-    std::list<Node*> neighbors = node.neighbors;
-    std::list<Val> edges = node.edges;
-    typename std::list<Node*>::iterator iterneigh = neighbors.begin();
-    typename std::list<Val>::iterator iteredge = edges.begin();
-    for (; iterneigh != neighbors.end(); ++iterneigh, ++iteredge) {
-      if (index == (*iterneigh)->vertexindex) {
-        return (*iteredge);
+  Val findEdgeByIndex(Node* node, int index) {
+    std::list<Edge> neighbors = node->neighbors;
+    typename std::list<Edge>::iterator iterneigh = neighbors.begin();
+    for (; iterneigh != neighbors.end(); ++iterneigh) {
+      if (index == (*iterneigh).indexoftonode) {
+        return (*iterneigh).weight;
       }
     }
     return NULL;
@@ -306,10 +328,20 @@ class Graph {
     }
     toListGraphRep();
   }
-//Get the underlying adjacent list representation of vertices.
-  inline const std::vector<Node> getAllVertices() {
-    return std::vector<Node>(repgraph);
+  //Greate a empty graph
+  Graph(unsigned numofvertices) {
+    initGraph();
+    this->numofvertices = numofvertices;
+    for (unsigned i = 0; i < numofvertices; i++) {
+      Node node;
+      initNode(node, i);
+      repgraph.push_back(node);
+    }
   }
+  //deconstructor
+  virtual ~Graph() {
+  }
+  ;
 //Get the size of vertices
   inline int getSizeOfVertices() {
     return repgraph.size() == numofvertices ? numofvertices : -1;
@@ -328,16 +360,10 @@ class Graph {
 //The boolean variable to indicate if the specified two nodes are connected.
 //TRUE: is connected or at adjacency
 //FALSE: is not connected or not at adjacency
-  bool isAdjacent(int idxofnodea, int idxofnodeb) {
-    Node* nodea = findNodeByIndex(idxofnodea);
-    Node* nodeb = findNodeByIndex(idxofnodeb);
-
-    Node* nodesearched = (
-        nodea->numofneighbors < nodeb->numofneighbors ? nodeb : nodea);
-    Node* node = (nodea->numofneighbors < nodeb->numofneighbors ? nodea : nodeb);
-
-    Node* neigh = findNeighborByIndex(*node, nodesearched->vertexindex);
-    return nodesearched == neigh;
+  bool isAdjacent(int idxofnodefrom, int idxofnodeto) {
+    Node* nodefrom = findNodeByIndex(idxofnodefrom);
+    int neigh = findNeighborByIndex(nodefrom, idxofnodeto);
+    return idxofnodeto == neigh;
   }
   ;
 //Return the neighbors of a node
@@ -347,15 +373,37 @@ class Graph {
 //The vector which stores the vertexindices of the neighbors of the inquiring node
   std::vector<int> getNeighbors(int idxofnode) {
     Node* node = findNodeByIndex(idxofnode);
-
     std::vector<int> neighindicesvec;
-    std::list<Node*> neigh = node->neighbors;
-    for (typename std::list<Node*>::iterator iter = neigh.begin();
+    std::list<Edge> neigh = node->neighbors;
+    for (typename std::list<Edge>::iterator iter = neigh.begin();
         iter != neigh.end(); ++iter)
-      neighindicesvec.push_back((*iter)->vertexindex);
-    return neighindicesvec;
+      neighindicesvec.push_back((*iter).indexoftonode);
+    return std::vector<int>(neighindicesvec);
   }
   ;
+  //Return the edges of neighbors of a node
+  //Input:
+  //idxofnode: the vertexindex of the inquiring node
+  //Output:
+  //The list which stores the edges of the neighbors of the inquiring node
+  const std::vector<Val> getNeighborsEdgeValues(int idxofnode) {
+    Node* node = findNodeByIndex(idxofnode);
+    std::vector<Val> vec;
+    std::list<Edge> neigh = node->neighbors;
+    for (typename std::list<Edge>::iterator iter = neigh.begin();
+        iter != neigh.end(); ++iter)
+      vec.push_back((*iter).weight);
+    return std::vector<Val>(vec);
+  }
+  //Return the number of neighbors of a node
+  //Input:
+  //idxofnode: the vertexindex of the inquiring node
+  //Output:
+  //The size of conneted neighbors
+  const int getNeighborsSize(int idxofnode) {
+    Node* node = findNodeByIndex(idxofnode);
+    return node->numofneighbors;
+  }
 //Add Edge between the two specified nodes with the specified value
 //Input:
 //indexofsource: the vertexindex of the source node
@@ -366,14 +414,20 @@ class Graph {
     Node* nodefrom = findNodeByIndex(indexofsource);
     Node* nodeto = findNodeByIndex(indexofdest);
 
-    (nodefrom->neighbors).push_back(nodeto);
-    (nodefrom->edges).push_back(value);
+    Edge edge;
+    edge.indexoffromnode = indexofsource;
+    edge.indexoftonode = indexofdest;
+    edge.weight = value;
+    (nodefrom->neighbors).push_back(edge);
     nodefrom->numofneighbors++;
 
     //symmetric assignment for the undirected graph
     if (isundirected) {
-      (nodeto->neighbors).push_back(nodefrom);
-      (nodeto->edges).push_back(value);
+      Edge symedge;
+      symedge.indexoffromnode = indexofsource;
+      symedge.indexoftonode = indexofdest;
+      symedge.weight = value;
+      (nodeto->neighbors).push_back(symedge);
 
       nodeto->numofneighbors++;
     }
@@ -391,16 +445,13 @@ class Graph {
       Node* nodefrom = findNodeByIndex(indexofnodefrom);
       Node* nodeto = findNodeByIndex(indexofnodeto);
 
-      std::list<Node*>* neighbors = &(nodefrom->neighbors);
-      std::list<Val>* edges = &(nodefrom->edges);
+      std::list<Edge>* neighbors = &(nodefrom->neighbors);
 
-      typename std::list<Node*>::iterator iterneigh = neighbors->begin();
-      typename std::list<Val>::iterator iteredge = edges->begin();
+      typename std::list<Edge>::iterator iterneigh = neighbors->begin();
 
-      for (; iterneigh != neighbors->end(); ++iterneigh, ++iteredge) {
-        if (nodeto->vertexindex == (*iterneigh)->vertexindex) {
+      for (; iterneigh != neighbors->end(); ++iterneigh) {
+        if (nodeto->vertexindex == (*iterneigh).indexoftonode) {
           neighbors->erase(iterneigh);
-          edges->erase(iteredge);
           nodefrom->numofneighbors--;
           break;
         }
@@ -409,14 +460,11 @@ class Graph {
       //symmetric assignment for undirected graph
       if (isundirected) {
         neighbors = &(nodeto->neighbors);
-        edges = &(nodeto->edges);
         iterneigh = neighbors->begin();
-        iteredge = edges->begin();
 
-        for (; iterneigh != neighbors->end(); ++iterneigh, ++iteredge) {
-          if (nodefrom->vertexindex == (*iterneigh)->vertexindex) {
+        for (; iterneigh != neighbors->end(); ++iterneigh) {
+          if (nodefrom->vertexindex == (*iterneigh).indexoftonode) {
             neighbors->erase(iterneigh);
-            edges->erase(iteredge);
             nodeto->numofneighbors--;
             break;
           }
@@ -455,17 +503,7 @@ class Graph {
     Val value = NULL;
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
       Node* nodefrom = findNodeByIndex(indexofnodefrom);
-      Node* nodeto = findNodeByIndex(indexofnodeto);
-      Node* nodesearched, *node;
-      if (nodefrom->numofneighbors < nodeto->numofneighbors) {
-        node = nodefrom;
-        nodesearched = nodeto;
-      } else {
-        node = nodeto;
-        nodesearched = nodefrom;
-      }
-
-      return findEdgeByIndex(*node, nodesearched->vertexindex);
+      return findEdgeByIndex(nodefrom, indexofnodeto);
     }
     return value;
   }
@@ -481,14 +519,13 @@ class Graph {
       Node* nodefrom = findNodeByIndex(indexofnodefrom);
       Node* nodeto = findNodeByIndex(indexofnodeto);
 
-      std::list<Node*>* neighbors = &(nodefrom->neighbors);
-      std::list<Val>* edges = &(nodefrom->edges);
-      typename std::list<Node*>::iterator iterneigh = neighbors->begin();
-      typename std::list<Val>::iterator iteredge = edges->begin();
+      std::list<Edge>* neighbors = &(nodefrom->neighbors);
 
-      for (; iterneigh != neighbors->end(); ++iterneigh, ++iteredge) {
-        if (nodeto->vertexindex == (*iterneigh)->vertexindex) {
-          (*iteredge) = value;
+      typename std::list<Edge>::iterator iterneigh = neighbors->begin();
+
+      for (; iterneigh != neighbors->end(); ++iterneigh) {
+        if (nodeto->vertexindex == (*iterneigh).indexoftonode) {
+          (*iterneigh).weight = value;
           break;
         }
       }
@@ -496,13 +533,11 @@ class Graph {
       //symmetric assignment for undirected graph
       if (isundirected) {
         neighbors = &(nodeto->neighbors);
-        edges = &(nodeto->edges);
         iterneigh = neighbors->begin();
-        iteredge = edges->begin();
 
-        for (; iterneigh != neighbors->end(); ++iterneigh, ++iteredge) {
-          if (nodefrom->vertexindex == (*iterneigh)->vertexindex) {
-            (*iteredge) = value;
+        for (; iterneigh != neighbors->end(); ++iterneigh) {
+          if (nodefrom->vertexindex == (*iterneigh).indexoftonode) {
+            (*iterneigh).weight = value;
             break;
           }
         }
@@ -510,10 +545,7 @@ class Graph {
     }
   }
   ;
-//deconstructor
-  virtual ~Graph() {
-  }
-  ;
+
 //Print the underlying adjacent matrix representation
   bool printRepGraph() {
     std::cout << "size of vertices = " << repgraph.size() << "\n";
@@ -541,6 +573,40 @@ class Graph {
     this->repmatrix = repmatrix;
   }
   ;
-
+  std::map<int, int> getAllEdgesValues() {
+    std::map<int, int> mapalledges;
+    for (unsigned i = 1; i <= this->numofvertices; i++) {
+      std::list<Edge> neigh = repgraph[i - 1].neighbors;
+      typename std::list<Edge>::iterator iteredge = neigh.begin();
+      for (; iteredge != neigh.end(); ++iteredge) {
+        assert(static_cast<int>(i) == (*iteredge).indexoffromnode);
+        if (isundirected
+            && (*iteredge).indexoffromnode > (*iteredge).indexoftonode)
+          continue;
+        int key = ((*iteredge).indexoffromnode - 1) * this->numofvertices
+            + ((*iteredge).indexoftonode - 1);
+        assert(
+            key >= 0
+                && key
+                    <= static_cast<int>(this->numofvertices
+                        * this->numofvertices)
+                && (key % static_cast<int>(this->numofvertices + 1)) != 0);
+        //eliminate the redundant edges
+        mapalledges.insert(make_pair(key, (*iteredge).weight));
+      }
+    }
+    return std::map<int, int>(mapalledges);
+  }
+//TODO separate this method in the inherited tree structure
+//should be specific to tree structure
+//DFS implementation for undirected graph. If DFS found a visited nodes, then loop detected.
+//Input:
+//indexofroot: index of root
+//Output:
+//a boolean value to indicate if there's a loop in there
+  bool isLoopExisting(int indexofroot) {
+    bool isloopexisting = false;
+    return isloopexisting;
+  }
 };
 #endif /* GRAPH_H_ */

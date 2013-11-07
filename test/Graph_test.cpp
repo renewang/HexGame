@@ -6,6 +6,7 @@
 // Description : Google Test for Dijkstra and basic graph unit tests
 //============================================================================
 #include <iostream>
+#include <map>
 #include "gtest/gtest.h"
 #include "Graph.h"
 #include "ShortestPathAlgo.h"
@@ -86,31 +87,32 @@ class GraphTest : public ::testing::Test {
 };
 TEST_F(GraphTest,PriorityQCheck) {
   Graph<string, int> randomG(5, 0.5, 10);
-  const vector<Node<string, int> > vertices = randomG.getAllVertices();
-  PriorityQueue<string, int> testPQ;
+  vector<int> vertices(randomG.getSizeOfVertices());
+
+  for (unsigned i = 1; i <= vertices.size(); i++)
+    vertices[i - 1] = i;
+
+  PriorityQueue<int, int> testPQ(vertices.size());
 
   for (unsigned i = 0; i < vertices.size(); i++)
-    testPQ.insert(&(vertices[i]), 10 - i);
+    testPQ.insert(vertices[i], 10 - i);
 
   // test PriorityQueue contains
-  EXPECT_TRUE(testPQ.contains(&(vertices[vertices.size() - 1])));
-
-  Node<string, int> node;
-  node.vertexindex = 100;
-  EXPECT_FALSE(testPQ.contains(&node));
+  EXPECT_TRUE(testPQ.contains(vertices[vertices.size() - 1]));
+  EXPECT_FALSE(testPQ.contains(100));
 
   // test PriorityQueue top and minPriority
-  Node<string, int>* minNode = const_cast<Node<string, int>*>(testPQ.top());
-  EXPECT_EQ(5, minNode->vertexindex);
+  int minNode = testPQ.top();
+  EXPECT_EQ(5, minNode);
   for (unsigned i = 0; i < vertices.size(); i++) {
-    EXPECT_TRUE(testPQ.chgPrioirity(&(vertices[i]), 5 - i));
-    minNode = const_cast<Node<string, int>*>(testPQ.top());
-    EXPECT_EQ((int )i + 1, minNode->vertexindex);
+    EXPECT_TRUE(testPQ.chgPrioirity(vertices[i], 5 - i));
+    minNode = testPQ.top();
+    EXPECT_EQ((int )i + 1, minNode);
   }
-  minNode = const_cast<Node<string, int>*>(testPQ.minPrioirty());
-  EXPECT_EQ(5, minNode->vertexindex);
-  minNode = const_cast<Node<string, int>*>(testPQ.top());
-  EXPECT_EQ(4, minNode->vertexindex);
+  minNode = testPQ.minPrioirty();
+  EXPECT_EQ(5, minNode);
+  minNode = testPQ.top();
+  EXPECT_EQ(4, minNode);
 
 }
 TEST_F(GraphTest,BasicGraphCheck) {
@@ -140,16 +142,12 @@ TEST_F(GraphTest,BasicGraphCheck) {
 
   //case 1: test the Dijkstra algorithm, for a complete graph
   ShortestPathAlgo<int, int> algo(testG);
-  list<Node<int, int> > shortestPath = algo.path(1, 6);
+  list<int> shortestPath = algo.path(1, 6);
   int pathExpect[2] = { 1, 6 };
   vector<int> shortestPathExpect;
   shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect,
                             pathExpect + 2);
-  vector<int> shortestPathActual;
-  for (list<Node<int, int> >::iterator iter = shortestPath.begin();
-      iter != shortestPath.end(); ++iter) {
-    shortestPathActual.push_back((*iter).vertexindex);
-  }
+  vector<int> shortestPathActual(shortestPath.begin(), shortestPath.end());
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
   EXPECT_EQ(5, algo.path_size(1, 6));
 
@@ -159,12 +157,12 @@ TEST_F(GraphTest,BasicGraphCheck) {
    */
 
   int pathSize = 0;
-  list<Node<int, int> >::iterator iter = shortestPath.begin();
-  int from = (*iter).vertexindex;
+  list<int>::iterator iter = shortestPath.begin();
+  int from = *iter;
   ++iter;
   for (; iter != shortestPath.end(); ++iter) {
-    pathSize += testG.getEdgeValue(from, (*iter).vertexindex);
-    from = (*iter).vertexindex;
+    pathSize += testG.getEdgeValue(from, *iter);
+    from = *iter;
   }
   EXPECT_EQ(5, pathSize);
 
@@ -188,9 +186,9 @@ TEST_F(GraphTest,BasicGraphCheck) {
   int pathExpect2[3] = { 1, 2, 6 };
   shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect2,
                             pathExpect2 + 3);
-  for (list<Node<int, int> >::iterator iter = shortestPath.begin();
+  for (list<int>::iterator iter = shortestPath.begin();
       iter != shortestPath.end(); ++iter) {
-    shortestPathActual.push_back((*iter).vertexindex);
+    shortestPathActual.push_back(*iter);
   }
   EXPECT_EQ(shortestPathExpect, shortestPathActual);
   EXPECT_EQ(5, algo.path_size(1, 6));
@@ -208,9 +206,9 @@ TEST_F(GraphTest,BasicGraphCheck) {
   int pathExpect3[3] = { 1, 3, 6 };
   shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect3,
                             pathExpect3 + 3);
-  for (list<Node<int, int> >::iterator iter = shortestPath.begin();
+  for (list<int>::iterator iter = shortestPath.begin();
       iter != shortestPath.end(); ++iter) {
-    shortestPathActual.push_back((*iter).vertexindex);
+    shortestPathActual.push_back(*iter);
   }
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
   EXPECT_EQ(5, algo.path_size(1, 6));
@@ -229,9 +227,9 @@ TEST_F(GraphTest,BasicGraphCheck) {
     shortestPathExpect.clear();
     shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect3,
                               pathExpect3 + 3);
-    for (list<Node<int, int> >::iterator iter = shortestPath.begin();
+    for (list<int>::iterator iter = shortestPath.begin();
         iter != shortestPath.end(); ++iter) {
-      shortestPathActual.push_back((*iter).vertexindex);
+      shortestPathActual.push_back(*iter);
     }
     EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
     EXPECT_EQ(5, algo.path_size(1, 6));
@@ -246,15 +244,15 @@ TEST_F(GraphTest,BasicGraphCheck) {
   shortestPathExpect.clear();
   shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect3,
                             pathExpect3 + 3);
-  for (list<Node<int, int> >::iterator iter = shortestPath.begin();
+  for (list<int>::iterator iter = shortestPath.begin();
       iter != shortestPath.end(); ++iter) {
-    shortestPathActual.push_back((*iter).vertexindex);
+    shortestPathActual.push_back(*iter);
   }
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
   EXPECT_EQ(5, algo.path_size(1, 6));
   EXPECT_EQ(0, algo.path_size(1, 2));
   shortestPath = algo.path(1, 2);
-  EXPECT_EQ(1, shortestPath.size());
+  EXPECT_EQ(1, static_cast<int>(shortestPath.size()));
   EXPECT_FLOAT_EQ(14.0 / 4.0, algo.averagePathSize(1));
 
   EXPECT_TRUE(testG.printRepGraph());
@@ -262,27 +260,27 @@ TEST_F(GraphTest,BasicGraphCheck) {
 TEST_F(GraphTest, AlternativeGraphCheck) {
   Graph<int, int> testG(testAlter, 6);
   ShortestPathAlgo<int, int> algo(testG);
-  list<Node<int, int> > shortestPath = algo.path(1, 6);
+  list<int> shortestPath = algo.path(1, 6);
   int pathExpect[6] = { 1, 2, 3, 4, 5, 6 };
   vector<int> shortestPathExpect;
   shortestPathExpect.insert(shortestPathExpect.begin(), pathExpect,
                             pathExpect + 6);
   vector<int> shortestPathActual;
-  for (list<Node<int, int> >::iterator iter = shortestPath.begin();
+  for (list<int>::iterator iter = shortestPath.begin();
       iter != shortestPath.end(); ++iter) {
-    shortestPathActual.push_back((*iter).vertexindex);
+    shortestPathActual.push_back(*iter);
   }
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
   EXPECT_EQ(5, algo.path_size(1, 6));
 
   Graph<string, double> testDG(testDouble, 6);
   ShortestPathAlgo<string, double> algoD(testDG);
-  list<Node<string, double> > shortestPathD = algoD.path(1, 6);
+  list<int> shortestPathD = algoD.path(1, 6);
 
   shortestPathActual.clear();
-  for (list<Node<string, double> >::iterator iter = shortestPathD.begin();
+  for (list<int>::iterator iter = shortestPathD.begin();
       iter != shortestPathD.end(); ++iter) {
-    shortestPathActual.push_back((*iter).vertexindex);
+    shortestPathActual.push_back(*iter);
   }
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
   EXPECT_FLOAT_EQ(5.0, algoD.path_size(1, 6));
@@ -292,10 +290,13 @@ TEST_F(GraphTest,RandomGraphCheck) {
   Graph<string, int> randomG(50, 0.7, 10);
   ASSERT_EQ(50, randomG.getSizeOfVertices());
 
-  const vector<Node<string, int> > nodes = randomG.getAllVertices();
+  vector<int> nodes(randomG.getSizeOfVertices());
+  for (unsigned i = 0; i < nodes.size(); i++)
+    nodes[i] = (i + 1);
+
   int sumOfNeighbors = 0;
   for (unsigned i = 0; i < nodes.size(); i++)
-    sumOfNeighbors += nodes[i].numofneighbors;
+    sumOfNeighbors += randomG.getNeighborsSize(nodes[i]);
 
   EXPECT_EQ(sumOfNeighbors / 2, randomG.getSizeOfEdges());
   ShortestPathAlgo<string, int> algo(randomG);
@@ -309,17 +310,52 @@ TEST_F(GraphTest,RandomGraphCheck) {
      * additional test to check if the trace back is working (the sum of shortest path list needs to equal to min distance)
      * also test the getEdgeValue for Graph
      */
-    list<Node<string, int> > shortestPath = algo2.path(1, 50);
+    list<int> shortestPath = algo2.path(1, 50);
     int pathSize = 0;
-    list<Node<string, int> >::iterator iter = shortestPath.begin();
-    int from = (*iter).vertexindex;
+    list<int>::iterator iter = shortestPath.begin();
+    int from = *iter;
     ++iter;
     for (; iter != shortestPath.end(); ++iter) {
-      pathSize += randomG2.getEdgeValue(from, (*iter).vertexindex);
-      from = (*iter).vertexindex;
+      pathSize += randomG2.getEdgeValue(from, *iter);
+      from = *iter;
     }
     EXPECT_EQ(pathSize, algo2.path_size(1, 50));
   }
+}
+TEST_F(GraphTest, MSTGraphCheck) {
+  //test the empty graph
+  unsigned sizeoftestgraph = 6;
+  Graph<int, int> emptyG(sizeoftestgraph);
+  for (unsigned i = 1; i <= sizeoftestgraph; i++) {
+    for (unsigned j = 1; j <= sizeoftestgraph; j++) {
+      if (i != j)
+        EXPECT_FALSE(emptyG.isAdjacent(i, j));
+    }
+  }
+  //test the PriorityQueue with getAllEdgesValues()
+  Graph<int, int> testG(testAlter, 6);
+  //key as "(index of from node-1)"x"size of vertices" + "(index of to node-1)"
+  //value as the edge value
+  map<int, int> mapAllEdges = testG.getAllEdgesValues();
+  ASSERT_EQ(testG.getSizeOfEdges(), static_cast<int>(mapAllEdges.size()));
+  PriorityQueue<int, int> edgesQueue(mapAllEdges.size());
+  for (map<int, int>::iterator iter = mapAllEdges.begin();
+      iter != mapAllEdges.end(); ++iter) {
+    edgesQueue.insert((*iter).first, (*iter).second);
+  }
+  for (unsigned k = 1; k < sizeoftestgraph; k++) {
+    for (unsigned i = (sizeoftestgraph - k); i > 0; i--) {
+      //from the smallest value = k*k
+      int minNode = edgesQueue.minPrioirty();
+      int row = minNode / sizeoftestgraph;
+      int col = minNode % sizeoftestgraph;
+      ASSERT_EQ(static_cast<int>(k), (col - row));
+      EXPECT_EQ(static_cast<int>(k * k), testG.getEdgeValue(row + 1, col + 1));
+    }
+  }
+//check if there's a loop
+  for (unsigned i = 0; i < sizeoftestgraph; i++)
+    EXPECT_TRUE(testG.isLoopExisting(i));
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

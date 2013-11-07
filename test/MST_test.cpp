@@ -100,6 +100,9 @@ TEST_F(MinSpanTreeTest,PlainParserCheck) {
     EXPECT_EQ(expectVec, testGsMatrix[i]);
   }
 }
+TEST_F(MinSpanTreeTest,KruskalMSTCheck) {
+
+}
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
