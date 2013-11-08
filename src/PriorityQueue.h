@@ -102,13 +102,6 @@ class PriorityQueue {
     const N minnode = top();
     pop_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
     nodetracker.pop_back();
-    /*if(_DEBUG_){
-      std::cout << "pop min node:" << minnode <<'\n';
-      for(unsigned i = 0; i < nodetracker.size(); i++){
-        std::cout << *(nodetracker[i].node) << " ";
-      }
-      std::cout << '\n';
-    }*/
     return minnode;
   }
   ;

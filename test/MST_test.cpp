@@ -14,16 +14,35 @@
 #include "Graph.h"
 #include "PlainParser.h"
 #include "gtest/gtest.h"
+#include "MinSpanTreeAlgo.h"
 
 using namespace std;
 
 class MinSpanTreeTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
+    testAlter = new int*[6];
+    for (unsigned i = 0; i < 6; i++)
+      testAlter[i] = new int[6];
+
+    for (unsigned k = 0; k < 6; k++) {
+      for (unsigned i = 0; i < (6 - k); i++) {
+        testAlter[i][i + k] = k * k;
+        if (k != 0)
+          testAlter[i + k][i] = k * k;
+      }
+    }
   }
   virtual void TearDown() {
+    if (testAlter != 0) {
+      for (unsigned i = 0; i < 6; i++)
+        delete testAlter[i];
+      delete[] testAlter;
+    }
   }
-};
+  int** testAlter;
+}
+;
 TEST_F(MinSpanTreeTest,PlainParserCheck) {
 
   //test split with default delimiter, space
@@ -85,23 +104,34 @@ TEST_F(MinSpanTreeTest,PlainParserCheck) {
   //test the transformation
   Graph<string, int> testG(parser);
   vector<vector<int> > testGsMatrix = testG.getRepmatrix();
-  int expectRepMatrix[6][6] = {
-      { 0,17, 2, 9,24,28 },
-      {17, 0, 0, 0, 0, 0 },
-      { 2, 0, 0, 0, 0, 0 },
-      { 9, 0, 0, 0, 0, 0 },
-      {24, 0, 0, 0, 0, 0 },
-      {28, 0, 0, 0, 0, 0 } };
+  int expectRepMatrix[6][6] = { { 0, 17, 2, 9, 24, 28 }, { 17, 0, 0, 0, 0, 0 },
+      { 2, 0, 0, 0, 0, 0 }, { 9, 0, 0, 0, 0, 0 }, { 24, 0, 0, 0, 0, 0 }, { 28,
+          0, 0, 0, 0, 0 } };
 
   //test the repGraph representation
   testG.printRepGraph();
-  for(unsigned i = 0; i < 6; i++){
-    vector<int> expectVec(expectRepMatrix[i],expectRepMatrix[i]+6);
+  for (unsigned i = 0; i < 6; i++) {
+    vector<int> expectVec(expectRepMatrix[i], expectRepMatrix[i] + 6);
     EXPECT_EQ(expectVec, testGsMatrix[i]);
   }
 }
 TEST_F(MinSpanTreeTest,KruskalMSTCheck) {
+  unsigned sizeoftestgraph = 6;
+  Graph<string, int> testG(testAlter, sizeoftestgraph);
+  MinSpanTreeAlgo mstalgo(testG);
 
+  mstalgo.calculate();
+
+  EXPECT_EQ(5, mstalgo.getTotalminwieght());
+  Graph<string, int> msttree = mstalgo.getMsttree();
+  string expecttree[6] = { "(1(2(3(4(5(6))))))", "(2(1,3(4(5(6)))))",
+      "(3(4(5(6),1(2)))", "(4(5(6),3(2(1))))", "(5(6,4(3(2(1)))))",
+      "(6(5(4(3(2(1))))))" };
+  for (unsigned i = 1; i <= sizeoftestgraph; i++) {
+    const string printMST = msttree.printMST(i);
+    EXPECT_EQ(expecttree[i], expecttree[i]);
+    EXPECT_EQ(expecttree[i], printMST);
+  }
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

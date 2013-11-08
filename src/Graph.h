@@ -265,6 +265,24 @@ class Graph {
     }
     return NULL;
   }
+  bool TraverseDFS(int indexofcurrent, bool* visited, int indexofparent) {
+    bool isLoopExisting = false;
+    visited[indexofcurrent - 1] = true;
+    int numofneighbors = getNeighborsSize(indexofcurrent);
+    if (numofneighbors != 0) {
+      std::vector<int> neighbors = getNeighbors(indexofcurrent);
+      for (unsigned i = 0; i < neighbors.size(); i++) {
+        if((neighbors[i])==indexofparent)
+          continue;
+        isLoopExisting = visited[neighbors[i] - 1];
+        if (!isLoopExisting)
+          isLoopExisting = TraverseDFS(neighbors[i], visited, indexofcurrent);
+        if (isLoopExisting)
+          break;
+      }
+    }
+    return isLoopExisting;
+  }
  public:
 
   //Default constructor, initialize graph with zero values
@@ -328,7 +346,7 @@ class Graph {
     }
     toListGraphRep();
   }
-  //Greate a empty graph
+  //Create a empty graph
   Graph(unsigned numofvertices) {
     initGraph();
     this->numofvertices = numofvertices;
@@ -337,6 +355,17 @@ class Graph {
       initNode(node, i);
       repgraph.push_back(node);
     }
+  }
+  //Copy constructor
+  Graph(const Graph& graph) {
+    this->density = graph.density;
+    this->distance = graph.distance;
+    this->isundirected = graph.isundirected;
+    this->mindistance = graph.mindistance;
+    this->numofedges = graph.numofedges;
+    this->numofvertices = graph.numofvertices;
+    this->repgraph = std::vector<Node>(graph.repgraph);
+    this->repmatrix = std::vector<std::vector<Val> >(graph.repmatrix);
   }
   //deconstructor
   virtual ~Graph() {
@@ -605,8 +634,22 @@ class Graph {
 //Output:
 //a boolean value to indicate if there's a loop in there
   bool isLoopExisting(int indexofroot) {
-    bool isloopexisting = false;
+    bool* visited = new bool[this->numofvertices];
+    std::fill(visited, visited + this->numofvertices,false);
+    bool isloopexisting = TraverseDFS(indexofroot, visited, -1);
+    delete[] visited;
     return isloopexisting;
+  }
+  bool isIsundirected() const {
+    return isundirected;
+  }
+
+  void setIsundirected(bool isundirected) {
+    this->isundirected = isundirected;
+  }
+  const std::string printMST(int indexofroot){
+    std::string treerep;
+    return treerep;
   }
 };
 #endif /* GRAPH_H_ */

@@ -31,10 +31,15 @@ class MinSpanTreeAlgo {
         totalminweight(std::numeric_limits<int>::max()) {
   }
   ;
-  virtual ~MinSpanTreeAlgo();
+  virtual ~MinSpanTreeAlgo() {
+  }
+  ;
 
   //TODO maybe change it to pass a function pointer or object
-  void calcualte();
+  void calculate() {
+    kruskals();
+  }
+  ;
 
   int getTotalminwieght() const {
     return totalminweight;

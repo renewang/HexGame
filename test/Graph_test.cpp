@@ -133,7 +133,6 @@ TEST_F(GraphTest,BasicGraphCheck) {
   vector<int> testVec;
   testVec.insert(testVec.begin(), testExpect, testExpect + 4);
   EXPECT_TRUE(ArraysMatch(testVec, testNeigh));
-  //ASSERT_THAT(expect, ContainerEq(testNeigh)); //google mock
 
   //test the isAdjacent for Graph
   EXPECT_TRUE(testG.isAdjacent(1, 2));
@@ -353,9 +352,61 @@ TEST_F(GraphTest, MSTGraphCheck) {
       EXPECT_EQ(static_cast<int>(k * k), testG.getEdgeValue(row + 1, col + 1));
     }
   }
-//check if there's a loop
+
+  //test the directed graph
+  emptyG.setIsundirected(false);
+  emptyG.addEdge(1, 2, 1);
+  emptyG.addEdge(1, 3, 1);
+
+  ASSERT_TRUE(emptyG.isAdjacent(1, 2));
+  ASSERT_FALSE(emptyG.isAdjacent(2, 1));
+  vector<int> testNeigh = emptyG.getNeighbors(1);
+  int testExpect[2] = { 2, 3 };
+  vector<int> testVec;
+  testVec.insert(testVec.begin(), testExpect, testExpect + 2);
+  EXPECT_EQ(testVec, testNeigh);
+
+  emptyG.addEdge(2, 4, 1);
+  emptyG.addEdge(2, 5, 1);
+
+  testNeigh.clear();
+  testNeigh = emptyG.getNeighbors(2);
+  int testExpect2[2] = { 4, 5 };
+  testVec.clear();
+  testVec.insert(testVec.begin(), testExpect2, testExpect2 + 2);
+
+  emptyG.addEdge(3, 6, 1);
+  testNeigh.clear();
+  testNeigh = emptyG.getNeighbors(3);
+  int testExpect3[1] = { 6 };
+  testVec.clear();
+  testVec.insert(testVec.begin(), testExpect3, testExpect3 + 1);
+
+  EXPECT_FALSE(emptyG.isLoopExisting(1));
+
+  emptyG.addEdge(3, 5, 4);
+  EXPECT_TRUE(emptyG.isLoopExisting(1));
+
+  //test with undirected graph
   for (unsigned i = 0; i < sizeoftestgraph; i++)
-    EXPECT_TRUE(testG.isLoopExisting(i));
+    EXPECT_TRUE(testG.isLoopExisting(i + 1)) << " test loop true for undirected graph "
+                                             << (i + 1);
+
+  testG.deleteEdge(1, 4);
+  testG.deleteEdge(1, 5);
+  testG.deleteEdge(1, 6);
+  testG.deleteEdge(2, 3);
+  testG.deleteEdge(2, 6);
+  testG.deleteEdge(3, 4);
+  testG.deleteEdge(3, 5);
+  testG.deleteEdge(4, 5);
+  testG.deleteEdge(4, 6);
+  testG.deleteEdge(5, 6);
+
+  for (unsigned i = 0; i < sizeoftestgraph; i++)
+     EXPECT_FALSE(testG.isLoopExisting(i + 1)) << " test loop false for undirected graph "
+                                              << (i + 1);
+
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
