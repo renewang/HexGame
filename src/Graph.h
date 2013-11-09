@@ -13,6 +13,7 @@
 #include <string>
 #include <utility>
 #include <iomanip>
+#include <sstream>
 #include <iterator>
 #include <iostream>
 #include <algorithm>
@@ -265,21 +266,45 @@ class Graph {
     }
     return NULL;
   }
-  bool TraverseDFS(int indexofcurrent, bool* visited, int indexofparent) {
+  bool TraverseDFS(int indexofcurrent, bool* visited, int indexofparent = -1,
+                   std::stringstream* strstream = 0) {
     bool isLoopExisting = false;
     visited[indexofcurrent - 1] = true;
     int numofneighbors = getNeighborsSize(indexofcurrent);
+    std::vector<int> neighwoparents;
+
+    //discard the parental link
     if (numofneighbors != 0) {
       std::vector<int> neighbors = getNeighbors(indexofcurrent);
-      for (unsigned i = 0; i < neighbors.size(); i++) {
-        if((neighbors[i])==indexofparent)
-          continue;
-        isLoopExisting = visited[neighbors[i] - 1];
+      for (std::vector<int>::iterator iter = neighbors.begin();
+          iter != neighbors.end(); ++iter)
+        if (*iter != indexofparent)
+          neighwoparents.push_back(*iter);
+      numofneighbors = neighwoparents.size();
+    }
+
+    if (numofneighbors > 0) {
+      if (strstream != 0)
+        *strstream << '(';
+      for (unsigned i = 0; i < neighwoparents.size(); i++) {
+        if (strstream != 0)
+          *strstream << neighwoparents[i];
+
+        isLoopExisting = visited[neighwoparents[i] - 1];
+
         if (!isLoopExisting)
-          isLoopExisting = TraverseDFS(neighbors[i], visited, indexofcurrent);
+          isLoopExisting = TraverseDFS(neighwoparents[i], visited,
+                                       indexofcurrent, strstream);
+
         if (isLoopExisting)
           break;
+        if (strstream != 0) {
+          if (i < (neighwoparents.size() - 1))
+            *strstream << ',';
+        }
       }
+      if (strstream != 0)
+        *strstream << ')';
     }
     return isLoopExisting;
   }
@@ -372,12 +397,12 @@ class Graph {
   }
   ;
 //Get the size of vertices
-  inline int getSizeOfVertices() {
+  inline int getSizeOfVertices() const {
     return repgraph.size() == numofvertices ? numofvertices : -1;
   }
   ;
 //Get the size of edges
-  inline int getSizeOfEdges() {
+  inline int getSizeOfEdges() const {
     return numofedges;
   }
   ;
@@ -453,8 +478,8 @@ class Graph {
     //symmetric assignment for the undirected graph
     if (isundirected) {
       Edge symedge;
-      symedge.indexoffromnode = indexofsource;
-      symedge.indexoftonode = indexofdest;
+      symedge.indexoffromnode = indexofdest;
+      symedge.indexoftonode = indexofsource;
       symedge.weight = value;
       (nodeto->neighbors).push_back(symedge);
 
@@ -602,7 +627,7 @@ class Graph {
     this->repmatrix = repmatrix;
   }
   ;
-  std::map<int, int> getAllEdgesValues() {
+  std::map<int, int> getAllEdgesValues() const {
     std::map<int, int> mapalledges;
     for (unsigned i = 1; i <= this->numofvertices; i++) {
       std::list<Edge> neigh = repgraph[i - 1].neighbors;
@@ -621,7 +646,7 @@ class Graph {
                         * this->numofvertices)
                 && (key % static_cast<int>(this->numofvertices + 1)) != 0);
         //eliminate the redundant edges
-        mapalledges.insert(make_pair(key, (*iteredge).weight));
+        mapalledges.insert(std::make_pair(key, (*iteredge).weight));
       }
     }
     return std::map<int, int>(mapalledges);
@@ -635,8 +660,8 @@ class Graph {
 //a boolean value to indicate if there's a loop in there
   bool isLoopExisting(int indexofroot) {
     bool* visited = new bool[this->numofvertices];
-    std::fill(visited, visited + this->numofvertices,false);
-    bool isloopexisting = TraverseDFS(indexofroot, visited, -1);
+    std::fill(visited, visited + this->numofvertices, false);
+    bool isloopexisting = TraverseDFS(indexofroot, visited);
     delete[] visited;
     return isloopexisting;
   }
@@ -647,9 +672,33 @@ class Graph {
   void setIsundirected(bool isundirected) {
     this->isundirected = isundirected;
   }
-  const std::string printMST(int indexofroot){
-    std::string treerep;
-    return treerep;
+  //overloading assignment
+  Graph& operator =(const Graph& graph) {
+    this->density = graph.density;
+    this->distance = graph.distance;
+    this->isundirected = graph.isundirected;
+    this->mindistance = graph.mindistance;
+    this->numofedges = graph.numofedges;
+    this->numofvertices = graph.numofvertices;
+    this->repgraph = std::vector<Node>(graph.repgraph);
+    this->repmatrix = std::vector<std::vector<Val> >(graph.repmatrix);
+    return *this;
   }
+  ;
+  const std::string printMST(int indexofroot) {
+    bool* visited = new bool[this->numofvertices];
+    std::fill(visited, visited + this->numofvertices, false);
+    std::stringstream treestream;
+    treestream << '(' << indexofroot;
+    bool isloopexisting = TraverseDFS(indexofroot, visited, -1, &treestream);
+    treestream << ')';
+    if (isloopexisting) {
+      treestream.clear();
+      treestream << "Loop existing in this tree! Abort!";
+    }
+    delete[] visited;
+    return treestream.str();
+  }
+  ;
 };
 #endif /* GRAPH_H_ */

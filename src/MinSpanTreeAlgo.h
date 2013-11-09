@@ -25,21 +25,18 @@ class MinSpanTreeAlgo {
 
  public:
   MinSpanTreeAlgo();
-  MinSpanTreeAlgo(Graph& graph)
+  MinSpanTreeAlgo(const Graph& graph)
       : graph(graph),
         msttree(Graph(graph.getSizeOfVertices())),
         totalminweight(std::numeric_limits<int>::max()) {
   }
   ;
-  virtual ~MinSpanTreeAlgo() {
-  }
-  ;
+  virtual ~MinSpanTreeAlgo(){};
 
   //TODO maybe change it to pass a function pointer or object
-  void calculate() {
+  void calculate(){
     kruskals();
-  }
-  ;
+  };
 
   int getTotalminwieght() const {
     return totalminweight;
