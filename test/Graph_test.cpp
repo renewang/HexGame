@@ -253,8 +253,6 @@ TEST_F(GraphTest,BasicGraphCheck) {
   shortestPath = algo.path(1, 2);
   EXPECT_EQ(1, static_cast<int>(shortestPath.size()));
   EXPECT_FLOAT_EQ(14.0 / 4.0, algo.averagePathSize(1));
-
-  EXPECT_TRUE(testG.printRepGraph());
 }
 TEST_F(GraphTest, AlternativeGraphCheck) {
   Graph<int, int> testG(testAlter, 6);

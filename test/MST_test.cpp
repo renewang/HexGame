@@ -154,7 +154,7 @@ TEST_F(MinSpanTreeTest,EmptyGraphCheck) {
 TEST_F(MinSpanTreeTest,KruskalMSTCheck) {
   unsigned sizeoftestgraph = 6;
   Graph<string, int> testG(testAlter, sizeoftestgraph);
-  MinSpanTreeAlgo mstalgo(testG);
+  MinSpanTreeAlgo<string, int> mstalgo(testG);
 
   mstalgo.calculate();
 
@@ -171,19 +171,18 @@ TEST_F(MinSpanTreeTest,KruskalMSTCheck) {
     if (i > 1 && i < sizeoftestgraph) {
       expectVec.push_back(i - 1);
       expectVec.push_back(i + 1);
-      EXPECT_EQ(2, msttree.getNeighborsSize(i)) << "test neighbor size for " << i
-                                                << endl;
+      EXPECT_EQ(2, msttree.getNeighborsSize(i)) << "test neighbor size for "
+                                                << i << endl;
     } else {  //two ends
       if (i == 1)
         expectVec.push_back(i + 1);
       else
         expectVec.push_back(i - 1);
 
-      EXPECT_EQ(1, msttree.getNeighborsSize(i)) << "test neighbor size for " << i
-                                                << endl;
+      EXPECT_EQ(1, msttree.getNeighborsSize(i)) << "test neighbor size for "
+                                                << i << endl;
     }
-    EXPECT_EQ(expectVec, testNeigh)<< "test neighbors for " << i
-        << endl;
+    EXPECT_EQ(expectVec, testNeigh) << "test neighbors for " << i << endl;
   }
 
   string expecttree[6] = { "(1(2(3(4(5(6))))))", "(2(1,3(4(5(6)))))",
@@ -193,6 +192,17 @@ TEST_F(MinSpanTreeTest,KruskalMSTCheck) {
     const string printMST = msttree.printMST(i);
     EXPECT_EQ(expecttree[i - 1], printMST);
   }
+}
+TEST_F(MinSpanTreeTest,KruskalMSTCheckTwo) {
+  string filename =
+      "/Users/renewang/Documents/workspace/MST/resource/tinyEWG.txt";
+  PlainParser parser(filename);
+  Graph<string, double> graph(parser);
+  MinSpanTreeAlgo<string, double> mstalgo(graph);
+  mstalgo.calculate();
+  Graph<string, double> msttree = mstalgo.getMsttree();
+  EXPECT_FLOAT_EQ(1.81, mstalgo.getTotalminwieght());
+  EXPECT_EQ("(1(8(2,6(5)),3(4,7)))",msttree.printMST(1));
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

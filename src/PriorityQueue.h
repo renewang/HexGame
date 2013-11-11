@@ -14,21 +14,22 @@
 
 /* PriorityQueue Class is used to hold the distance from the source node
  * and for the purpose to return the node with minimal distance
- * The template Type and Val should be consistent with the Graph
+ * The template Val should be consistent with the Graph while N is the object needs to be put in the heap.
+ * The template N is not needed to be consistent with the Graph label.
  *
  * Sample Usage:
  *
  * Graph<string, double> randomG(5, 0.5, 10);
- * PriorityQueue<string, double> testPQ;
+ * PriorityQueue<int, double> testPQ;
  * for (unsigned i = 0; i < vertices.size(); i++)
- *   testPQ.insert(&(vertices[i]), 10 - i);
- * Node<string, double>* minNode = const_cast<Node<string, double>*>(testPQ.minPrioirty());
+ *   testPQ.insert(i, 10 - i);
+ * int indexofminnode = testPQ.minPrioirty();
  */
 template<class N, class Val>
 class PriorityQueue {
 
-  //NodePriority structure is used to hold the node and priority of the node.
-  //In shortest path calculation should be the total weight of the path leading to the node.
+ //NodePriority structure is used to hold the node and priority of the node.
+ //In shortest path calculation should be the total weight of the path leading to the node.
  private:
   struct NodePriority {
     const N* node;
@@ -66,7 +67,6 @@ class PriorityQueue {
     std::make_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
   }
   ;
-  //
   //Default destructor, takes no parameters
   virtual ~PriorityQueue() {
   }

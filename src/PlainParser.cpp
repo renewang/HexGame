@@ -1,10 +1,8 @@
-//============================================================================
-// Name        : PlainParser.cpp
-// Author      :
-// Version     :
-// Copyright   : Your copyright notice
-// Description : PlainParser declaration in C++, Ansi-style
-//============================================================================
+/*
+ * PlainParser.cpp
+ * This file defines the implementations of PlainParser Class.
+ * Please refer to header file for comments of functions
+ */
 #include <vector>
 #include <string>
 

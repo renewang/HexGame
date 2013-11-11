@@ -28,14 +28,17 @@ $(EXEDIR)/DijkstraAlg:	$(EXEDIR)/DijkstraAlg.o
 $(EXEDIR)/PlainParser.o: $(SRCDIR)/PlainParser.cpp
 	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/PlainParser.o -c $(SRCDIR)/PlainParser.cpp $(LIBS) $(INCLUDE)
 	
-$(EXEDIR)/MinSpanTreeAlgo.o: $(SRCDIR)/MinSpanTreeAlgo.cpp $(EXEDIR)/PriorityQueue.o $(EXEDIR)/Graph.o
-	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/MinSpanTreeAlgo.o -c $(SRCDIR)/MinSpanTreeAlgo.cpp $(LIBS) $(INCLUDE)
-	
-$(EXEDIR)/KruskalMSTAlg: KruskalMSTAlg.cpp $(EXEDIR)/MinSpanTreeAlgo.o $(EXEDIR)/PlainParser.o
-	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/KruskalMSTAlg KruskalMSTAlg.cpp $(SRCDIR)/PlainParser.cpp $(SRCDIR)/MinSpanTreeAlgo.cpp $(LIBS) $(INCLUDE)
+$(EXEDIR)/MinSpanTreeAlgo.o: $(SRCDIR)/MinSpanTreeAlgo.h $(EXEDIR)/PriorityQueue.o $(EXEDIR)/Graph.o
+	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/MinSpanTreeAlgo.o -c $(SRCDIR)/MinSpanTreeAlgo.h $(LIBS) $(INCLUDE)
+
+$(EXEDIR)/KruskalMSTAlg.o: KruskalMSTAlg.cpp $(EXEDIR)/MinSpanTreeAlgo.o $(EXEDIR)/PlainParser.o
+	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/KruskalMSTAlg.o -c KruskalMSTAlg.cpp $(LIBS) $(INCLUDE)
+		
+$(EXEDIR)/KruskalMSTAlg: $(EXEDIR)/KruskalMSTAlg.o $(EXEDIR)/MinSpanTreeAlgo.o $(EXEDIR)/PlainParser.o $(EXEDIR)/PriorityQueue.o $(EXEDIR)/Graph.o
+	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/KruskalMSTAlg $(EXEDIR)/KruskalMSTAlg.o bin/PlainParser.o $(LIBS) $(INCLUDE)
 	
 
-all:	$(EXEDIR)/DijkstraAlg
+all:	$(EXEDIR)/DijkstraAlg $(EXEDIR)/KruskalMSTAlg
 
 clean:
 	rm -rf  $(EXEDIR)/*
