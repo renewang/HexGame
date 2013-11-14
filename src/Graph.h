@@ -67,42 +67,10 @@
 template<class Type, class Val>
 class Graph {
  private:
-  /* Edge structure is used to hold the edge information which contains:
-   * indexoffromnode: vertexindex of the source node
-   * indexoftonode: vertexindex of the destination node
-   * weight: the weight of the edge
-   *
-   * To generate an Edge and store in the neighbors of a node, the sample usage is as following;
-   * Node<string, double> node;
-   * Edge edge;
-   * edge.indexoffromnode = node->vertexindex;
-   * edge.indexoftonode = node->vertexindex;
-   * edge.weight = val;
-   * (node->neighbors).push_back(edge);
-   */
-  struct Edge {
-    int indexoffromnode;
-    int indexoftonode;
-    Val weight;
-  };
-  /* Node structure is used to hold the vertex information which contains:
-   * vertexindex: a unique identifier starting from 1
-   * numofneighbors: number of out edges
-   * vertexvalue: label of vertex or node
-   * neighbors: the list to store neighbors' information
-   *
-   * Generate a Node by using string type as its label. The sample usage of initialization is as following:
-   * Node<string, double> node;
-   *
-   */
-  struct Node {
-    int vertexindex;  //an unique identifier starting from 1 to the number of vertices, automatically assigned when constructing the graph class
-    unsigned numofneighbors;  //the number of connected vertices
-    Type vertexvalue;  //the label or value of the vertex which should be descriptive such as string. But users are free to specify their own type in template syntax.
-    //a double linked list to store the weight of the connected edge.
-    //The type of edges are user defined but recommend to restrict to numeric type such as double, float and integer
-    std::list<Edge> neighbors;
-  };
+  float density;  //density of connected edges to generate the random Graph
+  float distance;  //maximal distance to generate random Graph
+  Val mindistance;  //hold the minimal distance which should equal to 1
+
   /*
    * MyTransform is a private structure used as functional object in STL Transform function.
    * It is used to do the conversion from string to numeric primitives when parsing the graph from text file.
@@ -110,7 +78,7 @@ class Graph {
   struct MyTransfom {
    public:
     Val operator()(const std::string str) {
-      Val value = NULL;
+      Val value = static_cast<Val>(0);
       if (typeid(Val) == typeid(int)) {
         value = static_cast<Val>(atoi(str.c_str()));
       } else if (typeid(Val) == typeid(double)
@@ -120,31 +88,6 @@ class Graph {
       return value;
     }
   };
-  unsigned numofvertices;  //size of Nodes or Vertex in Graph
-  unsigned numofedges;  //size of Edges in Graph
-  float density;  //density of connected edges to generate the random Graph
-  float distance;  //maximal distance to generate random Graph
-  std::vector<Node> repgraph;  //adjacent list implementation of Graph representation
-  std::vector<std::vector<Val> > repmatrix;  //adjacent matrix implementation of Graph representation
-  Val mindistance;  //hold the minimal distance which should equal to 1
-  bool isundirected;  //indicator for a undirected graph
-
-  //Private function to initialize the members of Graph in constructors
-  void initGraph() {
-    density = 0;
-    distance = 0.0;
-    numofedges = 0;
-    numofvertices = 0;
-    isundirected = true;
-    mindistance = static_cast<Val>(1);
-  }
-  ;
-  //Private function to initialize the Node in constructors
-  void initNode(Node& node, int index) {
-    node.vertexindex = (index + 1);
-    node.numofneighbors = 0;
-  }
-  ;
   //Implementation of Monte Carlo simulation to generate undirected graph.
   void randomGraphGenerator() {
     if (!this->isundirected) {
@@ -194,6 +137,65 @@ class Graph {
           nodefrom->numofneighbors >= 0
               && nodefrom->numofneighbors < numofvertices);
     }
+  }
+  ;
+ protected:
+  /* Edge structure is used to hold the edge information which contains:
+   * indexoffromnode: vertexindex of the source node
+   * indexoftonode: vertexindex of the destination node
+   * weight: the weight of the edge
+   *
+   * To generate an Edge and store in the neighbors of a node, the sample usage is as following;
+   * Node<string, double> node;
+   * Edge edge;
+   * edge.indexoffromnode = node->vertexindex;
+   * edge.indexoftonode = node->vertexindex;
+   * edge.weight = val;
+   * (node->neighbors).push_back(edge);
+   */
+  struct Edge {
+    int indexoffromnode;
+    int indexoftonode;
+    Val weight;
+  };
+  /* Node structure is used to hold the vertex information which contains:
+   * vertexindex: a unique identifier starting from 1
+   * numofneighbors: number of out edges
+   * vertexvalue: label of vertex or node
+   * neighbors: the list to store neighbors' information
+   *
+   * Generate a Node by using string type as its label. The sample usage of initialization is as following:
+   * Node<string, double> node;
+   *
+   */
+  struct Node {
+    int vertexindex;  //an unique identifier starting from 1 to the number of vertices, automatically assigned when constructing the graph class
+    unsigned numofneighbors;  //the number of connected vertices
+    Type vertexvalue;  //the label or value of the vertex which should be descriptive such as string. But users are free to specify their own type in template syntax.
+    //a double linked list to store the weight of the connected edge.
+    //The type of edges are user defined but recommend to restrict to numeric type such as double, float and integer
+    std::list<Edge> neighbors;
+  };
+  unsigned numofvertices;  //size of Nodes or Vertex in Graph
+  unsigned numofedges;  //size of Edges in Graph
+  std::vector<Node> repgraph;  //adjacent list implementation of Graph representation
+  std::vector<std::vector<Val> > repmatrix;  //adjacent matrix implementation of Graph representation
+  bool isundirected;  //indicator for a undirected graph
+
+  //Private function to initialize the Node in constructors
+  virtual void initNode(Node& node, int index) {
+    node.vertexindex = (index + 1);
+    node.numofneighbors = 0;
+  }
+  ;
+  //Private function to initialize the members of Graph in constructors
+  virtual void initGraph() {
+    density = 0;
+    distance = 0.0;
+    numofedges = 0;
+    numofvertices = 0;
+    isundirected = true;
+    mindistance = static_cast<Val>(1);
   }
   ;
   //Transform underlying representation of the graph from adjacent matrix to linked list
@@ -429,7 +431,7 @@ class Graph {
   }
   ;
   //Get the size of vertices
-  inline int getSizeOfVertices() const {
+  virtual inline int getSizeOfVertices() const {
     return repgraph.size() == numofvertices ? numofvertices : -1;
   }
   ;
@@ -565,8 +567,8 @@ class Graph {
   //Output:
   //The label or representing value of the inquiring node
   Type getNodeValue(int indexofnode) {
-    Node node = repgraph[indexofnode];
-    return node.vertexvalue;
+	Node* node = findNodeByIndex(indexofnode);
+    return node->vertexvalue;
   }
   ;
   //Set value of the Node
@@ -574,8 +576,9 @@ class Graph {
   //indexofnode: the vertexindex of the inquiring node
   //value: The label or the representing value of the inquiring node
   //Output: None
-  void setNodeValue(int indexofnode, Val value) {
-    repgraph[indexofnode].vertexvalue = value;
+  void setNodeValue(int indexofnode, Type value) {
+	Node* node = findNodeByIndex(indexofnode);
+    node->vertexvalue = value;
   }
   ;
   //Get edge value between specified two nodes
