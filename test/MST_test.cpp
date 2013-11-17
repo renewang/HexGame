@@ -33,6 +33,22 @@ class MinSpanTreeTest : public ::testing::Test {
           testAlter[i + k][i] = k * k;
       }
     }
+
+    testDisconnected = new int*[6];
+    for (unsigned i = 0; i < 6; i++)
+      testDisconnected[i] = new int[6];
+
+    for(unsigned i = 0; i < 6; i++)
+      fill(testDisconnected[i], testDisconnected[i]+6, 0);
+
+    testDisconnected[0][1] = 1;
+    testDisconnected[1][0] = 1;
+    testDisconnected[0][2] = 2;
+    testDisconnected[2][0] = 2;
+    testDisconnected[3][4] = 1;
+    testDisconnected[4][3] = 1;
+    testDisconnected[4][5] = 2;
+    testDisconnected[5][4] = 2;
   }
   virtual void TearDown() {
     if (testAlter != 0) {
@@ -40,8 +56,14 @@ class MinSpanTreeTest : public ::testing::Test {
         delete testAlter[i];
       delete[] testAlter;
     }
+    if (testDisconnected != 0) {
+      for (unsigned i = 0; i < 6; i++)
+        delete testDisconnected[i];
+      delete[] testDisconnected;
+    }
   }
   int** testAlter;
+  int** testDisconnected;
 }
 ;
 TEST_F(MinSpanTreeTest,PlainParserCheck) {
@@ -90,7 +112,7 @@ TEST_F(MinSpanTreeTest,PlainParserCheck) {
 
   //test the real sample data
   string filename =
-      "/Users/renewang/Documents/workspace/MST/resource/Smalldata.txt";
+      "/Users/renewang/Documents/workspace/GraphAlgoClang/resource/Smalldata.txt";
   PlainParser parser(filename);
   vector<vector<string> > expectData = parser.getData();
   ASSERT_EQ(11, static_cast<int>(expectData.size()));
@@ -195,14 +217,27 @@ TEST_F(MinSpanTreeTest,KruskalMSTCheck) {
 }
 TEST_F(MinSpanTreeTest,KruskalMSTCheckTwo) {
   string filename =
-      "/Users/renewang/Documents/workspace/MST/resource/tinyEWG.txt";
+      "/Users/renewang/Documents/workspace/GraphAlgoClang/resource/tinyEWG.txt";
   PlainParser parser(filename);
   Graph<string, double> graph(parser);
   MinSpanTreeAlgo<string, double> mstalgo(graph);
   mstalgo.calculate();
   Graph<string, double> msttree = mstalgo.getMsttree();
   EXPECT_FLOAT_EQ(1.81, mstalgo.getTotalminwieght());
-  EXPECT_EQ("(1(8(2,6(5)),3(4,7)))",msttree.printMST(1));
+  EXPECT_EQ("(1(8(2,6(5)),3(4,7)))", msttree.printMST(1));
+}
+TEST_F(MinSpanTreeTest, KruskalMSForest) {
+  Graph<string, int> graph(testDisconnected, 6);
+  MinSpanTreeAlgo<string, int> mstalgo(graph);
+  mstalgo.calculate();
+  Graph<string, int> msttree = mstalgo.getMsttree();
+  vector< vector<int> > forest = msttree.getAllSubGraphs();
+  ASSERT_EQ(2, forest.size());
+  int expectsubg[2][3] ={{1, 2, 3},{4, 5, 6}};
+  for(unsigned i = 0; i < 2; i ++){
+    vector<int> expect(expectsubg[i],expectsubg[i]+3);
+    EXPECT_EQ(expect, forest[i]);
+  }
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

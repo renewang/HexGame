@@ -25,7 +25,7 @@
 #include "PlainParser.h"
 
 /*
- * Graph Class is used as a representation of graph. It contain three constructor:
+ * Graph Class is used as a representation of graph. It contain three constructors:
  * Graph(): default constructor which simply a empty graph with all its members initialized as default value.
  * Graph(unsigned, float, float): which generate a random graph according to Monte Carlo simulation. Sample usage:
  *
@@ -294,7 +294,7 @@ class Graph {
         return (*iterneigh).weight;
       }
     }
-    return NULL;
+    return static_cast<Val>(0);
   }
   //Provide the functionality to traverse the tree by Depth First Search (DFS) method
   //Loop is also detected in this fashion when a back link is found or a non-parental node is revisited in DFS.
@@ -342,8 +342,33 @@ class Graph {
     }
     return isLoopExisting;
   }
- public:
+  void TraverseDFS(int indexofcurrent, bool* visited, int indexofparent,
+                   std::vector<int>* subgraph) {
 
+    visited[indexofcurrent - 1] = true;
+    subgraph->push_back(indexofcurrent);
+    int numofneighbors = getNeighborsSize(indexofcurrent);
+
+    //discard the parental link
+    std::vector<int> neighwoparents;
+    if (numofneighbors != 0) {
+      std::vector<int> neighbors = getNeighbors(indexofcurrent);
+      for (std::vector<int>::iterator iter = neighbors.begin();
+          iter != neighbors.end(); ++iter)
+        if (*iter != indexofparent)
+          neighwoparents.push_back(*iter);
+      numofneighbors = neighwoparents.size();
+    }
+
+    if (numofneighbors > 0) {
+      for (unsigned i = 0; i < neighwoparents.size(); i++)
+        TraverseDFS(neighwoparents[i], visited, indexofcurrent, subgraph);
+    }
+    return;
+  }
+  ;
+
+ public:
   //Default constructor, initialize graph with zero values
   //Takes no arguments
   Graph() {
@@ -567,7 +592,7 @@ class Graph {
   //Output:
   //The label or representing value of the inquiring node
   Type getNodeValue(int indexofnode) {
-	Node* node = findNodeByIndex(indexofnode);
+    Node* node = findNodeByIndex(indexofnode);
     return node->vertexvalue;
   }
   ;
@@ -577,7 +602,7 @@ class Graph {
   //value: The label or the representing value of the inquiring node
   //Output: None
   void setNodeValue(int indexofnode, Type value) {
-	Node* node = findNodeByIndex(indexofnode);
+    Node* node = findNodeByIndex(indexofnode);
     node->vertexvalue = value;
   }
   ;
@@ -588,7 +613,7 @@ class Graph {
   //Output:
   //Return the weight of edge between the input nodes
   Val getEdgeValue(int indexofnodefrom, int indexofnodeto) {
-    Val value = NULL;
+    Val value = static_cast<Val>(0);
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
       Node* nodefrom = findNodeByIndex(indexofnodefrom);
       return findEdgeByIndex(nodefrom, indexofnodeto);
@@ -669,6 +694,16 @@ class Graph {
     this->repmatrix = repmatrix;
   }
   ;
+  //Get all nodes in this graph
+  //INPUT: NONE
+  //OUTPUT:
+  //a vector which stores the indices of nodes
+  std::vector<int> getAllNodes() const {
+    std::vector<int> nodes;
+    for (auto n : this->repgraph)
+      nodes.push_back(n.vertexindex);
+    return std::vector<int>(nodes);
+  }
   //Get all the values of edges in this graph
   //INPUT: NONE
   //OUTPUT:
@@ -769,5 +804,24 @@ class Graph {
     return treestream.str();
   }
   ;
+  //remove the singletons
+  std::vector<std::vector<int> > getAllSubGraphs() {
+    bool* visited = new bool[this->numofvertices];
+    std::fill(visited, visited + this->numofvertices, false);
+    std::vector<std::vector<int> > forest;
+    int ttlsize = 0, current = 1;
+    while (ttlsize < this->numofvertices) {
+      std::vector<int> subgraph;
+      TraverseDFS(current, visited, -1, &subgraph);  //overloading
+      bool* cur = std::find(visited, visited + this->numofvertices, false);
+      if (cur != visited + this->numofvertices)
+        current = (cur - visited) / sizeof(bool) + 1;
+      ttlsize += subgraph.size();
+      if (subgraph.size() > 1)
+        forest.push_back(subgraph);
+    }
+    delete[] visited;
+    return std::vector<std::vector<int> >(forest);
+  }
 };
 #endif /* GRAPH_H_ */

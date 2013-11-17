@@ -23,8 +23,8 @@
  */
 template<class Type, class Val>
 class ShortestPathAlgo {
-  typedef Graph<Type, Val> Graph;
-  typedef PriorityQueue<int, Val> PriorityQueue;
+  typedef ::Graph<Type, Val> Graph;
+  typedef ::PriorityQueue<int, Val> PriorityQueue;
 
  private:
 

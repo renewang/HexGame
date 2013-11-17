@@ -25,8 +25,8 @@
 template<class Type, class Val>
 class MinSpanTreeAlgo {
 
-  typedef Graph<Type, Val> Graph; //the graph under calculation
-  typedef PriorityQueue<int, Val> PriorityQueue; //the priority queue used to track the minimal edge in the graph
+  typedef ::Graph<Type, Val> Graph;  //the graph under calculation
+  typedef ::PriorityQueue<int, Val> PriorityQueue;  //the priority queue used to track the minimal edge in the graph
 
  private:
   const Graph& graph;  //the graph under calculation
@@ -45,15 +45,14 @@ class MinSpanTreeAlgo {
     std::map<int, Val> mapalledges = graph.getAllEdgesValues();
     PriorityQueue edgesqueue(mapalledges.size());
     for (typename std::map<int, Val>::iterator iter = mapalledges.begin();
-        iter != mapalledges.end(); ++iter){
+        iter != mapalledges.end(); ++iter) {
       edgesqueue.insert((*iter).first, (*iter).second);
     }
-
     // count how many nodes have been added to the empty graph
     int connectededge = 0;
     Val totalweight = 0;
 
-    while (connectededge < (graphsize -1) && edgesqueue.size() > 0) {
+    while (connectededge < (graphsize - 1) && edgesqueue.size() > 0) {
       int minedgekey = edgesqueue.minPrioirty();
       Val minedgeval = mapalledges[minedgekey];
       int indexoffrom = (minedgekey / graphsize) + 1;
@@ -70,20 +69,30 @@ class MinSpanTreeAlgo {
     }
     this->totalminweight = totalweight;
     this->msttree = emptygraph;
-  };
+  }
+  ;
+  //implement unionfind algorithm
+  //1. MakeSet: to create a linked list or disjoint set for each singleton edge
+  //2. Weighted Union: to join the smaller size of linked list to the larger one by pointing to the head/leader of the list
+  //3. Find: to return the new head/leader of the joined list
+  void unionfind() {
 
-public:
+  }
+  ;
+ public:
 //default constructor, do nothing
-MinSpanTreeAlgo();
+  MinSpanTreeAlgo();
 //constructor which is used to calculate the MST of the input Graph
-MinSpanTreeAlgo(const Graph& graph)
-: graph(graph),
-msttree(Graph(graph.getSizeOfVertices())),
-totalminweight(std::numeric_limits<int>::max()) {
-}
-;
+  MinSpanTreeAlgo(const Graph& graph)
+      : graph(graph),
+        msttree(Graph(graph.getSizeOfVertices())),
+        totalminweight(std::numeric_limits<int>::max()) {
+  }
+  ;
 //destructor
-virtual ~MinSpanTreeAlgo() {};
+  virtual ~MinSpanTreeAlgo() {
+  }
+  ;
 
 //TODO maybe change it to pass a function pointer or object
 //Calculate the MST, invoked by client
@@ -91,23 +100,23 @@ virtual ~MinSpanTreeAlgo() {};
 //OUTPUT: NONE
 //The result of calculated MST will be stored as data member in class.
 //Client needs to use getters to get the result
-void calculate() {
-  kruskals();
-}
-;
+  void calculate() {
+    kruskals();
+  }
+  ;
 //Getter to get the calculated MST result
 //INPUT: NONE
 //OUTPUT:
 //The total minimal weight of the minimal spanning tree
-Val getTotalminwieght() const {
-  return totalminweight;
-}
+  Val getTotalminwieght() const {
+    return totalminweight;
+  }
 //Getter to get the calculated MST tree representation
 //INPUT: NONE
 //OUTPUT:
 //The tree or graph representation of MST
-const Graph& getMsttree() const {
-  return msttree;
-}
+  const Graph& getMsttree() const {
+    return msttree;
+  }
 };
 #endif /* MINSPANTREEALGO_H_ */
