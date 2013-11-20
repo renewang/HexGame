@@ -14,7 +14,9 @@
 #include <fstream>
 #include <iostream>
 
-//TODO to inherit from AbstractParser
+#include "AbstractParser.h"
+#include "gtest/gtest_prod.h"
+
 //#include "AbstractParser.h"
 //class PlainParser: public AbstractParser {
 /*
@@ -25,8 +27,9 @@
  * string filename = "Smalldata.txt";
  * PlainParser parser(filename);
  */
-class PlainParser {
+class PlainParser: public AbstractParser{
  private:
+  std::string filename;
   std::ifstream infile; //the file stream
   char delimiter; //the delimiter to distinguish columns
   //a two dimensional vector to store the parsed information of the file
@@ -35,8 +38,13 @@ class PlainParser {
   void split(std::string, std::vector<std::string>&);//split the line according to the delimiter
   void trim(std::string&);//trim the leading and trailing spaces
 
+  //for test
+  friend class MinSpanTreeTest;
+  FRIEND_TEST(MinSpanTreeTest,PlainParserCheck);
+
+
  protected:
-  void open(std::string filename);
+  void open();
   void parse();
   void close();
 
@@ -62,16 +70,6 @@ class PlainParser {
   //OUTPUT: NONE
   void setDelimiter(char delimiter) {
     this->delimiter = delimiter;
-  }
-  //TODO test for private member function. Need to remove and replace with friend declaration
-  void testSplit(PlainParser& parser, std::string line,
-                 std::vector<std::string>& vec) {
-    parser.split(line, vec);
-  }
-  ;
-  //TODO test for private member function. Need to remove and replace with friend declaration
-  void testTrim(PlainParser& parser, std::string& line){
-    parser.trim(line);
   }
 };
 

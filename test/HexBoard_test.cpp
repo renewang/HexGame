@@ -151,7 +151,8 @@ TEST_F(HexBoardTest,HexBoardSetMove) {
   EXPECT_EQ(4, playerasboard.getSizeOfEdges());
 
   MinSpanTreeAlgo<hexgonValKind, int> mstalgo(playerasboard);
-  mstalgo.calculate();
+  MinSpanTreeAlgo<hexgonValKind, int>::UnionFind unionfind(mstalgo);
+  mstalgo.calculate(unionfind);
 
   Graph<hexgonValKind, int> msttree = mstalgo.getMsttree();
   EXPECT_EQ(4, msttree.getSizeOfEdges());
@@ -177,7 +178,8 @@ TEST_F(HexBoardTest,HexBoardSetMove) {
   EXPECT_EQ(4, playerbsboard.getSizeOfEdges());
 
   MinSpanTreeAlgo<hexgonValKind, int> mstalgob(playerbsboard);
-  mstalgob.calculate();
+  MinSpanTreeAlgo<hexgonValKind, int>::UnionFind unionfindb(mstalgob);
+  mstalgo.calculate(unionfindb);
   Graph<hexgonValKind, int> msttreeb = mstalgob.getMsttree();
   EXPECT_EQ(4, msttreeb.getSizeOfEdges());
   vector<vector<int> > subgraphsb = msttreeb.getAllSubGraphs();

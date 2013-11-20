@@ -9,23 +9,21 @@
 #ifndef ABSTRACTPARSER_H_
 #define ABSTRACTPARSER_H_
 
-#include <iostream>
+#include <vector>
 #include <fstream>
+#include <iostream>
 
 class AbstractParser {
 
- public:
-  AbstractParser();
-  AbstractParser(std::string filename) {
-
-  }
-  ;
-  virtual ~AbstractParser();
-
  protected:
-   void open();
-   void parse();
-   void close();
+  virtual void open() = 0;
+  virtual void parse() = 0;
+  virtual void close() = 0;
+
+ public:
+  AbstractParser() {};
+  virtual ~AbstractParser() {};
+  virtual const std::vector<std::vector<std::string> >& getData() const = 0;
 };
 
 #endif /* ABSTRACTPARSER_H_ */

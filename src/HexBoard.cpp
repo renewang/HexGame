@@ -6,7 +6,8 @@
 #include "HexBoard.h"
 using namespace std;
 //default constructor, doing nothing except initializing the member values as defaults
-HexBoard::HexBoard():numofhexgons(0){
+HexBoard::HexBoard()
+    : numofhexgons(0) {
   initGraph();
 }
 //constructor to initialize the board according to given hexgon size per side
@@ -22,7 +23,8 @@ HexBoard::HexBoard(unsigned numofhexgon)
   numofedges /= 2;
 }
 //destructor
-HexBoard::~HexBoard() {}
+HexBoard::~HexBoard() {
+}
 //private member to initialize the node according to their location
 //INPUT:
 //node: the intended to initialized node
@@ -105,17 +107,18 @@ void HexBoard::initNode(Node& node, int index) {
     case HexBoard::HexgonLocType::INTERNAL: {
       node.numofneighbors = 6;
       //push neighbors
-      //index - 1, index - numofhexgons, index - (numofhexgons - 1),
-      //index + 1, index + numofhexgons, index + (numofhexgons - 1)
-      int diffforinternal[6] = { -1, -(numofhexgons - 1), -numofhexgons,
-          numofhexgons, (numofhexgons - 1), 1 };
-      for (unsigned i = 0; i < 6; i++) {
-        Edge edge;
-        edge.indexoffromnode = node.vertexindex;
-        edge.weight = 1;
-        edge.indexoftonode = node.vertexindex + diffforinternal[i];
-        node.neighbors.push_back(edge);
-        numofedges++;
+      //(row-1, col), (row-1, col+1), (row, col-1), (row, col+1), (row+1, col-1) and (row+1, col)
+      for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+          if (i == j)
+            continue;
+          Edge edge;
+          edge.indexoffromnode = node.vertexindex;
+          edge.weight = 1;
+          edge.indexoftonode = (row + i) * this->numofhexgons + (col + j) + 1;
+          node.neighbors.push_back(edge);
+          numofedges++;
+        }
       }
       break;
     }
@@ -173,12 +176,12 @@ ostream& operator<<(ostream& os, hexgonValKind hexgonkind) {
 //indexofhexgon: index of hexgon (starting from 1 to number of vertices or hexgon^2)
 //OUTPUT: NONE
 void HexBoard::setEdgeValue(int indexofhexgon) {
-  Node* node = findNodeByIndex(indexofhexgon);
+  Node* node = const_cast<Node*>(findNodeByIndex(indexofhexgon));
   initNode(*node, indexofhexgon - 1);
   //symmetric assignment
   list<Edge> neigh = node->neighbors;
-  for(auto e:neigh){
-    Node* neigh = findNodeByIndex(e.indexoftonode);
+  for (auto e : neigh) {
+    Node* neigh = const_cast<Node*>(findNodeByIndex(e.indexoftonode));
     Edge edge;
     edge.indexoffromnode = neigh->vertexindex;
     edge.indexoftonode = node->vertexindex;
@@ -191,7 +194,7 @@ void HexBoard::setEdgeValue(int indexofhexgon) {
 //INPUT:
 //numofhexgon: number of hexgon per side
 //OUTPUT: NONE
-void HexBoard::setNumofhexgons(int numofhexgon){
+void HexBoard::setNumofhexgons(int numofhexgon) {
   this->numofhexgons = numofhexgon;
   initGraph();
   numofvertices = numofhexgon * numofhexgon;

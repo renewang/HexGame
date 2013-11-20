@@ -65,7 +65,8 @@ bool Player::isArriveOpposite() {
 //a graph which holds minimal spanning tree for all of moves made by the player
 Graph<hexgonValKind, int> Player::calMST() {
   MinSpanTreeAlgo<hexgonValKind, int> mstalgo(playersboard);
-  mstalgo.calculate();
+  MinSpanTreeAlgo<hexgonValKind, int>::UnionFind unionfind(mstalgo);
+  mstalgo.calculate(unionfind);
   Graph<hexgonValKind, int> msttree = mstalgo.getMsttree();
   return Graph<hexgonValKind, int>(msttree);
 }

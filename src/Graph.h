@@ -22,7 +22,7 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "PlainParser.h"
+#include "AbstractParser.h"
 
 /*
  * Graph Class is used as a representation of graph. It contain three constructors:
@@ -268,14 +268,14 @@ class Graph {
   }
   ;
   //Provide the functionality to retrieve node's pointer given the index of source node
-  Node* findNodeByIndex(int index) {
+  const Node* findNodeByIndex(int index) const {
     assert(index >= 1 && index <= static_cast<int>(numofvertices));
     return &(repgraph[index - 1]);
   }
 
   //Provide the functionality to retrieve the Node pointer of a connected node given the source node object
   //and the index of connected node
-  int findNeighborByIndex(Node* node, int index) {
+  int findNeighborByIndex(const Node* node, int index) const {
     std::list<Edge> neighbors = node->neighbors;
     for (typename std::list<Edge>::iterator iter = neighbors.begin();
         iter != neighbors.end(); ++iter) {
@@ -286,7 +286,7 @@ class Graph {
   }
   //Provide the functionality to retrieve edge of a neighboring node given the source node object
   //and the index of connected node
-  Val findEdgeByIndex(Node* node, int index) {
+  Val findEdgeByIndex(const Node* node, int index) const {
     std::list<Edge> neighbors = node->neighbors;
     typename std::list<Edge>::iterator iterneigh = neighbors.begin();
     for (; iterneigh != neighbors.end(); ++iterneigh) {
@@ -405,7 +405,7 @@ class Graph {
   }
   //Constructor to generate a graph according to the input file
   //TODO modify to pass an AbstractParser type (PlainParser's supertype)
-  Graph(PlainParser& parser) {
+  Graph(AbstractParser& parser) {
     initGraph();
     std::vector<std::vector<std::string> > graphfromtext = parser.getData();
     int graphsize = atoi(graphfromtext[0][0].c_str());
@@ -473,8 +473,8 @@ class Graph {
   //The boolean variable to indicate if the specified two nodes are connected.
   //TRUE: is connected or at adjacency
   //FALSE: is not connected or not at adjacency
-  bool isAdjacent(int idxofnodefrom, int idxofnodeto) {
-    Node* nodefrom = findNodeByIndex(idxofnodefrom);
+  bool isAdjacent(int idxofnodefrom, int idxofnodeto) const {
+    const Node* nodefrom = findNodeByIndex(idxofnodefrom);
     int neigh = findNeighborByIndex(nodefrom, idxofnodeto);
     return idxofnodeto == neigh;
   }
@@ -484,8 +484,8 @@ class Graph {
   //idxofnode: the vertexindex of the inquiring node
   //Output:
   //The vector which stores the vertexindices of the neighbors of the inquiring node
-  std::vector<int> getNeighbors(int idxofnode) {
-    Node* node = findNodeByIndex(idxofnode);
+  std::vector<int> getNeighbors(int idxofnode) const {
+    const Node* node = findNodeByIndex(idxofnode);
     std::vector<int> neighindicesvec;
     std::list<Edge> neigh = node->neighbors;
     for (typename std::list<Edge>::iterator iter = neigh.begin();
@@ -499,8 +499,8 @@ class Graph {
   //idxofnode: the vertexindex of the inquiring node
   //Output:
   //The list which stores the edges of the neighbors of the inquiring node
-  const std::vector<Val> getNeighborsEdgeValues(int idxofnode) {
-    Node* node = findNodeByIndex(idxofnode);
+  const std::vector<Val> getNeighborsEdgeValues(int idxofnode) const {
+    const Node* node = findNodeByIndex(idxofnode);
     std::vector<Val> vec;
     std::list<Edge> neigh = node->neighbors;
     for (typename std::list<Edge>::iterator iter = neigh.begin();
@@ -514,7 +514,7 @@ class Graph {
   //Output:
   //The size of connected neighbors
   const int getNeighborsSize(int idxofnode) {
-    Node* node = findNodeByIndex(idxofnode);
+    const Node* node = findNodeByIndex(idxofnode);
     return node->numofneighbors;
   }
   //Add Edge between the two specified nodes with the specified value
@@ -524,8 +524,8 @@ class Graph {
   //value: the weight of intending adding edge
   //Output: NONE
   void addEdge(int indexofsource, int indexofdest, Val value) {
-    Node* nodefrom = findNodeByIndex(indexofsource);
-    Node* nodeto = findNodeByIndex(indexofdest);
+    Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofsource));
+    Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofdest));
 
     Edge edge;
     edge.indexoffromnode = indexofsource;
@@ -554,8 +554,8 @@ class Graph {
   //Output: None
   void deleteEdge(int indexofnodefrom, int indexofnodeto) {
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-      Node* nodefrom = findNodeByIndex(indexofnodefrom);
-      Node* nodeto = findNodeByIndex(indexofnodeto);
+      Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofnodefrom));
+      Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofnodeto));
 
       std::list<Edge>* neighbors = &(nodefrom->neighbors);
 
@@ -591,8 +591,8 @@ class Graph {
   //indexofnode: the vertexindex of the inquiring node
   //Output:
   //The label or representing value of the inquiring node
-  Type getNodeValue(int indexofnode) {
-    Node* node = findNodeByIndex(indexofnode);
+  Type getNodeValue(int indexofnode) const {
+    const Node* node = findNodeByIndex(indexofnode);
     return node->vertexvalue;
   }
   ;
@@ -602,7 +602,7 @@ class Graph {
   //value: The label or the representing value of the inquiring node
   //Output: None
   void setNodeValue(int indexofnode, Type value) {
-    Node* node = findNodeByIndex(indexofnode);
+    Node* node = const_cast<Node*>(findNodeByIndex(indexofnode));
     node->vertexvalue = value;
   }
   ;
@@ -612,10 +612,10 @@ class Graph {
   //indexOfnodeto: the vertexindex of the destination node
   //Output:
   //Return the weight of edge between the input nodes
-  Val getEdgeValue(int indexofnodefrom, int indexofnodeto) {
+  Val getEdgeValue(int indexofnodefrom, int indexofnodeto) const {
     Val value = static_cast<Val>(0);
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-      Node* nodefrom = findNodeByIndex(indexofnodefrom);
+      const Node* nodefrom = findNodeByIndex(indexofnodefrom);
       return findEdgeByIndex(nodefrom, indexofnodeto);
     }
     return value;
@@ -629,8 +629,8 @@ class Graph {
   //Output: NONE
   void setEdgeValue(int indexofnodefrom, int indexofnodeto, Val value) {
     if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-      Node* nodefrom = findNodeByIndex(indexofnodefrom);
-      Node* nodeto = findNodeByIndex(indexofnodeto);
+      Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofnodefrom));
+      Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofnodeto));
 
       std::list<Edge>* neighbors = &(nodefrom->neighbors);
 
