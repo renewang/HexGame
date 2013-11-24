@@ -7,7 +7,9 @@
 #define GAME_H_
 
 #include <string>
+
 #include "Player.h"
+#include "Strategy.h"
 #include "HexBoard.h"
 /*
  * Game Class is used to control how to proceed and show the progress of the game.
@@ -46,9 +48,7 @@ public:
 	//get the winner
 	std::string getWinner(Player& playera, Player& playerb);
 
-	//TODO maybe modify to pass a strategy function object?
-	//function to generate random move, primitive
-	int genMove();
+	int genMove(Strategy& aistrategy);
 };
 
 #endif /* GAME_H_ */

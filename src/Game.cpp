@@ -4,6 +4,7 @@
  */
 #include <cstdlib>
 #include <sstream>
+
 #include "Game.h"
 
 using namespace std;
@@ -77,18 +78,10 @@ string Game::getWinner(Player& playera, Player& playerb) {
   else
     return "UNKNOWN";
 }
-//TODO: elaborate the idea of Monte Carlo to evaluate and generate a good move for computer
-//set the move for a particular player
-//INPUT: NONE
-//OUTPUT: NONE
-int Game::genMove() {
-  bool isoccupied = true;
-  int index = -1;
-  srand(clock());
-  while (isoccupied) {
-    index = rand() % (board.getSizeOfVertices()) + 1;
-    if (board.getNodeValue(index) == hexgonValKind::EMPTY)
-      isoccupied = false;
-  }
-  return index;
+//Generate an intelligent move for Baby Watson
+//INPUT: a strategy object
+//OUPUT:
+//the index of next move (starting from 1 to number of hexgon per side)
+int Game::genMove(Strategy& aistrategy) {
+  return (aistrategy.genMove());
 }

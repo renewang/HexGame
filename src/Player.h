@@ -33,12 +33,12 @@ class Player {
     NORTHTOSOUTH
   };
 
-  HexBoard& board; //global board
-  HexBoard playersboard; //private board, used for Minimal Spanning Tree calculation
-  hexgonValKind playerkind;//enumeration type, used to identify the type of player
-  winConditions condition;//the winning condition which two sides need to be connected, depending on the type of player
-  std::string playername;//string representation of playerkind
-  char viewlabel;//the label on the global board
+  HexBoard& board;  //global board
+  HexBoard playersboard;  //private board, used for Minimal Spanning Tree calculation
+  hexgonValKind playerkind;  //enumeration type, used to identify the type of player
+  winConditions condition;  //the winning condition which two sides need to be connected, depending on the type of player
+  std::string playername;  //string representation of playerkind
+  char viewlabel;  //the label on the global board
 
   //call Minimal Spanning Tree calculation in order to calculate the connected path for every move the player has made
   Graph<hexgonValKind, int> calMST();
@@ -94,6 +94,13 @@ class Player {
   //getter for private member of player specific board
   const HexBoard& getPlayersboard() const {
     return playersboard;
+  }
+
+  inline bool getWestToEastCondition() const {
+    return this->condition == winConditions::WESTTOEAST ? true : false;
+  }
+  inline bool getNorthToSouthCondition() const {
+    return this->condition == winConditions::NORTHTOSOUTH ? true : false;
   }
 };
 
