@@ -58,35 +58,39 @@ bool Strategy::isWinner(std::vector<int>& test) {
   bool* connected = new bool[numofhexgon];
   bool iswinner = false;
 
-  vector< set<int> > candidates(numofhexgon);
+  fill(connected, connected + numofhexgon, true);
+
+  vector<set<int> > candidates(numofhexgon);
   for (int i = 0; i < numofhexgon; i++) {
     set<int> element;
     candidates[i] = element;
   }
 
-  fill(connected, connected + numofhexgon, true);
-
   for (unsigned i = 0; i < test.size(); i++) {
     int row = (test[i] - 1) / ptrtoboard->getNumofhexgons();
     int col = (test[i] - 1) % ptrtoboard->getNumofhexgons();
+
+    assert(row >= 0 && row < numofhexgon);
+    assert(col >= 0 && col < numofhexgon);
+
     if (ptrtoplayer->getWestToEastCondition())
       candidates[col].insert(row);
     else
       candidates[row].insert(col);
   }
 
-  assert((int)candidates.size() == numofhexgon);
+  assert((int )candidates.size() == numofhexgon);
 
   for (int i = 0; i < (numofhexgon - 1); i++) {
-    if (candidates[i].size() == 0) {
+    if (candidates[i].empty() || candidates[i + 1].empty()) {
       fill(connected, connected + numofhexgon, false);
       break;
     }
     for (int j = 0; j < numofhexgon; j++) {
       if ((connected[j] || (j < (numofhexgon - 1) && connected[j + 1])
-          || (j > 0 && connected[j - 1])) && candidates[i].count(j)
-          && (candidates[i + 1].count(j) || candidates[i + 1].count(j - 1)
-              || candidates[i].count(j + 1)))
+       || (j > 0 && connected[j - 1])) && candidates[i].count(j)
+       && (candidates[i + 1].count(j) || candidates[i + 1].count(j - 1)
+       || candidates[i].count(j + 1)))
         connected[j] = true;
       else
         connected[j] = false;

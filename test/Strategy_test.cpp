@@ -65,23 +65,21 @@ TEST_F(StrategyTest,CheckWinnerTest) {
 
   //move west to east firstly and then north to south (zigzag move)
   //1->2->7->8->13->14->19->20
-  cout << "test 5" <<endl;
   vector<int> testmove5(8);
-  for (int i = 1; i < numofhexgon * 6; i = i + 6) {
+  for (int i = 1; i <= 19; i = i + 6) {
     testmove5[i / 3] = i;
     testmove5[i / 3 + 1] = i + 1;
   }
-
   EXPECT_FALSE(strategyred.isWinner(testmove5));  //north to south
   EXPECT_TRUE(strategyblue.isWinner(testmove5));  //west to east
 
   //move north to south firstly and then west to east (zigzag move)
+  //1->6->7->12->13->18->19->24
   vector<int> testmove6(8);
-  for (int i = 1; i < 6 * numofhexgon; i = i + 6) {
+  for (int i = 1; i <= 19; i = i + 6) {
     testmove6[i / 3] = i;
     testmove6[i / 3 + 1] = i + 5;
   }
-
   EXPECT_TRUE(strategyred.isWinner(testmove6));  //north to south
   EXPECT_FALSE(strategyblue.isWinner(testmove6));  //west to east
 
@@ -111,30 +109,74 @@ TEST_F(StrategyTest,CheckWinnerTest) {
 
   //purely random
   vector<int> testmove9(numofhexgon);
-  int randommove[5] = {1, 10, 8, 12, 19};
-  for(unsigned i = 0; i < testmove9.size(); i++)
-    testmove9[i] = randommove[i];
+  int randommove[5] = { 1, 10, 8, 12, 19 };
+  copy(randommove, randommove + numofhexgon, testmove9.begin());
 
   EXPECT_FALSE(strategyred.isWinner(testmove9));  //north to south
   EXPECT_FALSE(strategyblue.isWinner(testmove9));  //west to east
 
-  //purely random and then compare the result of MST and approximate approach to find a winner
-  vector<int> test;
-  bool winner = false;
-  bool* emptyindicators = new bool[numofhexgon * numofhexgon];
-  fill(emptyindicators,emptyindicators+numofhexgon * numofhexgon, true);
-  Game hexboardgame(board);
-  while (!winner) {
-    int move = strategyred.genNextRandom(emptyindicators);
-    test.push_back(move);
-    int row = (move - 1) / numofhexgon + 1;
-    int col = (move - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playera, row, col);
-    winner = strategyred.isWinner(test);
+  //random test set 2
+  vector<int> testmove10(11);
+  int randommove2[11] = { 1, 2, 3, 4, 8, 9, 14, 15, 18, 19, 21 };
+  copy(randommove2, randommove2 + 11, testmove10.begin());
+
+  EXPECT_FALSE(strategyred.isWinner(testmove10));  //north to south
+  EXPECT_FALSE(strategyblue.isWinner(testmove10));  //west to east
+
+  //purely random to compare the result of MST and approximate approach to find a winner for north to south
+  for (unsigned i = 0; i < 1000; i++) {
+    vector<int> test;
+    bool winner = false;
+    bool* emptyindicators = new bool[numofhexgon * numofhexgon];
+    fill(emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+    Game hexboardgame(board);
+    while (!winner) {
+      int move = strategyred.genNextRandom(emptyindicators);
+      test.push_back(move);
+      int row = (move - 1) / numofhexgon + 1;
+      int col = (move - 1) % numofhexgon + 1;
+      hexboardgame.setMove(playera, row, col);
+      winner = strategyred.isWinner(test);
+    }
+    string winnerwho = hexboardgame.getWinner(playera, playerb);
+    string playername = playera.getPlayername();
+    if (playername != winnerwho) {
+      for (unsigned i = 0; i < test.size(); i++)
+        cout << test[i] << " ";
+      cout << endl;
+    }
+    EXPECT_EQ(winnerwho, playername);
+    delete[] emptyindicators;
   }
-  string winnerwho = hexboardgame.getWinner(playera, playerb);
-  EXPECT_EQ(playera.getPlayername(), winnerwho);
-  delete [] emptyindicators;
+  //purely random to compare the result of MST and approximate approach to find a winner for west to east
+  HexBoard board2(numofhexgon);
+  Player playera2(board2, hexgonValKind::RED);  //north to south
+  Player playerb2(board2, hexgonValKind::BLUE);  //west to east
+  Strategy strategyblue2(&board2, &playerb2);
+  for (unsigned i = 0; i < 1000; i++) {
+    vector<int> test;
+    bool winner = false;
+    bool* emptyindicators = new bool[numofhexgon * numofhexgon];
+    fill(emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+    Game hexboardgame(board2);
+    while (!winner) {
+      int move = strategyblue.genNextRandom(emptyindicators);
+      test.push_back(move);
+      int row = (move - 1) / numofhexgon + 1;
+      int col = (move - 1) % numofhexgon + 1;
+      hexboardgame.setMove(playerb2, row, col);
+      winner = strategyblue2.isWinner(test);
+    }
+    string winnerwho = hexboardgame.getWinner(playera2, playerb2);
+    string playername = playerb2.getPlayername();
+    if (playername != winnerwho) {
+      for (unsigned i = 0; i < test.size(); i++)
+        cout << test[i] << " ";
+      cout << endl;
+    }
+    EXPECT_EQ(winnerwho, playername);
+    delete[] emptyindicators;
+  }
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
