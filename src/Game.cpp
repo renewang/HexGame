@@ -23,7 +23,7 @@ bool Game::setMove(Player& player, int indexofrow, int indexofcol) {
 //INPUT: NONE
 //OUTPUT:
 //the view of board in string
-string Game::showView() {
+string Game::showView(Player& playera, Player& playerb) {
   stringstream strout;
   int side = board.getNumofhexgons();
   int step = 3;
@@ -41,25 +41,37 @@ string Game::showView() {
   for (int i = 0; i < side; i++) {
     if (i == side / 2)
       strout << setw((step - 1) * (i + 1) / 2) << "WEST"
-             << setw((step - 1) * (i + 1) - (step - 1) * (i + 1) / 2) << ' '
+             << setw((step - 1) * (i + 1) - (step - 1) * (i + 1) / 2 - 1) << ' '
              << setw(step - 1) << (i + 1);
     else
       strout << setw((step - 1) * (i + 1)) << ' ' << setw(step - 1) << (i + 1);
     for (int j = 0; j < side; j++) {
       int index = i * side + j + 1;
-      strout << setw(step);
+      strout << setw(step - 1);
       if (board.getNodeValue(index) == hexgonValKind::EMPTY)
         strout << '.';
-      else if (board.getNodeValue(index) == hexgonValKind::RED)
-        strout << 'X';
-      else
-        strout << 'O';
+      else if(board.getNodeValue(index) == playera.getPlayerlabel())
+        strout << playera.getViewLabel();
+      else if(board.getNodeValue(index) == playerb.getPlayerlabel())
+        strout << playerb.getViewLabel();
+
       if (j < (side - 1))
-        strout << setw(step - 1) << ' ';
+        strout << " - ";
     }
     if (i == side / 2)
       strout << setw(2 * step) << "EAST";
     strout << '\n';
+    //print edge
+    if (i < (side - 1)) {
+      strout << setw((step - 1) * (i + 2)) << ' ';
+      for (int j = 0; j < 2 * side; j++) {
+        if (j % 2 == 0)
+          strout << setw(step) << '\\';
+        else if(j % 2==1 && j != (2*side-1))
+          strout << setw(step-1) << '/';
+      }
+      strout << setw(step) << '\n';
+    }
   }
   strout << setw(totoalwide / 2) << ' ' << "SOUTH" << endl;
   return strout.str();

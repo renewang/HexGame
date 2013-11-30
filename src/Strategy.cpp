@@ -17,18 +17,18 @@ using namespace std;
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer)
     : ptrtoboard(board),
       ptrtoplayer(aiplayer),
-      numberoftrials(1000) {
+      numberoftrials(3000) {
 }
 //TODO: maybe pass a random generator which does some fancy things?
 //generate the random next move representing with index [1, number of hexgon per side]
 //INPUT: NONE
 //OUPUT: NONE
-int Strategy::genNextRandom(bool* emptyindicators) {
+int Strategy::genNextRandom(bool* emptyindicators, unsigned proportionofempty) {
   bool isoccupied = true;
   int index = -1;
   srand(clock());
 
-  while (isoccupied) {
+  while (isoccupied && proportionofempty > 0) {
     index = rand() % (ptrtoboard->getSizeOfVertices()) + 1;
     if (emptyindicators[index - 1]) {
       isoccupied = false;
@@ -45,18 +45,19 @@ int Strategy::genNextRandom(bool* emptyindicators) {
 //an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
 int Strategy::checkWinnerExist(vector<int>& babywatsons,
                                vector<int>& opponents) {
-  if (isWinner(babywatsons))
+  if (isWinner(babywatsons, ptrtoplayer->getWestToEastCondition()))
     return 1;
-  else if (isWinner(opponents))
+  else if (isWinner(opponents, !ptrtoplayer->getWestToEastCondition()))
     return -1;
   else
     return 0;
 }
 //check if the test vector satisfies the winning condition
-bool Strategy::isWinner(std::vector<int>& test) {
+//TODO This is extremely hideous. Need a rework.
+bool Strategy::isWinner(std::vector<int>& test, bool iswestoeast) {
   int numofhexgon = ptrtoboard->getNumofhexgons();
-  bool* connected = new bool[numofhexgon];
-  bool iswinner = false;
+  bool* connected = new bool[numofhexgon];  //indicator of connected path leading to the positions in previous row
+  bool iswinner = true;
 
   fill(connected, connected + numofhexgon, true);
 
@@ -73,7 +74,7 @@ bool Strategy::isWinner(std::vector<int>& test) {
     assert(row >= 0 && row < numofhexgon);
     assert(col >= 0 && col < numofhexgon);
 
-    if (ptrtoplayer->getWestToEastCondition())
+    if (iswestoeast)
       candidates[col].insert(row);
     else
       candidates[row].insert(col);
@@ -88,20 +89,57 @@ bool Strategy::isWinner(std::vector<int>& test) {
     }
     for (int j = 0; j < numofhexgon; j++) {
       if ((connected[j] || (j < (numofhexgon - 1) && connected[j + 1])
-       || (j > 0 && connected[j - 1])) && candidates[i].count(j)
-       && (candidates[i + 1].count(j) || candidates[i + 1].count(j - 1)
-       || candidates[i].count(j + 1)))
+          || (j > 0 && connected[j - 1])) && candidates[i].count(j)
+          && (candidates[i + 1].count(j) || candidates[i + 1].count(j - 1)
+              || candidates[i].count(j + 1) || candidates[i].count(j - 1)))
         connected[j] = true;
       else
         connected[j] = false;
     }
-  }
 
-  for (int i = 0; i < numofhexgon; i++) {
-    if (connected[i]) {
-      iswinner = connected[i];
-      break;
+    //reverse
+    for (int k = (numofhexgon - 1); k >= 0; k--) {
+      if ((connected[k] || (k < (numofhexgon - 1) && connected[k + 1])
+          || (k > 0 && connected[k - 1])) && candidates[i].count(k)
+          && (candidates[i + 1].count(k) || candidates[i + 1].count(k - 1)
+              || candidates[i].count(k + 1) || candidates[i].count(k - 1)))
+        connected[k] = true;
+      else
+        connected[k] = false;
     }
+    //backward path detection
+    int start = 2, end = start, b = start;
+    if (i > 0 && i < (numofhexgon - 2)) {
+      while (b < (numofhexgon - 1)) {
+        if (candidates[i].count(b) && (candidates[i + 1].count(b - 1))
+            && !connected[b])  //potential backward path
+            {
+          start = b;
+          int k = b + 1;
+          while (candidates[i].count(k))
+            k++;
+          end = k - 1;
+          if (end - start >= 1
+              && (candidates[i + 1].count(end)
+                  || candidates[i + 1].count(end - 1))) {
+            for (int c = start; c <= end; c++)
+              connected[c] = true;
+          }
+        }
+        b += (end - start + 1);
+      }
+    }
+    //not allowed a all false connected
+    if (find(connected, connected + numofhexgon, true)
+        == connected + numofhexgon)
+      break;
+  }
+  for (int i = 0; i < numofhexgon; i++) {
+    iswinner = connected[i]
+        && (candidates[numofhexgon - 1].count(i)
+            || candidates[numofhexgon - 1].count(i - 1));
+    if (iswinner)
+      break;
   }
 
   delete[] connected;
@@ -130,20 +168,42 @@ int Strategy::simulation() {
           opponents.push_back(j + 1);
       }
     }
+    unsigned portionofempty = count(
+        emptyindicators, emptyindicators + ptrtoboard->getSizeOfVertices(),
+        true);
 
-    int winner = 0, nextmove = -1;
-    while (winner == 0) {
+    int nextmove = -1;
+    //random sampling
+    while (portionofempty > 0) {
 
       //random generate a move for baby watson
-      int move = genNextRandom(emptyindicators);
-      if (nextmove < 0)
-        nextmove = move;
-      babywatsons.push_back(move);
+      if (portionofempty > threshold) {
+        int move = genNextRandom(emptyindicators, portionofempty);
+        if (nextmove < 0)
+          nextmove = move;
+        babywatsons.push_back(move);
+        portionofempty--;
+      } else if(portionofempty > 0){  //fill up the board by non-random
+        int move = genNextFill(emptyindicators, babywatsons,
+                               ptrtoplayer->getWestToEastCondition());
+        babywatsons.push_back(move);
+        portionofempty--;
+      }
 
       //random generate a move for virtual opponent
-      opponents.push_back(genNextRandom(emptyindicators));
-      winner = checkWinnerExist(babywatsons, opponents);
+      if (portionofempty > threshold) {
+        opponents.push_back(genNextRandom(emptyindicators, portionofempty));
+        portionofempty--;
+      } else if(portionofempty > 0){  //fill up the board by non-random
+        int move = genNextFill(emptyindicators, opponents,
+                               !ptrtoplayer->getWestToEastCondition());
+        opponents.push_back(move);
+        portionofempty--;
+      }
     }
+
+    int winner = checkWinnerExist(babywatsons, opponents);
+    //assert(winner != 0);
     if (winner == 1)
       result[nextmove - 1]++;
 
@@ -151,13 +211,73 @@ int Strategy::simulation() {
   }
 
 //find the move with the maximal successful simulated outcome
-  PriorityQueue<int, unsigned> queue(ptrtoboard->getSizeOfVertices());
-  for (unsigned i = 0; i < result.size(); i++)
-    queue.insert((i + 1), result[i]);
-
+//somehow doesn't work
+  vector<int> index(result.size());
+  PriorityQueue<int, int> queue(result.size());
+  for (unsigned i = 0; i < result.size(); i++) {
+    index[i] = (i + 1);
+    queue.insert(index[i], -1 * result[i]);
+  }
   return queue.minPrioirty();
 }
 int Strategy::genMove() {
   return (simulation());
+}
+int Strategy::genNextFill(bool* emptyindicators, std::vector<int>& moves,
+                          bool iswestoeast) {
+  int numofhexgon = ptrtoboard->getNumofhexgons();
+  vector<set<int> > candidates(numofhexgon);
+  for (int i = 0; i < numofhexgon; i++) {
+    set<int> element;
+    candidates[i] = element;
+  }
+
+  for (unsigned i = 0; i < moves.size(); i++) {
+    int row = (moves[i] - 1) / ptrtoboard->getNumofhexgons();
+    int col = (moves[i] - 1) % ptrtoboard->getNumofhexgons();
+
+    assert(row >= 0 && row < numofhexgon);
+    assert(col >= 0 && col < numofhexgon);
+
+    if (iswestoeast)
+      candidates[col].insert(row);
+    else
+      candidates[row].insert(col);
+  }
+  assert((int )candidates.size() == numofhexgon);
+//find the empty location with most connected moves
+  int maxcnt = -1, maxcntloc = -1;
+  for (int i = 0; i < (numofhexgon * numofhexgon); i++) {
+    if (emptyindicators[i]) {
+      int rowofempty = i / numofhexgon;
+      int colofempty = i % numofhexgon;
+      int neighbors;
+      if (rowofempty > 0 && rowofempty < (numofhexgon - 1)) {
+        neighbors = candidates[rowofempty - 1].count(colofempty)  //-1, 0
+        + candidates[rowofempty - 1].count(colofempty + 1)  //-1, 1
+            + candidates[rowofempty].count(colofempty - 1)  //0, -1
+            + candidates[rowofempty].count(colofempty + 1)  //0, 1
+            + candidates[rowofempty + 1].count(colofempty)  //1, 0
+            + candidates[rowofempty + 1].count(colofempty - 1);  //1, -1
+      } else if (rowofempty == 0) {
+        neighbors = candidates[rowofempty].count(colofempty - 1)  //0, -1
+        + candidates[rowofempty].count(colofempty + 1)  //0, 1
+            + candidates[rowofempty + 1].count(colofempty)  //1, 0
+            + candidates[rowofempty + 1].count(colofempty - 1);  //1, -1
+      } else if (rowofempty == (numofhexgon - 1)) {
+        neighbors = candidates[rowofempty - 1].count(colofempty)  //-1, 0
+                + candidates[rowofempty - 1].count(colofempty + 1)  //-1, 1
+                    + candidates[rowofempty].count(colofempty - 1)  //0, -1
+                    + candidates[rowofempty].count(colofempty + 1);  //0, 1
+      }
+      if (neighbors > maxcnt) {
+        maxcnt = neighbors;
+        maxcntloc = (i + 1);
+      }
+    }
+  }
+  assert(maxcntloc != -1);
+  emptyindicators[maxcntloc - 1] = false;
+  return maxcntloc;
 }
 

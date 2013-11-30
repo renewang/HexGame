@@ -55,13 +55,13 @@ class Player {
     playersboard.setNumofhexgons(board.getNumofhexgons());
     //RED player always starts from North side to South side
     if (kind == hexgonValKind::RED) {
-      viewlabel = 'O';
+      viewlabel = 'R';
       playername = "RED";
       condition = winConditions::NORTHTOSOUTH;
 
     } else if (kind == hexgonValKind::BLUE) {
       //BLUE player always starts from West side to East side
-      viewlabel = 'X';
+      viewlabel = 'B';
       playername = "BLUE";
       condition = winConditions::WESTTOEAST;
     }

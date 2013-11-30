@@ -42,7 +42,7 @@ public:
 	virtual ~Game(){};
 
 	//show current board view
-	std::string showView();
+	std::string showView(Player& playera, Player& playerb);
 	//set the move for a particular player
 	bool setMove(Player& player, int indexofrow, int indexofcol);
 	//get the winner

@@ -12,8 +12,9 @@
 
 #include "Player.h"
 #include "HexBoard.h"
-
+#ifdef _DEBUG_
 #include "gtest/gtest_prod.h"
+#endif
 
 class Strategy {
  private:
@@ -23,20 +24,32 @@ class Strategy {
   const Player* ptrtoplayer;
   const int numberoftrials;
   //generate the random next move in terms of index of row and index of column [1, number of hexgon per side]
-  int genNextRandom(bool* emptyindicators);
+  int genNextRandom(bool* emptyindicators, unsigned proportionofempty);
+  //fill up the board
+  int genNextFill(bool* emptyindicators, std::vector<int>&, bool);
   //check if the winner exists for this stage of simulation
   int checkWinnerExist(std::vector<int>&, std::vector<int>&);
-  bool isWinner(std::vector<int>& test);
+  bool isWinner(std::vector<int>& test, bool iswestoeast);
   //simulation body
   int simulation();
+  float threshold = 0.0;  //the threshold to indicate when to stop generating next move randomly and just simply fill up the board
 
+#ifdef _DEBUG_
   //for google test framework
   friend class StrategyTest;
   FRIEND_TEST(StrategyTest,CheckWinnerTest);
+  FRIEND_TEST(StrategyTest,CheckWinnerTestTwo);
+  FRIEND_TEST(StrategyTest,CheckWinnerElevenTest);
+  FRIEND_TEST(StrategyTest,CheckGenMoveForPair);
+  FRIEND_TEST(StrategyTest,CheckGenNextFill);
+  FRIEND_TEST(StrategyTest,CheckGenNextFillBasic);
+#endif
 
  public:
   Strategy(const HexBoard* board, const Player* aiplayer);
-  virtual ~Strategy(){};
+  virtual ~Strategy() {
+  }
+  ;
   //called by the client
   int genMove();
 };

@@ -16,6 +16,7 @@
 #include "Game.h"
 #include "Player.h"
 #include "HexBoard.h"
+#include "Strategy.h"
 
 using namespace std;
 
@@ -38,11 +39,11 @@ int main(int argc, char **argv) {
     //game setup
     HexBoard board(numofhexgon);
     Game hexboardgame(board);
-    cout << hexboardgame.showView() << endl;
 
     Player* human, *babywatson;
     Player playerfirst(board, hexgonValKind::BLUE);
     Player playersecond(board, hexgonValKind::RED);
+    cout << hexboardgame.showView(playerfirst, playersecond) << endl;
 
     string userchoice;
 
@@ -65,6 +66,8 @@ int main(int argc, char **argv) {
         cout << "Invalid input. Please Try again!" << endl;
     }
 
+    Strategy watsonstrategy(&board, babywatson);
+
     //continue moving until one of the players wins
     while (true) {
 
@@ -76,19 +79,19 @@ int main(int argc, char **argv) {
           queryHumanMove(userrow, usercol);
           issetmove = hexboardgame.setMove(*human, userrow, usercol);
         }
-        cout << hexboardgame.showView() << endl;
+        cout << hexboardgame.showView(*human, *babywatson) << endl;
       }
 
       ishumanfirst = true;
       //computer aka baby watson moves
       int watsonmove, watsonrow, watsoncol;
-      watsonmove = hexboardgame.genMove();
+      watsonmove = hexboardgame.genMove(watsonstrategy);
       watsonrow = (watsonmove - 1) / numofhexgon + 1;
       watsoncol = (watsonmove - 1) % numofhexgon + 1;
       hexboardgame.setMove(*babywatson, watsonrow, watsoncol);
       cout << "Baby Watson sets foot at (" << watsonrow << ',' << watsoncol
            << ')' << endl;
-      cout << hexboardgame.showView() << endl;
+      cout << hexboardgame.showView(*human, *babywatson) << endl;
 
       string winner = hexboardgame.getWinner(*human, *babywatson);
       if (winner == human->getPlayername()) {

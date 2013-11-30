@@ -15,7 +15,10 @@
 #include <iostream>
 
 #include "AbstractParser.h"
+
+#ifdef _DEBUG_
 #include "gtest/gtest_prod.h"
+#endif
 
 //#include "AbstractParser.h"
 //class PlainParser: public AbstractParser {
@@ -38,9 +41,11 @@ class PlainParser: public AbstractParser{
   void split(std::string, std::vector<std::string>&);//split the line according to the delimiter
   void trim(std::string&);//trim the leading and trailing spaces
 
+#ifdef _DEBUG
   //for test
   friend class MinSpanTreeTest;
   FRIEND_TEST(MinSpanTreeTest,PlainParserCheck);
+#endif
 
 
  protected:

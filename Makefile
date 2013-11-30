@@ -1,4 +1,4 @@
-CXXFLAGS =	-O0 -g -Wall -fmessage-length=0
+CXXFLAGS =	-O0 -g -pg -Wall -fmessage-length=0
 
 FLAGS =	-std=c++11 
 
@@ -46,14 +46,17 @@ $(EXEDIR)/HexBoard.o: $(SRCDIR)/HexBoard.cpp $(EXEDIR)/Graph.o
 $(EXEDIR)/Player.o: $(SRCDIR)/Player.cpp $(EXEDIR)/HexBoard.o $(EXEDIR)/MinSpanTreeAlgo.o
 	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/Player.o -c $(SRCDIR)/Player.cpp $(LIBS) $(INCLUDE)
 	
-$(EXEDIR)/Game.o: $(SRCDIR)/Game.cpp $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o
+$(EXEDIR)/Strategy.o: $(SRCDIR)/Strategy.cpp $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o $(EXEDIR)/PriorityQueue.o
+	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/Strategy.o -c $(SRCDIR)/Strategy.cpp $(LIBS) $(INCLUDE)
+	
+$(EXEDIR)/Game.o: $(SRCDIR)/Game.cpp $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o $(EXEDIR)/Strategy.o
 	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/Game.o -c $(SRCDIR)/Game.cpp $(LIBS) $(INCLUDE)
 	
 $(EXEDIR)/HexBoardGameApp.o: HexBoardGameApp.cpp $(EXEDIR)/Game.o $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o
 	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/HexBoardGameApp.o -c HexBoardGameApp.cpp $(LIBS) $(INCLUDE)
 	
 $(EXEDIR)/HexBoardGameApp: $(EXEDIR)/HexBoardGameApp.o $(EXEDIR)/Game.o $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o
-	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/HexBoardGameApp $(EXEDIR)/HexBoardGameApp.o $(EXEDIR)/Game.o $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o $(LIBS) $(INCLUDE)
+	$(CXX) $(CXXFLAGS) $(FLAGS) -o $(EXEDIR)/HexBoardGameApp $(EXEDIR)/HexBoardGameApp.o $(EXEDIR)/Game.o $(EXEDIR)/Player.o $(EXEDIR)/HexBoard.o $(EXEDIR)/Strategy.o $(LIBS) $(INCLUDE)
 
 all:	$(EXEDIR)/DijkstraAlg $(EXEDIR)/KruskalMSTAlg $(EXEDIR)/HexBoardGameApp
 
