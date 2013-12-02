@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
     while (true) {//loop to make sure user's input is correct.
       //let user decide the color of player and the choice to make first move or not.
-      cout << "Please enter your choice of color?" << endl;
+      cout << "Please enter your choice of color? (RED|BLUE)" << endl;
       cin >> userchoice;
       if (userchoice == "BLUE") {
         human = &playerfirst;

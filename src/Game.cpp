@@ -40,9 +40,10 @@ string Game::showView(Player& playera, Player& playerb) {
   strout << endl;
   for (int i = 0; i < side; i++) {
     if (i == side / 2)
-      strout << setw((step - 1) * (i + 1) / 2) << "WEST"
-             << setw((step - 1) * (i + 1) - (step - 1) * (i + 1) / 2 - 1) << ' '
-             << setw(step - 1) << (i + 1);
+      strout
+          << setw((step - 1) * (i + 1) / 2) << "WEST"
+          << setw((step - 1) * (i + 1) - (step - 1) * (i + 1) / 2 - (i + 1) % 2)
+          << ' ' << setw(step - 1) << (i + 1);
     else
       strout << setw((step - 1) * (i + 1)) << ' ' << setw(step - 1) << (i + 1);
     for (int j = 0; j < side; j++) {
@@ -50,9 +51,9 @@ string Game::showView(Player& playera, Player& playerb) {
       strout << setw(step - 1);
       if (board.getNodeValue(index) == hexgonValKind::EMPTY)
         strout << '.';
-      else if(board.getNodeValue(index) == playera.getPlayerlabel())
+      else if (board.getNodeValue(index) == playera.getPlayerlabel())
         strout << playera.getViewLabel();
-      else if(board.getNodeValue(index) == playerb.getPlayerlabel())
+      else if (board.getNodeValue(index) == playerb.getPlayerlabel())
         strout << playerb.getViewLabel();
 
       if (j < (side - 1))
@@ -67,8 +68,8 @@ string Game::showView(Player& playera, Player& playerb) {
       for (int j = 0; j < 2 * side; j++) {
         if (j % 2 == 0)
           strout << setw(step) << '\\';
-        else if(j % 2==1 && j != (2*side-1))
-          strout << setw(step-1) << '/';
+        else if (j % 2 == 1 && j != (2 * side - 1))
+          strout << setw(step - 1) << '/';
       }
       strout << setw(step) << '\n';
     }
