@@ -73,8 +73,7 @@ bool Strategy::isWinner(vector<set<int> >& candidates, bool iswestoeast) {
     if (candidates[numofhexgon - 1].count(j))
       backward[j] = true;
   }
-  for (int i = 1; i < numofhexgon; i++) {
-    int k = numofhexgon - 1 - i;
+  for (int i = 1, k = numofhexgon - 1 - i; i < numofhexgon || k > 0; i++, k--) {
     if (candidates[i].empty() || candidates[k].empty()) {
       fill(forward, forward + numofhexgon, false);
       fill(backward, backward + numofhexgon, false);

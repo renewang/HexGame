@@ -25,7 +25,7 @@ void parserMove(string movestring, int& row, int& col);
 int queryHumanMove(int& userrow, int& usercol);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
-const int numofhexgon = 11;
+const int numofhexgon = 5;
 
 int main(int argc, char **argv) {
 

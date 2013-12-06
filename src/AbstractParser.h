@@ -21,7 +21,7 @@ class AbstractParser {
   virtual void close() = 0;
 
  public:
-  AbstractParser() {};
+  AbstractParser() { std::cout << std::endl;};
   virtual ~AbstractParser() {};
   virtual const std::vector<std::vector<std::string> >& getData() const = 0;
 };
