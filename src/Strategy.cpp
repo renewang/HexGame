@@ -3,10 +3,8 @@
  * This file defines MC simulation implementation for AI player
  *
  */
-
-#include <set>
+#include <chrono>
 #include <cstdlib>
-#include <algorithm>
 
 #include "Strategy.h"
 
@@ -15,7 +13,16 @@ using namespace std;
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer)
     : ptrtoboard(board),
       ptrtoplayer(aiplayer),
-      numberoftrials(1000) {
+      numberoftrials(3000) {
+  numofhexgons = ptrtoboard->getNumofhexgons();
+}
+Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
+                   float threshold, float randomness)
+    : threshold(threshold),
+      randomness(randomness),
+      ptrtoboard(board),
+      ptrtoplayer(aiplayer),
+      numberoftrials(3000) {
   numofhexgons = ptrtoboard->getNumofhexgons();
 }
 //generate the random next move representing with index [1, number of hexgon per side]
@@ -41,8 +48,8 @@ int Strategy::genNextRandom(bool* emptyindicators, unsigned proportionofempty) {
 //opponenets: the proposed moves made by virtual opponent so far
 //OUTPUT:
 //an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
-int Strategy::checkWinnerExist(vector<set<int> >& babywatsons,
-                               vector<set<int> >& opponents) {
+int Strategy::checkWinnerExist(vector<int>& babywatsons,
+                               vector<int>& opponents) {
   if (isWinner(babywatsons, ptrtoplayer->getWestToEastCondition()))
     return 1;
   else if (isWinner(opponents, !ptrtoplayer->getWestToEastCondition()))
@@ -51,94 +58,64 @@ int Strategy::checkWinnerExist(vector<set<int> >& babywatsons,
     return 0;
 }
 //check if the test vector satisfies the winning condition
-//TODO This is extremely hideous. Need a rework.
 //INPUT:
 //candidates: stores the moves
 //iswestoeast: the boolean variable to indicate if the winning condition is west to east
 //OUTPUT:
 //the boolean variable indicates if this simulation wins the game
-bool Strategy::isWinner(vector<set<int> >& candidates, bool iswestoeast) {
-  int numofhexgon = ptrtoboard->getNumofhexgons();
+bool Strategy::isWinner(vector<int>& candidates, bool iswestoeast) {
+  bool iswinner = false;
 
-  bool* forward = new bool[numofhexgon];
-  bool* backward = new bool[numofhexgon];
-  bool iswinner = true;
+  vector<int> representative(candidates.size());
+  vector<int> repsize(candidates.size(), 1);
 
-  fill(forward, forward + numofhexgon, false);
-  fill(backward, backward + numofhexgon, false);
+  for (unsigned i = 0; i < candidates.size(); i++)
+    representative[i] = i;
 
-  for (int j = 0; j < numofhexgon; j++) {
-    if (candidates[0].count(j))
-      forward[j] = true;
-    if (candidates[numofhexgon - 1].count(j))
-      backward[j] = true;
-  }
-  for (int i = 1, k = numofhexgon - 1 - i; i < numofhexgon || k > 0; i++, k--) {
-    if (candidates[i].empty() || candidates[k].empty()) {
-      fill(forward, forward + numofhexgon, false);
-      fill(backward, backward + numofhexgon, false);
-      break;
-    }
-    for (int j = 0; j < numofhexgon; j++) {
-      if (j < (numofhexgon - 1) && j > 0) {
+  //link the edge by scanning pairwise node
+  for (unsigned i = 0; i < (candidates.size() - 1); i++) {
+    for (unsigned j = i + 1; j < candidates.size(); j++) {
+      //temporary for test adjacent
+      if (ptrtoboard->isAdjacent(candidates[i], candidates[j])
+          && representative[i] != representative[j]) {
+        int smallgroup = representative[j];
+        int largegroup =
+            (repsize[representative[i]] > repsize[representative[j]]) ?
+                representative[i] : representative[j];
+        if (largegroup != representative[i])
+          smallgroup = representative[i];
 
-        if ((forward[j] || forward[j + 1]) && candidates[i].count(j))
-          forward[j] = true;
-        else
-          forward[j] = false;
-
-        if ((backward[j] || backward[j - 1]) && candidates[k].count(j))
-          backward[j] = true;
-        else
-          backward[j] = false;
-
-      } else if (j == 0) {  //boundary
-        if ((forward[j] || forward[j + 1]) && candidates[i].count(j))
-          forward[j] = true;
-        else
-          forward[j] = false;
-
-        if (backward[j] && candidates[k].count(j))
-          backward[j] = true;
-        else
-          backward[j] = false;
-
-      } else if (j == (numofhexgon - 1)) {  //boundary
-
-        if (forward[j] && candidates[i].count(j))
-          forward[j] = true;
-        else
-          forward[j] = false;
-
-        if ((backward[j] || backward[j - 1]) && candidates[k].count(j))
-          backward[j] = true;
-        else
-          backward[j] = false;
+        representative[smallgroup] = largegroup;
+        for (unsigned k = 0; k < candidates.size(); k++)
+          if (representative[k] == smallgroup) {
+            representative[k] = largegroup;
+            repsize[smallgroup]--;
+            repsize[largegroup]++;
+          }
       }
     }
-    for (int j = 1; j < numofhexgon; j++) {
-      if (forward[j - 1] && candidates[i].count(j))
-        forward[j] = true;
-      if (backward[j - 1] && candidates[k].count(j))
-        backward[j] = true;
-    }
-
-    for (int j = (numofhexgon - 2); j >= 0; j--) {
-      if (forward[j + 1] && candidates[i].count(j))
-        forward[j] = true;
-
-      if (backward[j + 1] && candidates[k].count(j))
-        backward[j] = true;
-    }
   }
-  for (int i = 0; i < numofhexgon; i++) {
-    iswinner = (backward[i] || forward[i]);
-    if (iswinner)
+
+  //find if there's a path satisfies the winning condition,
+  //should start from the largest group
+  for (unsigned i = 0; i < candidates.size(); i++) {
+    bool touchoneside = false;
+    bool touchotherside = false;
+    for (unsigned j = 0; j < candidates.size(); j++)
+      if (representative[j] == static_cast<int>(i)) {
+        int row = (candidates[j] - 1) / numofhexgons;
+        int col = (candidates[j] - 1) % numofhexgons;
+        if ((iswestoeast && col == 0) || (!iswestoeast && row == 0))
+          touchoneside = true;
+        else if ((iswestoeast && col == (numofhexgons - 1))
+            || (!iswestoeast && row == (numofhexgons - 1)))
+          touchotherside = true;
+      }
+    if (touchoneside && touchotherside) {
+      iswinner = (touchoneside && touchotherside);
       break;
+    }
   }
-
-  delete[] backward;
-  delete[] forward;
   return iswinner;
 }
 //simulation body
@@ -150,78 +127,79 @@ int Strategy::simulation() {
   vector<unsigned> result(ptrtoboard->getSizeOfVertices(), 0);
   int cutoff = threshold * (ptrtoboard->getSizeOfVertices());
 
+  //initialize the following containers to the current progress of playing board
+  bool* emptyglobal = new bool[ptrtoboard->getSizeOfVertices()];
+  vector<int> bwglobal, oppglobal;
+
+  for (int j = 0; j < ptrtoboard->getSizeOfVertices(); j++) {
+    //set the current empty location as true
+    if (ptrtoboard->getNodeValue(j + 1) == hexgonValKind::EMPTY)
+      emptyglobal[j] = true;
+    else {
+      emptyglobal[j] = false;
+      result[j] = -1;
+      if (ptrtoboard->getNodeValue(j + 1) == ptrtoplayer->getPlayerlabel())
+        bwglobal.push_back(j + 1);
+      else
+        oppglobal.push_back(j + 1);
+    }
+  }
+  int currentempty = count(emptyglobal,
+                           emptyglobal + ptrtoboard->getSizeOfVertices(), true);
+
+  //fill up the rest of the empty cells
+  vector<pair<int, int> > counter(currentempty);
+
+  vector<int> moves(bwglobal.size() + oppglobal.size());
+  merge(bwglobal.begin(), bwglobal.end(), oppglobal.begin(), oppglobal.end(),
+        moves.begin());
+
+  unordered_set<int> allmoves(moves.begin(), moves.end());
+  countNeighbors(emptyglobal, allmoves, counter);
+
+  //start the simulation
   for (int i = 0; i < numberoftrials; i++) {
 
     //initialize the following containers to the current progress of playing board
     bool* emptyindicators = new bool[ptrtoboard->getSizeOfVertices()];
-    vector<set<int> > babywatsons(numofhexgons), opponents(numofhexgons);
+    vector<int> babywatsons(bwglobal), opponents(oppglobal);
+    copy(emptyglobal, emptyglobal + ptrtoboard->getSizeOfVertices(),
+         emptyindicators);
+    PriorityQueue<int, int> emptyqueue(ptrtoboard->getSizeOfVertices());
+    int portionofempty = currentempty;
 
-    initTransformVector(babywatsons);
-    initTransformVector(opponents);
+    if (currentempty <= cutoff)
+      assignRandomNeighbors(emptyqueue, counter, currentempty);
 
-    for (int j = 0; j < ptrtoboard->getSizeOfVertices(); j++) {
-      //set the current empty location as true
-      if (ptrtoboard->getNodeValue(j + 1) == hexgonValKind::EMPTY)
-        emptyindicators[j] = true;
-      else {
-        emptyindicators[j] = false;
-        result[j] = -1;
-        if (ptrtoboard->getNodeValue(j + 1) == ptrtoplayer->getPlayerlabel())
-          assignValue(babywatsons, j + 1,
-                      ptrtoplayer->getWestToEastCondition());
-        else
-          assignValue(opponents, j + 1, !ptrtoplayer->getWestToEastCondition());
-      }
-    }
-    int portionofempty = count(
-        emptyindicators, emptyindicators + ptrtoboard->getSizeOfVertices(),
-        true);
     int nextmove = -1;
-    //random sampling
-    while (portionofempty > cutoff) {
+
+    while (portionofempty > 0) {
       //random generate a move for baby watson
-      int move = genNextRandom(emptyindicators, portionofempty);
+      int move, oppmove;
+      if (currentempty > cutoff)
+        move = genNextRandom(emptyindicators, portionofempty);
+      else
+        //fill up the board by non-random
+        move = genNextFill(emptyindicators, emptyqueue);
+
       if (nextmove < 0)
         nextmove = move;
-      assignValue(babywatsons, move, ptrtoplayer->getWestToEastCondition());
+
+      babywatsons.push_back(move);
       portionofempty--;
 
       //random generate a move for virtual opponent
-      if (portionofempty > cutoff) {
-        move = genNextRandom(emptyindicators, portionofempty);
-        assignValue(opponents, move, !ptrtoplayer->getWestToEastCondition());
-        portionofempty--;
-      }
-    }
-    //fill up the rest of the empty cells
-    PriorityQueue<int, int> emptyqueue(ptrtoboard->getSizeOfVertices());
-    vector<pair<int, int> > counter(ptrtoboard->getSizeOfVertices());
-    for (int j = 0; j < ptrtoboard->getSizeOfVertices(); j++)
-      counter[j] = make_pair((j + 1), 0);
+      if (currentempty > cutoff && portionofempty > 0)
+        oppmove = genNextRandom(emptyindicators, portionofempty);
+      else if (portionofempty > 0)
+        oppmove = genNextFill(emptyindicators, emptyqueue);
 
-    countNeighbors(emptyqueue, emptyindicators, babywatsons, counter);
-    countNeighbors(emptyqueue, emptyindicators, opponents, counter);
-
-    while (portionofempty > 0) {
-      //fill up the board by non-random
-      int move = genNextFill(emptyindicators, emptyqueue, counter);
-      if (nextmove < 0)
-        nextmove = move;
-
-      assignValue(babywatsons, move, ptrtoplayer->getWestToEastCondition());
+      opponents.push_back(oppmove);
       portionofempty--;
-
-      //fill up the board by non-random
-      if (portionofempty > 0) {
-        move = genNextFill(emptyindicators, emptyqueue, counter);
-        assignValue(opponents, move, !ptrtoplayer->getWestToEastCondition());
-        portionofempty--;
-      }
     }
-
     int winner = checkWinnerExist(babywatsons, opponents);
     assert(nextmove != -1);
-    //assert(winner != 0);
+    assert(winner != 0);
     if (winner == 1)
       result[nextmove - 1]++;
 
@@ -235,6 +213,9 @@ int Strategy::simulation() {
     index[i] = (i + 1);
     queue.insert(index[i], -1 * result[i]);
   }
+
+  delete[] emptyglobal;
+
   return queue.minPrioirty();
 }
 //the genMove called by Game
@@ -244,44 +225,24 @@ int Strategy::simulation() {
 int Strategy::genMove() {
   return (simulation());
 }
-void Strategy::countNeighbors(PriorityQueue<int, int>& queue,
-                              bool* emptyindicators, vector<set<int> >& moves,
-                              vector<pair<int, int>>& counter) {
+//initialize counter for neighbors
+//INPUT:
+//queue, priority queue used to store the
+//moves, the current move made by one of player
+//counter, the counter to record the number of neighbors
+//OUTPUT: NONE
+void Strategy::countNeighbors(bool* emptyindicators, unordered_set<int>& moves,
+                              vector<pair<int, int> >& counter) {
+  int countofempty = 0;
   for (int i = 0; i < ptrtoboard->getSizeOfVertices(); i++) {
     if (emptyindicators[i]) {
-      //adding randomness
-      srand(clock());
-      float prob = (float) rand() / RAND_MAX;
-      int neighbors;
-      int rowofempty = i / numofhexgons;
-      int colofempty = i % numofhexgons;
-      if (rowofempty > 0 && rowofempty < (numofhexgons - 1)) {
-        neighbors = moves[rowofempty - 1].count(colofempty)  //-1, 0
-        + moves[rowofempty - 1].count(colofempty + 1)  //-1, 1
-            + moves[rowofempty].count(colofempty - 1)  //0, -1
-            + moves[rowofempty].count(colofempty + 1)  //0, 1
-            + moves[rowofempty + 1].count(colofempty)  //1, 0
-            + moves[rowofempty + 1].count(colofempty - 1);  //1, -1
-      } else if (rowofempty == 0) {
-        neighbors = moves[rowofempty].count(colofempty - 1)  //0, -1
-        + moves[rowofempty].count(colofempty + 1)  //0, 1
-            + moves[rowofempty + 1].count(colofempty)  //1, 0
-            + moves[rowofempty + 1].count(colofempty - 1);  //1, -1
-      } else if (rowofempty == (numofhexgons - 1)) {
-        neighbors = moves[rowofempty - 1].count(colofempty)  //-1, 0
-        + moves[rowofempty - 1].count(colofempty + 1)  //-1, 1
-            + moves[rowofempty].count(colofempty - 1)  //0, -1
-            + moves[rowofempty].count(colofempty + 1);  //0, 1
-      }
-      if (prob <= randomness)
-        neighbors += rand() % ptrtoboard->getSizeOfVertices();
-      if (neighbors >= counter[i].second) {
-        counter[i].second = neighbors;
-        if (queue.contains(counter[i].first))
-          queue.chgPrioirity(counter[i].first, -1 * counter[i].second);
-        else
-          queue.insert(counter[i].first, -1 * counter[i].second);
-      }
+      vector<int> indexofneigh = ptrtoboard->getNeighbors((i + 1));
+      int neighbors = 0;
+      for (auto v : indexofneigh)
+        neighbors += moves.count(v);
+
+      counter[countofempty].first = (i + 1);
+      counter[countofempty++].second = neighbors;
     }
   }
 }
@@ -292,39 +253,38 @@ void Strategy::countNeighbors(PriorityQueue<int, int>& queue,
 //counter: the auxiliary vector which stores the index of position and priority
 //OUPUT:
 //next move
-int Strategy::genNextFill(bool* emptyindicators, PriorityQueue<int, int>&queue,
-                          vector<pair<int, int> >& counter) {
+int Strategy::genNextFill(bool* emptyindicators, PriorityQueue<int, int>&queue) {
   int nexloc = queue.minPrioirty();
   emptyindicators[nexloc - 1] = false;
   return nexloc;
 }
-//Utility function to assign new move into a vector
+//assign random number to neighbors counter
 //INPUT:
-//moves: the vector stores the past moves made by the simulation
-//move: the new move needs to be assigned to the moves vector
-//iswestoeast: boolean variable to indicate if the winning conditioni is west to east
-//OUPUT: NONE
-void Strategy::assignValue(vector<set<int> >& moves, int move,
-                           bool iswestoeast) {
-  int row = (move - 1) / numofhexgons;
-  int col = (move - 1) % numofhexgons;
+//queue: priority queue stores the number of neighbors for each empty cell of current game
+//counter: vector stores pair of index value of empty cells and count of neighbors
+//OUTPUT: NONE
+void Strategy::assignRandomNeighbors(PriorityQueue<int, int>& queue,
+                                     vector<pair<int, int> >& counter,
+                                     int currentempty) {
 
-  assert(row >= 0 && row < numofhexgons);
-  assert(col >= 0 && col < numofhexgons);
-  assert((row * numofhexgons + col + 1) == move);
+  unsigned long seed = chrono::system_clock::now().time_since_epoch().count();
+  default_random_engine generator(seed);
 
-  if (iswestoeast)
-    moves[col].insert(row);
-  else
-    moves[row].insert(col);
-}
-//Utility function to initialize the vector which store the moves generated by simulation
-//INPUT:
-//moves: the vector stores the past moves made by the simulation
-//OUPUT: NONE
-void Strategy::initTransformVector(vector<set<int> >& moves) {
-  for (int j = 0; j < numofhexgons; j++) {
-    set<int> element;
-    moves[j] = element;
+  //ensure assign unique number
+  vector<int> numbers(currentempty);
+  for (int i = 0; i < currentempty; i++)
+    numbers[i] = (i+1);
+  shuffle(numbers.begin(), numbers.end(), generator);
+
+  uniform_real_distribution<float> probability(0.0, 1.0);
+
+  for (int i = 0; i < currentempty; i++) {
+    float prob = probability(generator);
+    //if randomness = 1, then doing shuffle
+    int weight = static_cast<float>(counter[i].second) * (1 - randomness);
+    if (prob <= randomness)
+      queue.insert(counter[i].first, -(weight + numbers[i]));
+    else
+      queue.insert(counter[i].first, -weight);
   }
 }

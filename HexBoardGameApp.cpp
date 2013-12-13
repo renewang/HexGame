@@ -23,16 +23,25 @@ using namespace std;
 string printHeader();
 void parserMove(string movestring, int& row, int& col);
 int queryHumanMove(int& userrow, int& usercol);
+void simulations(float threshold, float randomness);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
-const int numofhexgon = 5;
+const int numofhexgon = 11;
 
 int main(int argc, char **argv) {
 
+  float threshold = 0.3;
+  float randomness = 0.7;
+  bool isstop = false;
+  if (argc == 3) {
+    threshold = atof(argv[1]);
+    randomness = atof(argv[2]);
+    cout << "Doing Simulation for two virtual players" << endl;
+    simulations(threshold, randomness);
+    return 0;
+  }
   cout << printHeader() << "\n\n";
   cout << "Board (before moving)" << endl;
-
-  bool isstop = false;
 
   while (!isstop) {  //main loop to keep different rounds of games
 
@@ -49,7 +58,7 @@ int main(int argc, char **argv) {
 
     bool ishumanfirst = false;
 
-    while (true) {//loop to make sure user's input is correct.
+    while (true) {  //loop to make sure user's input is correct.
       //let user decide the color of player and the choice to make first move or not.
       cout << "Please enter your choice of color? (RED|BLUE)" << endl;
       cin >> userchoice;
@@ -66,7 +75,7 @@ int main(int argc, char **argv) {
         cout << "Invalid input. Please Try again!" << endl;
     }
 
-    Strategy watsonstrategy(&board, babywatson);
+    Strategy watsonstrategy(&board, babywatson, threshold, randomness);
 
     //continue moving until one of the players wins
     while (true) {
@@ -74,7 +83,7 @@ int main(int argc, char **argv) {
       if (ishumanfirst) {
         //human moves
         bool issetmove = false;
-        while (!issetmove) {//loop to make sure user make a legal move
+        while (!issetmove) {      //loop to make sure user make a legal move
           int userrow, usercol;
           queryHumanMove(userrow, usercol);
           issetmove = hexboardgame.setMove(*human, userrow, usercol);
@@ -113,7 +122,41 @@ int main(int argc, char **argv) {
   }
   return 0;
 }
-//TODO need more robust methods or exceptions/errors handling for parsing
+void simulations(float threshold, float randomness) {
+  HexBoard board(numofhexgon);
+
+  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+
+  Strategy strategyred(&board, &playera, threshold, randomness);
+  Strategy strategyblue(&board, &playerb, threshold, randomness);
+
+  Game hexboardgame(board);
+
+  string winner = "UNKNOWN";
+  int round = 0;
+
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(strategyred);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playera, redrow, redcol);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(strategyblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    round++;
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << "simulation: " << round << endl;
+  cout << "simulation: the winner is " << winner << endl;
+}
 //function to collect logics of inquiring human to make legitimate move
 int queryHumanMove(int& userrow, int& usercol) {
   string usermove;

@@ -1,6 +1,6 @@
 CXXFLAGS =	-O0 -g -pg -Wall -fmessage-length=0
 
-FLAGS =	-std=c++11 
+FLAGS =	-std=c++11 -DNDEBUG 
 
 LIBS =
 

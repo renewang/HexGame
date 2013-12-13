@@ -46,7 +46,7 @@ void PlainParser::parse() {
 }
 void PlainParser::open() {
   try {
-    infile.exceptions(ifstream::badbit);
+    infile.exceptions(ifstream::badbit | ifstream::failbit);
     infile.open(filename.c_str());
     if(!infile.is_open())
       throw ifstream::failure("IO Errors");
