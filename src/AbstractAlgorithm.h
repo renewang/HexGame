@@ -1,8 +1,6 @@
 /*
  * AbstractAlgorithm.h
  *
- *  Created on: Nov 19, 2013
- *      Author: renewang
  */
 
 #ifndef ABSTRACTALGORITHM_H_

@@ -11,6 +11,7 @@
 #include "Player.h"
 #include "Strategy.h"
 #include "HexBoard.h"
+#include "AbstractStrategy.h"
 /*
  * Game Class is used to control how to proceed and show the progress of the game.
  * If the game is played by human against computer, the game also employs the strategy for computer program to generate random move.
@@ -48,7 +49,7 @@ public:
 	//get the winner
 	std::string getWinner(Player& playera, Player& playerb);
 
-	int genMove(Strategy& aistrategy);
+	int genMove(AbstractStrategy& aistrategy);
 };
 
 #endif /* GAME_H_ */

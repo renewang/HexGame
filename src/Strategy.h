@@ -24,11 +24,12 @@
 #include "Player.h"
 #include "HexBoard.h"
 #include "PriorityQueue.h"
+#include "AbstractStrategy.h"
 #ifndef NDEBUG
 #include "gtest/gtest_prod.h"
 #endif
 
-class Strategy {
+class Strategy : public AbstractStrategy {
  private:
   float threshold = 1.0;  //the threshold to indicate when to stop generating next move randomly and just simply fill up the board
   float randomness = 1.0;
@@ -42,7 +43,6 @@ class Strategy {
   int genNextRandom(bool* emptyindicators, unsigned proportionofempty);
   //fill up the board
   int genNextFill(bool* emptyindicators, PriorityQueue<int, int>&queue);
-  //check if the winner exists for this stage of simulation
   int checkWinnerExist(std::vector<int>&, std::vector<int>&);
   bool isWinner(std::vector<int>& test, bool iswestoeast);
   //simulation body
@@ -67,11 +67,11 @@ class Strategy {
  public:
   //constructor
   Strategy(const HexBoard* board, const Player* aiplayer);
-  Strategy(const HexBoard* board, const Player* aiplayer, float threshold, float randomness);
+  Strategy(const HexBoard* board, const Player* aiplayer, float threshold,
+           float randomness);
   virtual ~Strategy() {
   }
   ;
-  //called by the client
   int genMove();
 };
 

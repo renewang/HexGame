@@ -404,7 +404,6 @@ class Graph {
     toListGraphRep();
   }
   //Constructor to generate a graph according to the input file
-  //TODO modify to pass an AbstractParser type (PlainParser's supertype)
   Graph(AbstractParser& parser) {
     initGraph();
     std::vector<std::vector<std::string> > graphfromtext = parser.getData();

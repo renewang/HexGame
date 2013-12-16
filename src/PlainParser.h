@@ -41,6 +41,7 @@ class PlainParser: public AbstractParser{
   void split(std::string, std::vector<std::string>&);//split the line according to the delimiter
   void trim(std::string&);//trim the leading and trailing spaces
 
+
 #ifndef NDEBUG
   //for test
   friend class MinSpanTreeTest;

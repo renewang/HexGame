@@ -95,6 +95,6 @@ string Game::getWinner(Player& playera, Player& playerb) {
 //INPUT: a strategy object
 //OUPUT:
 //the index of next move (starting from 1 to number of hexgon per side)
-int Game::genMove(Strategy& aistrategy) {
+int Game::genMove(AbstractStrategy& aistrategy) {
   return (aistrategy.genMove());
 }

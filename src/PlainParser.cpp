@@ -3,8 +3,10 @@
  * This file defines the implementations of PlainParser Class.
  * Please refer to header file for comments of functions
  */
+#include <ios>
 #include <vector>
 #include <string>
+#include <istream>
 #include <exception>
 #include <stdexcept>
 
@@ -46,7 +48,8 @@ void PlainParser::parse() {
 }
 void PlainParser::open() {
   try {
-    infile.exceptions(ifstream::badbit | ifstream::failbit);
+    //infile.exceptions(ifstream::badbit | ifstream::failbit);
+    infile.exceptions(ifstream::badbit);
     infile.open(filename.c_str());
     if(!infile.is_open())
       throw ifstream::failure("IO Errors");
@@ -73,6 +76,7 @@ void PlainParser::split(string line, vector<string>& vecforline) {
   }
   vecforline.push_back(line.substr(curpos));
 }
+
 void PlainParser::trim(string& line) {
   unsigned foundpos = line.find_first_not_of(delimiter);
   if (foundpos != string::npos)
@@ -81,3 +85,4 @@ void PlainParser::trim(string& line) {
   if (foundpos != 0)
     line.erase(foundpos + 1);
 }
+

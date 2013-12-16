@@ -346,8 +346,8 @@ TEST_F(MinSpanTreeTest, PrimMSTCheck) {
     }
     EXPECT_EQ(expectVec, testNeigh) << "test neighbors for " << i << endl;
   }
-    const string printMST = msttree.printMST(1);
-    EXPECT_EQ( "(1(2(3(4(5(6))))))", printMST);
+  const string printMST = msttree.printMST(1);
+  EXPECT_EQ("(1(2(3(4(5(6))))))", printMST);
 }
 TEST_F(MinSpanTreeTest, PrimCheckTwo) {
   string filename =
