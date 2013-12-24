@@ -11,14 +11,16 @@
 using namespace std;
 
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer)
-    : ptrtoboard(board),
+    : AbstractStrategyImpl(board, aiplayer),
+      ptrtoboard(board),
       ptrtoplayer(aiplayer),
       numberoftrials(3000) {
   numofhexgons = ptrtoboard->getNumofhexgons();
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
                    float threshold, float randomness)
-    : threshold(threshold),
+    : AbstractStrategyImpl(board, aiplayer),
+      threshold(threshold),
       randomness(randomness),
       ptrtoboard(board),
       ptrtoplayer(aiplayer),
@@ -170,7 +172,8 @@ void Strategy::countNeighbors(bool* emptyindicators, unordered_set<int>& moves,
 //counter: the auxiliary vector which stores the index of position and priority
 //OUPUT:
 //next move
-int Strategy::genNextFill(bool* emptyindicators, PriorityQueue<int, int>&queue) {
+int Strategy::genNextFill(bool* emptyindicators,
+                          PriorityQueue<int, int>&queue) {
   int nexloc = queue.minPrioirty();
   emptyindicators[nexloc - 1] = false;
   return nexloc;
@@ -190,7 +193,7 @@ void Strategy::assignRandomNeighbors(PriorityQueue<int, int>& queue,
   //ensure assign unique number
   vector<int> numbers(currentempty);
   for (int i = 0; i < currentempty; i++)
-    numbers[i] = (i+1);
+    numbers[i] = (i + 1);
   shuffle(numbers.begin(), numbers.end(), generator);
 
   uniform_real_distribution<float> probability(0.0, 1.0);
@@ -204,87 +207,4 @@ void Strategy::assignRandomNeighbors(PriorityQueue<int, int>& queue,
     else
       queue.insert(counter[i].first, -weight);
   }
-}
-//check if the winner exists for this stage of simulation
-//INPUT:
-//babywatsons: the proposed moves made by baby watson so far
-//opponenets: the proposed moves made by virtual opponent so far
-//OUTPUT:
-//an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
-int Strategy::checkWinnerExist(vector<int>& babywatsons,
-                               vector<int>& opponents) {
-  if (isWinner(babywatsons, ptrtoplayer->getWestToEastCondition()))
-    return 1;
-  else if (isWinner(opponents, !ptrtoplayer->getWestToEastCondition()))
-    return -1;
-  else
-    return 0;
-}
-//check if the test vector satisfies the winning condition
-//INPUT:
-//candidates: stores the moves
-//iswestoeast: the boolean variable to indicate if the winning condition is west to east
-//OUTPUT:
-//the boolean variable indicates if this simulation wins the game
-bool Strategy::isWinner(vector<int>& candidates, bool iswestoeast) {
-  bool iswinner = false;
-
-  vector<int> representative(candidates.size());
-  vector<int> repsize(candidates.size(), 1);
-
-  for (unsigned i = 0; i < candidates.size(); i++)
-    representative[i] = i;
-
-  //link the edge by scanning pairwise node
-  for (unsigned i = 0; i < (candidates.size() - 1); i++) {
-    for (unsigned j = i + 1; j < candidates.size(); j++) {
-      //temporary for test adjacent
-      if (ptrtoboard->isAdjacent(candidates[i], candidates[j])
-          && representative[i] != representative[j]) {
-        int smallgroup = representative[j];
-        int largegroup =
-            (repsize[representative[i]] > repsize[representative[j]]) ?
-                representative[i] : representative[j];
-        if (largegroup != representative[i])
-          smallgroup = representative[i];
-
-        representative[smallgroup] = largegroup;
-        for (unsigned k = 0; k < candidates.size(); k++)
-          if (representative[k] == smallgroup) {
-            representative[k] = largegroup;
-            repsize[smallgroup]--;
-            repsize[largegroup]++;
-          }
-      }
-    }
-  }
-
-  //find if there's a path satisfies the winning condition,
-  //should start from the largest group
-  for (unsigned i = 0; i < candidates.size(); i++) {
-    bool touchoneside = false;
-    bool touchotherside = false;
-    for (unsigned j = 0; j < candidates.size(); j++)
-      if (representative[j] == static_cast<int>(i)) {
-        int row = (candidates[j] - 1) / numofhexgons;
-        int col = (candidates[j] - 1) % numofhexgons;
-        if ((iswestoeast && col == 0) || (!iswestoeast && row == 0))
-          touchoneside = true;
-        else if ((iswestoeast && col == (numofhexgons - 1))
-            || (!iswestoeast && row == (numofhexgons - 1)))
-          touchotherside = true;
-      }
-    if (touchoneside && touchotherside) {
-      iswinner = (touchoneside && touchotherside);
-      break;
-    }
-  }
-  return iswinner;
-}
-//the genMove called by Game
-//INPUT: NONE
-//OUTPUT:
-//the next move evaluated by simulation
-int Strategy::genMove() {
-  return (simulation());
 }

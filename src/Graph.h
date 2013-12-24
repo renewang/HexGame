@@ -89,56 +89,7 @@ class Graph {
     }
   };
   //Implementation of Monte Carlo simulation to generate undirected graph.
-  void randomGraphGenerator() {
-    if (!this->isundirected) {
-      std::cerr
-          << "random graph generation is not supported directed graph now!\n";
-      return;
-    }
-    //initialize random seed with current time
-    srand(clock());
-
-    for (typename std::vector<Node>::iterator iterself = repgraph.begin();
-        iterself != repgraph.end(); ++iterself) {  // for each vertex
-      Node* nodefrom = &(*iterself);
-      typename std::vector<Node>::iterator iterneigh = iterself;
-      iterneigh++;
-
-      for (; iterneigh != repgraph.end(); ++iterneigh) {  // determine if this edge should be generated according to the density
-        float prob = (float) rand() / RAND_MAX;
-        assert(prob > 0 && prob < 1);
-
-        if (prob <= density) {
-          //set the neighbor pointer to the neighboring node, the minimal distance is 1
-          Val val = static_cast<Val>(rand() % static_cast<int>(distance)
-              + mindistance);
-
-          assert(val >= mindistance && val <= distance);
-
-          Node* nodeto = &(*iterneigh);
-
-          Edge edge;
-          edge.indexoffromnode = nodefrom->vertexindex;
-          edge.indexoftonode = nodeto->vertexindex;
-          edge.weight = val;
-          (nodefrom->neighbors).push_back(edge);
-
-          //undirected graph, need a symmetric assignment
-          Edge symedge;
-          symedge.indexoffromnode = nodefrom->vertexindex;
-          symedge.indexoftonode = nodeto->vertexindex;
-          symedge.weight = val;
-          (nodeto->neighbors).push_back(symedge);
-          this->numofedges++;
-        }
-      }
-      nodefrom->numofneighbors = (nodefrom->neighbors.size());
-      assert(
-          nodefrom->numofneighbors >= 0
-              && nodefrom->numofneighbors < numofvertices);
-    }
-  }
-  ;
+  void randomGraphGenerator();
  protected:
   /* Edge structure is used to hold the edge information which contains:
    * indexoffromnode: vertexindex of the source node
@@ -189,84 +140,11 @@ class Graph {
   }
   ;
   //Private function to initialize the members of Graph in constructors
-  virtual void initGraph() {
-    density = 0;
-    distance = 0.0;
-    numofedges = 0;
-    numofvertices = 0;
-    isundirected = true;
-    mindistance = static_cast<Val>(1);
-  }
-  ;
+  virtual void initGraph();
   //Transform underlying representation of the graph from adjacent matrix to linked list
-  void toArrayGraphRep() {
-    //clear the repmatrix if is allocated before
-    if (repmatrix.size() != 0)
-      repmatrix.clear();
-
-    //allocate memory
-    repmatrix.reserve(numofvertices);
-    for (unsigned i = 0; i < numofvertices; i++) {
-      std::vector<Val> vec(numofvertices, 0);
-      repmatrix.push_back(vec);
-    }
-
-    //Transform the representation from list to matrix
-    for (typename std::vector<Node>::iterator iterself = repgraph.begin();
-        iterself != repgraph.end(); ++iterself) {
-      Node* node = &(*iterself);
-      std::list<Edge> neighs = node->neighbors;
-      int idxofself = node->vertexindex - 1;
-      typename std::list<Edge>::iterator iterneigh = neighs.begin();
-      for (; iterneigh != neighs.end(); ++iterneigh) {
-        int idxofneigh = (*iterneigh).indexoftonode - 1;
-        repmatrix[idxofself][idxofneigh] = (*iterneigh).weight;
-        if (isundirected)
-          repmatrix[idxofneigh][idxofself] = (*iterneigh).weight;
-      }
-    }
-  }
-  ;
+  void toArrayGraphRep();
   //Transform underlying representation of the graph from adjacent linked list to matrix
-  void toListGraphRep() {
-
-    for (unsigned i = 0; i < numofvertices; i++) {
-      Node node;
-      initNode(node, i);
-      repgraph.push_back(node);
-    }
-    for (typename std::vector<Node>::iterator iterself = repgraph.begin();
-        iterself != repgraph.end(); ++iterself) {
-      Node* node = &(*iterself);
-      typename std::vector<Node>::iterator iterneigh = iterself;
-      iterneigh++;
-      for (unsigned j = node->vertexindex; j < numofvertices; j++) {
-        Node* neigh = &(*iterneigh);
-        if (repmatrix[node->vertexindex - 1][j] > 0) {
-          Edge edge;
-          edge.indexoffromnode = node->vertexindex;
-          edge.indexoftonode = neigh->vertexindex;
-          edge.weight = repmatrix[node->vertexindex - 1][j];
-          //assign neighbors to the node
-          (node->neighbors).push_back(edge);
-
-          if (isundirected) {
-            //symmetric assignment to node's neighbor for undirected graph
-            Edge symedge;
-            symedge.indexoffromnode = neigh->vertexindex;
-            symedge.indexoftonode = node->vertexindex;
-            symedge.weight = repmatrix[node->vertexindex - 1][j];
-            //assign neighbors to the node
-            (neigh->neighbors).push_back(symedge);
-          }
-          this->numofedges++;
-        }
-        iterneigh++;
-      }
-      node->numofneighbors = (node->neighbors).size();
-    }
-  }
-  ;
+  void toListGraphRep();
   //Provide the functionality to retrieve node's pointer given the index of source node
   const Node* findNodeByIndex(int index) const {
     assert(index >= 1 && index <= static_cast<int>(numofvertices));
@@ -275,31 +153,16 @@ class Graph {
 
   //Provide the functionality to retrieve the Node pointer of a connected node given the source node object
   //and the index of connected node
-  int findNeighborByIndex(const Node* node, int index) const {
-    std::list<Edge> neighbors = node->neighbors;
-    for (typename std::list<Edge>::iterator iter = neighbors.begin();
-        iter != neighbors.end(); ++iter) {
-      if (index == (*iter).indexoftonode)
-        return (*iter).indexoftonode;
-    }
-    return 0;
-  }
+  int findNeighborByIndex(const Node* node, int index) const;
   //Provide the functionality to retrieve edge of a neighboring node given the source node object
   //and the index of connected node
-  Val findEdgeByIndex(const Node* node, int index) const {
-    std::list<Edge> neighbors = node->neighbors;
-    typename std::list<Edge>::iterator iterneigh = neighbors.begin();
-    for (; iterneigh != neighbors.end(); ++iterneigh) {
-      if (index == (*iterneigh).indexoftonode) {
-        return (*iterneigh).weight;
-      }
-    }
-    return static_cast<Val>(0);
-  }
+  Val findEdgeByIndex(const Node* node, int index) const;
   //Provide the functionality to traverse the tree by Depth First Search (DFS) method
   //Loop is also detected in this fashion when a back link is found or a non-parental node is revisited in DFS.
   bool TraverseDFS(int indexofcurrent, bool* visited, int indexofparent = -1,
                    std::stringstream* strstream = 0) {
+    //Provide the functionality to traverse the tree by Depth First Search (DFS) method
+    //Loop is also detected in this fashion when a back link is found or a non-parental node is revisited in DFS.
     bool isLoopExisting = false;
     visited[indexofcurrent - 1] = true;
     int numofneighbors = getNeighborsSize(indexofcurrent);
@@ -342,9 +205,9 @@ class Graph {
     }
     return isLoopExisting;
   }
+  ;
   void TraverseDFS(int indexofcurrent, bool* visited, int indexofparent,
                    std::vector<int>* subgraph) {
-
     visited[indexofcurrent - 1] = true;
     subgraph->push_back(indexofcurrent);
     int numofneighbors = getNeighborsSize(indexofcurrent);
@@ -368,459 +231,211 @@ class Graph {
   }
   ;
 
+  void TraverseBFS(int indexofcurrent, bool* visited, int indexofparent,
+                    std::vector<int>* subgraph) {
+     visited[indexofcurrent - 1] = true;
+     subgraph->push_back(indexofcurrent);
+     int numofneighbors = getNeighborsSize(indexofcurrent);
+
+     //discard the parental link
+     std::vector<int> neighwoparents;
+     if (numofneighbors != 0) {
+       std::vector<int> neighbors = getNeighbors(indexofcurrent);
+       for (std::vector<int>::iterator iter = neighbors.begin();
+           iter != neighbors.end(); ++iter)
+         if (*iter != indexofparent)
+           neighwoparents.push_back(*iter);
+       numofneighbors = neighwoparents.size();
+     }
+
+     if (numofneighbors > 0) {
+       for (unsigned i = 0; i < neighwoparents.size(); i++)
+         TraverseBFS(neighwoparents[i], visited, indexofcurrent, subgraph);
+     }
+     return;
+   }
+   ;
+
  public:
-  //Default constructor, initialize graph with zero values
-  //Takes no arguments
+//Default constructor, initialize graph with zero values
+//Takes no arguments
   Graph() {
     initGraph();
   }
   ;
-  //Constructor to generate a random graph
-  Graph(unsigned numofvertices, float density, float distance) {
-
-    //initialize the graph with zero values
-    initGraph();
-    this->numofvertices = numofvertices;
-    this->density = density;
-    this->distance = distance;
-
-    for (unsigned i = 0; i < numofvertices; i++) {
-      Node n;
-      initNode(n, i);
-      repgraph.push_back(n);
-    }
-    randomGraphGenerator();
-  }
-  ;
-  //Constructor to generate a graph according to the matrix provided by client
-  Graph(Val** clientgraph, int numofvertices) {
-    initGraph();
-    repmatrix.reserve(numofvertices);
-    for (int i = 0; i < numofvertices; i++) {
-      std::vector<Val> vec(clientgraph[i], clientgraph[i] + numofvertices);
-      repmatrix.push_back(vec);
-    }
-    this->numofvertices = numofvertices;
-    toListGraphRep();
-  }
-  //Constructor to generate a graph according to the input file
-  Graph(AbstractParser& parser) {
-    initGraph();
-    std::vector<std::vector<std::string> > graphfromtext = parser.getData();
-    int graphsize = atoi(graphfromtext[0][0].c_str());
-    if (graphsize <= 0)
-      return;
-
-    this->numofvertices = graphsize;
-
-    //initialize vector
-    repmatrix.reserve(graphsize);
-    for (unsigned i = 0; i < numofvertices; i++) {
-      std::vector<Val> vec(numofvertices, 0);
-      repmatrix.push_back(vec);
-    }
-
-    for (unsigned i = 1; i < graphfromtext.size(); i++) {
-      std::vector<Val> vecTrans(graphfromtext[i].size());
-      transform(graphfromtext[i].begin(), graphfromtext[i].end(),
-                vecTrans.begin(), MyTransfom());
-      assert(graphfromtext[i].size() == 3);
-      repmatrix[vecTrans[0]][vecTrans[1]] = vecTrans[2];
-    }
-    toListGraphRep();
-  }
-  //Create a empty graph
-  Graph(unsigned numofvertices) {
-    initGraph();
-    this->numofvertices = numofvertices;
-    for (unsigned i = 0; i < numofvertices; i++) {
-      Node node;
-      initNode(node, i);
-      repgraph.push_back(node);
-    }
-  }
-  //Copy constructor
-  Graph(const Graph& graph) {
-    this->density = graph.density;
-    this->distance = graph.distance;
-    this->isundirected = graph.isundirected;
-    this->mindistance = graph.mindistance;
-    this->numofedges = graph.numofedges;
-    this->numofvertices = graph.numofvertices;
-    this->repgraph = std::vector<Node>(graph.repgraph);
-    this->repmatrix = std::vector<std::vector<Val> >(graph.repmatrix);
-  }
-  //destructor
+//Constructor to generate a random graph
+  Graph(unsigned numofvertices, float density, float distance);
+//Constructor to generate a graph according to the matrix provided by client
+  Graph(Val** clientgraph, int numofvertices);
+//Constructor to generate a graph according to the input file
+  Graph(AbstractParser& parser);
+//Create a empty graph
+  Graph(unsigned numofvertices);
+//Copy constructor
+  Graph(const Graph& graph);
+//destructor
   virtual ~Graph() {
   }
   ;
-  //Get the size of vertices
+//Get the size of vertices
   virtual inline int getSizeOfVertices() const {
     return repgraph.size() == numofvertices ? numofvertices : -1;
   }
   ;
-  //Get the size of edges
+//Get the size of edges
   inline int getSizeOfEdges() const {
     return numofedges;
   }
   ;
-  //Test if two nodes is adjacent
-  //Input:
-  //idxofnodea: the vertexindex of first node
-  //idxofnodeb: the vertexindex of second node
-  //Output:
-  //The boolean variable to indicate if the specified two nodes are connected.
-  //TRUE: is connected or at adjacency
-  //FALSE: is not connected or not at adjacency
-  bool isAdjacent(int idxofnodefrom, int idxofnodeto) const {
-    const Node* nodefrom = findNodeByIndex(idxofnodefrom);
-    int neigh = findNeighborByIndex(nodefrom, idxofnodeto);
-    return idxofnodeto == neigh;
-  }
-  ;
-  //Return the neighbors of a node
-  //Input:
-  //idxofnode: the vertexindex of the inquiring node
-  //Output:
-  //The vector which stores the vertexindices of the neighbors of the inquiring node
-  std::vector<int> getNeighbors(int idxofnode) const {
-    const Node* node = findNodeByIndex(idxofnode);
-    std::vector<int> neighindicesvec;
-    std::list<Edge> neigh = node->neighbors;
-    for (typename std::list<Edge>::iterator iter = neigh.begin();
-        iter != neigh.end(); ++iter)
-      neighindicesvec.push_back((*iter).indexoftonode);
-    return std::vector<int>(neighindicesvec);
-  }
-  ;
-  //Return the edges of neighbors of a node
-  //Input:
-  //idxofnode: the vertexindex of the inquiring node
-  //Output:
-  //The list which stores the edges of the neighbors of the inquiring node
-  const std::vector<Val> getNeighborsEdgeValues(int idxofnode) const {
-    const Node* node = findNodeByIndex(idxofnode);
-    std::vector<Val> vec;
-    std::list<Edge> neigh = node->neighbors;
-    for (typename std::list<Edge>::iterator iter = neigh.begin();
-        iter != neigh.end(); ++iter)
-      vec.push_back((*iter).weight);
-    return std::vector<Val>(vec);
-  }
-  //Return the number of neighbors of a node
-  //Input:
-  //idxofnode: the vertexindex of the inquiring node
-  //Output:
-  //The size of connected neighbors
-  const int getNeighborsSize(int idxofnode) {
-    const Node* node = findNodeByIndex(idxofnode);
-    return node->numofneighbors;
-  }
-  //Add Edge between the two specified nodes with the specified value
-  //Input:
-  //indexofsource: the vertexindex of the source node
-  //indexofdest: the vertexindex of the destination node
-  //value: the weight of intending adding edge
-  //Output: NONE
-  void addEdge(int indexofsource, int indexofdest, Val value) {
-    Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofsource));
-    Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofdest));
-
-    Edge edge;
-    edge.indexoffromnode = indexofsource;
-    edge.indexoftonode = indexofdest;
-    edge.weight = value;
-    (nodefrom->neighbors).push_back(edge);
-    nodefrom->numofneighbors++;
-
-    //symmetric assignment for the undirected graph
-    if (isundirected) {
-      Edge symedge;
-      symedge.indexoffromnode = indexofdest;
-      symedge.indexoftonode = indexofsource;
-      symedge.weight = value;
-      (nodeto->neighbors).push_back(symedge);
-
-      nodeto->numofneighbors++;
-    }
-    numofedges++;
-  }
-  ;
-  //Delete the edge between the specified nodes
-  //Input:
-  //indexofnodefrom: the vertexindex of the source node
-  //indexofnodeto, the vertexindex of the destination node
-  //Output: None
-  void deleteEdge(int indexofnodefrom, int indexofnodeto) {
-    if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-      Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofnodefrom));
-      Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofnodeto));
-
-      std::list<Edge>* neighbors = &(nodefrom->neighbors);
-
-      typename std::list<Edge>::iterator iterneigh = neighbors->begin();
-
-      for (; iterneigh != neighbors->end(); ++iterneigh) {
-        if (nodeto->vertexindex == (*iterneigh).indexoftonode) {
-          neighbors->erase(iterneigh);
-          nodefrom->numofneighbors--;
-          break;
-        }
-      }
-
-      //symmetric assignment for undirected graph
-      if (isundirected) {
-        neighbors = &(nodeto->neighbors);
-        iterneigh = neighbors->begin();
-
-        for (; iterneigh != neighbors->end(); ++iterneigh) {
-          if (nodefrom->vertexindex == (*iterneigh).indexoftonode) {
-            neighbors->erase(iterneigh);
-            nodeto->numofneighbors--;
-            break;
-          }
-        }
-      }
-      numofedges--;
-    }
-  }
-  ;
-  //Get the value of the Node
-  //Input:
-  //indexofnode: the vertexindex of the inquiring node
-  //Output:
-  //The label or representing value of the inquiring node
+//Test if two nodes is adjacent
+//Input:
+//idxofnodea: the vertexindex of first node
+//idxofnodeb: the vertexindex of second node
+//Output:
+//The boolean variable to indicate if the specified two nodes are connected.
+//TRUE: is connected or at adjacency
+//FALSE: is not connected or not at adjacency
+  bool isAdjacent(int idxofnodefrom, int idxofnodeto) const;
+//Return the neighbors of a node
+//Input:
+//idxofnode: the vertexindex of the inquiring node
+//Output:
+//The vector which stores the vertexindices of the neighbors of the inquiring node
+  std::vector<int> getNeighbors(int idxofnode) const;
+//Return the edges of neighbors of a node
+//Input:
+//idxofnode: the vertexindex of the inquiring node
+//Output:
+//The list which stores the edges of the neighbors of the inquiring node
+  const std::vector<Val> getNeighborsEdgeValues(int idxofnode) const;
+//Return the number of neighbors of a node
+//Input:
+//idxofnode: the vertexindex of the inquiring node
+//Output:
+//The size of connected neighbors
+  const int getNeighborsSize(int idxofnode);
+//Add Edge between the two specified nodes with the specified value
+//Input:
+//indexofsource: the vertexindex of the source node
+//indexofdest: the vertexindex of the destination node
+//value: the weight of intending adding edge
+//Output: NONE
+  void addEdge(int indexofsource, int indexofdest, Val value);
+//Delete the edge between the specified nodes
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexofnodeto, the vertexindex of the destination node
+//Output: None
+  void deleteEdge(int indexofnodefrom, int indexofnodeto);
+//Get the value of the Node
+//Input:
+//indexofnode: the vertexindex of the inquiring node
+//Output:
+//The label or representing value of the inquiring node
   Type getNodeValue(int indexofnode) const {
     const Node* node = findNodeByIndex(indexofnode);
     return node->vertexvalue;
   }
   ;
-  //Set value of the Node
-  //Input:
-  //indexofnode: the vertexindex of the inquiring node
-  //value: The label or the representing value of the inquiring node
-  //Output: None
+//Set value of the Node
+//Input:
+//indexofnode: the vertexindex of the inquiring node
+//value: The label or the representing value of the inquiring node
+//Output: None
   void setNodeValue(int indexofnode, Type value) {
     Node* node = const_cast<Node*>(findNodeByIndex(indexofnode));
     node->vertexvalue = value;
   }
   ;
-  //Get edge value between specified two nodes
-  //Input:
-  //indexofnodefrom: the vertexindex of the source node
-  //indexOfnodeto: the vertexindex of the destination node
-  //Output:
-  //Return the weight of edge between the input nodes
-  Val getEdgeValue(int indexofnodefrom, int indexofnodeto) const {
-    Val value = static_cast<Val>(0);
-    if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-      const Node* nodefrom = findNodeByIndex(indexofnodefrom);
-      return findEdgeByIndex(nodefrom, indexofnodeto);
-    }
-    return value;
-  }
-  ;
-  //Set the edge between specified two nodes with the specified value
-  //Input:
-  //indexofnodefrom: the vertexindex of the source node
-  //indexofnodeto: the vertexindex of the destination node
-  //value: the weight of edge
-  //Output: NONE
-  void setEdgeValue(int indexofnodefrom, int indexofnodeto, Val value) {
-    if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-      Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofnodefrom));
-      Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofnodeto));
-
-      std::list<Edge>* neighbors = &(nodefrom->neighbors);
-
-      typename std::list<Edge>::iterator iterneigh = neighbors->begin();
-
-      for (; iterneigh != neighbors->end(); ++iterneigh) {
-        if (nodeto->vertexindex == (*iterneigh).indexoftonode) {
-          (*iterneigh).weight = value;
-          break;
-        }
-      }
-
-      //symmetric assignment for undirected graph
-      if (isundirected) {
-        neighbors = &(nodeto->neighbors);
-        iterneigh = neighbors->begin();
-
-        for (; iterneigh != neighbors->end(); ++iterneigh) {
-          if (nodefrom->vertexindex == (*iterneigh).indexoftonode) {
-            (*iterneigh).weight = value;
-            break;
-          }
-        }
-      }
-    }
-  }
-  ;
-  //Print the underlying adjacent matrix representation
-  //Input: NONE
-  //Output:
-  //The string representation of the output
-  std::string printRepGraph() {
-    std::stringstream strstream;
-    strstream << "size of vertices = " << repgraph.size() << "\n";
-    toArrayGraphRep();
-
-    strstream << std::setw(9) << " ";
-    for (unsigned i = 0; i < numofvertices; i++)
-      strstream << i + 1 << std::setw(5) << " ";
-    strstream << "\n";
-    for (unsigned i = 0; i < numofvertices; i++) {
-      strstream << std::setw(5) << i + 1;
-      for (unsigned j = 0; j < numofvertices; j++) {
-        strstream << std::setw(5) << repmatrix[i][j] << " ";
-      }
-      strstream << "\n";
-    }
-    return strstream.str();
-  }
-  //Return the adjacent matrix
-  //INPUT: NONE
-  //OUTPUT:
-  //The adjacent matrix which is a two dimensional matrix or a vector of vector
+//Get edge value between specified two nodes
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexOfnodeto: the vertexindex of the destination node
+//Output:
+//Return the weight of edge between the input nodes
+  Val getEdgeValue(int indexofnodefrom, int indexofnodeto) const;
+//Set the edge between specified two nodes with the specified value
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexofnodeto: the vertexindex of the destination node
+//value: the weight of edge
+//Output: NONE
+  void setEdgeValue(int indexofnodefrom, int indexofnodeto, Val value);
+//Print the underlying adjacent matrix representation
+//Input: NONE
+//Output:
+//The string representation of the output
+  std::string printRepGraph();
+//Return the adjacent matrix
+//INPUT: NONE
+//OUTPUT:
+//The adjacent matrix which is a two dimensional matrix or a vector of vector
   const std::vector<std::vector<Val> >& getRepmatrix() const {
     return repmatrix;
   }
-  //Set the adjacent matrix by client
-  //INPUT: a two dimensional matrix or vector of vector
-  //OUTPUT: NONE
+//Set the adjacent matrix by client
+//INPUT: a two dimensional matrix or vector of vector
+//OUTPUT: NONE
   void setRepmatrix(const std::vector<std::vector<Val> >& repmatrix) {
     this->repmatrix = repmatrix;
   }
   ;
-  //Get all nodes in this graph
-  //INPUT: NONE
-  //OUTPUT:
-  //a vector which stores the indices of nodes
-  std::vector<int> getAllNodes() const {
-    std::vector<int> nodes;
-    for (auto n : this->repgraph)
-      nodes.push_back(n.vertexindex);
-    return std::vector<int>(nodes);
-  }
-  //Get all the values of edges in this graph
-  //INPUT: NONE
-  //OUTPUT:
-  //All the edges for directed graph and half of the edges for undirected graph.
-  //Symmetric edges of undirected graph whose indexoffromnode is greater than indexoftonode will not be included.
-  //The edges will be in the map structure with
-  //key as "(index of from node-1)"x"size of vertices" + "(index of to node-1)" and
-  //value as the edge's weight
-  std::map<int, Val> getAllEdgesValues() const {
-    std::map<int, Val> mapalledges;
-    for (unsigned i = 1; i <= this->numofvertices; i++) {
-      std::list<Edge> neigh = repgraph[i - 1].neighbors;
-      typename std::list<Edge>::iterator iteredge = neigh.begin();
-      for (; iteredge != neigh.end(); ++iteredge) {
-        assert(static_cast<int>(i) == (*iteredge).indexoffromnode);
-        //eliminate the redundant edges
-        if (isundirected
-            && (*iteredge).indexoffromnode > (*iteredge).indexoftonode)
-          continue;
-        int key = ((*iteredge).indexoffromnode - 1) * this->numofvertices
-            + ((*iteredge).indexoftonode - 1);
-        assert(
-            key >= 0
-                && key
-                    <= static_cast<int>(this->numofvertices
-                        * this->numofvertices)
-                && (key % static_cast<int>(this->numofvertices + 1)) != 0);
-        mapalledges.insert(std::make_pair(key, (*iteredge).weight));
-      }
-    }
-    return std::map<int, Val>(mapalledges);
-  }
-  //TODO separate this method in the inherited tree structure. This should be specific to tree structure
-  //DFS implementation for undirected graph. If DFS found a visited nodes, then loop detected.
-  //Input:
-  //indexofroot: index of root
-  //Output:
-  //a boolean value to indicate if there's a loop in there
-  bool isLoopExisting(int indexofroot) {
-    bool* visited = new bool[this->numofvertices];
-    std::fill(visited, visited + this->numofvertices, false);
-    bool isloopexisting = TraverseDFS(indexofroot, visited);
-    delete[] visited;
-    return isloopexisting;
-  }
-  //Return if this graph is undirected or not
-  //Input: NONE
-  //Output:
-  //a boolean indicator to indicate if this graph is undirected or not
-  //TRUE: this graph is undirected
-  //FALSE: this graph is directed
-  bool isIsundirected() const {
+//Get all nodes in this graph
+//INPUT: NONE
+//OUTPUT:
+//a vector which stores the indices of nodes
+  std::vector<int> getAllNodes() const;
+//Get all the values of edges in this graph
+//INPUT: NONE
+//OUTPUT:
+//All the edges for directed graph and half of the edges for undirected graph.
+//Symmetric edges of undirected graph whose indexoffromnode is greater than indexoftonode will not be included.
+//The edges will be in the map structure with
+//key as "(index of from node-1)"x"size of vertices" + "(index of to node-1)" and
+//value as the edge's weight
+  std::map<int, Val> getAllEdgesValues() const;
+//TODO separate this method in the inherited tree structure. This should be specific to tree structure
+//DFS implementation for undirected graph. If DFS found a visited nodes, then loop detected.
+//Input:
+//indexofroot: index of root
+//Output:
+//a boolean value to indicate if there's a loop in there
+  bool isLoopExisting(int indexofroot);
+//Return if this graph is undirected or not
+//Input: NONE
+//Output:
+//a boolean indicator to indicate if this graph is undirected or not
+//TRUE: this graph is undirected
+//FALSE: this graph is directed
+  inline bool isIsundirected() const {
     return isundirected;
   }
-  //Set the graph as undirected or directed
-  //Input:
-  //isundirected: a boolean indicator to indicate if this graph is undirected or not
-  //TRUE: this graph is undirected
-  //FALSE: this graph is directed
-  //Output: NONE
-  void setIsundirected(bool isundirected) {
+//Set the graph as undirected or directed
+//Input:
+//isundirected: a boolean indicator to indicate if this graph is undirected or not
+//TRUE: this graph is undirected
+//FALSE: this graph is directed
+//Output: NONE
+  inline void setIsundirected(bool isundirected) {
     this->isundirected = isundirected;
   }
-  //Overloading assignment
-  //Input:
-  //graph: the source of graph reference.
-  //Output:
-  //Graph reference with the same values of data members as the source graph
-  Graph& operator =(const Graph& graph) {
-    this->density = graph.density;
-    this->distance = graph.distance;
-    this->isundirected = graph.isundirected;
-    this->mindistance = graph.mindistance;
-    this->numofedges = graph.numofedges;
-    this->numofvertices = graph.numofvertices;
-    this->repgraph = std::vector<Node>(graph.repgraph);
-    this->repmatrix = std::vector<std::vector<Val> >(graph.repmatrix);
-    return *this;
-  }
-  ;
-  //printout MST
-  //Input:
-  //indexofroot: vertexindex of the selected root
-  //Output:
-  //string representation of the MST
-  const std::string printMST(int indexofroot) {
-    bool* visited = new bool[this->numofvertices];
-    std::fill(visited, visited + this->numofvertices, false);
-    std::stringstream treestream;
-    treestream << '(' << indexofroot;
-    bool isloopexisting = TraverseDFS(indexofroot, visited, -1, &treestream);
-    treestream << ')';
-    if (isloopexisting) {
-      treestream.clear();
-      treestream << "Loop existing in this tree! Abort!";
-    }
-    delete[] visited;
-    return treestream.str();
-  }
-  ;
-  //remove the singletons
-  std::vector<std::vector<int> > getAllSubGraphs() {
-    bool* visited = new bool[this->numofvertices];
-    std::fill(visited, visited + this->numofvertices, false);
-    std::vector<std::vector<int> > forest;
-    int ttlsize = 0, current = 1;
-    while (ttlsize < this->numofvertices) {
-      std::vector<int> subgraph;
-      TraverseDFS(current, visited, -1, &subgraph);  //overloading
-      bool* cur = std::find(visited, visited + this->numofvertices, false);
-      if (cur != visited + this->numofvertices)
-        current = (cur - visited) / sizeof(bool) + 1;
-      ttlsize += subgraph.size();
-      if (subgraph.size() > 1)
-        forest.push_back(subgraph);
-    }
-    delete[] visited;
-    return std::vector<std::vector<int> >(forest);
-  }
+//Overloading assignment
+//Input:
+//graph: the source of graph reference.
+//Output:
+//Graph reference with the same values of data members as the source graph
+  Graph& operator =(const Graph& graph);
+//printout MST
+//Input:
+//indexofroot: vertexindex of the selected root
+//Output:
+//string representation of the MST
+  const std::string printMST(int indexofroot);
+
+//remove the singletons
+  std::vector<std::vector<int> > getAllSubGraphs();
 };
+
+#include "Graph.cpp"
+
 #endif /* GRAPH_H_ */

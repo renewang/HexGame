@@ -24,12 +24,12 @@
 #include "Player.h"
 #include "HexBoard.h"
 #include "PriorityQueue.h"
-#include "AbstractStrategy.h"
+#include "AbstractStrategyImpl.h"
 #ifndef NDEBUG
 #include "gtest/gtest_prod.h"
 #endif
 
-class Strategy : public AbstractStrategy {
+class Strategy : public AbstractStrategyImpl {
  private:
   float threshold = 1.0;  //the threshold to indicate when to stop generating next move randomly and just simply fill up the board
   float randomness = 1.0;
@@ -43,8 +43,6 @@ class Strategy : public AbstractStrategy {
   int genNextRandom(bool* emptyindicators, unsigned proportionofempty);
   //fill up the board
   int genNextFill(bool* emptyindicators, PriorityQueue<int, int>&queue);
-  int checkWinnerExist(std::vector<int>&, std::vector<int>&);
-  bool isWinner(std::vector<int>& test, bool iswestoeast);
   //simulation body
   int simulation();
   //count the number of neighbors for current game progress
@@ -72,7 +70,6 @@ class Strategy : public AbstractStrategy {
   virtual ~Strategy() {
   }
   ;
-  int genMove();
 };
 
 #endif /* STRATEGY_H_ */

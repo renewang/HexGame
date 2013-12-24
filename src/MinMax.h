@@ -11,13 +11,13 @@
 #include "MinMax.h"
 #include "Player.h"
 #include "HexBoard.h"
-#include "AbstractStrategy.h"
+#include "AbstractStrategyImpl.h"
 
 #ifndef NDEBUG
 #include "gtest/gtest_prod.h"
 #endif
 
-class MinMax : public AbstractStrategy {
+class MinMax : public AbstractStrategyImpl {
  private:
   int numofhexgons;
   //the actual playing board in the game. Need to ensure it not to be modified during the simulation
@@ -29,8 +29,6 @@ class MinMax : public AbstractStrategy {
   void initPotentials(std::vector<int>&);
   //for calculating potentials of cells with occupied cells via two-distance evaluation function
   void calcPotentials(std::vector<int>&);
-  int checkWinnerExist(std::vector<int>&, std::vector<int>&);
-  bool isWinner(std::vector<int>& test, bool iswestoeast);
 
 #ifndef NDEBUG
   //for google test framework
@@ -45,7 +43,5 @@ class MinMax : public AbstractStrategy {
   }
   ;
   int simulation();
-  //called by the client
-  int genMove();
 };
 #endif /* MINMAX_H_ */
