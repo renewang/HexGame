@@ -7,7 +7,8 @@
 using namespace std;
 //default constructor, doing nothing except initializing the member values as defaults
 HexBoard::HexBoard()
-    : numofhexgons(0) {
+    : numofhexgons(0),
+      numofemptyhexgons(0) {
   initGraph();
 }
 //constructor to initialize the board according to given hexgon size per side
@@ -21,6 +22,7 @@ HexBoard::HexBoard(unsigned numofhexgon)
     repgraph.push_back(node);
   }
   numofedges /= 2;
+  initEmptyHexIndicators();
 }
 //destructor
 HexBoard::~HexBoard() {
@@ -176,12 +178,12 @@ ostream& operator<<(ostream& os, hexgonValKind hexgonkind) {
 //indexofhexgon: index of hexgon (starting from 1 to number of vertices or hexgon^2)
 //OUTPUT: NONE
 void HexBoard::setEdgeValue(int indexofhexgon) {
-  Node* node = const_cast<Node*>(findNodeByIndex(indexofhexgon));
+  Node* node = findNodeByIndex(indexofhexgon);
   initNode(*node, indexofhexgon - 1);
   //symmetric assignment
   list<Edge> neigh = node->neighbors;
   for (auto e : neigh) {
-    Node* neigh = const_cast<Node*>(findNodeByIndex(e.indexoftonode));
+    Node* neigh = findNodeByIndex(e.indexoftonode);
     Edge edge;
     edge.indexoffromnode = neigh->vertexindex;
     edge.indexoftonode = node->vertexindex;
@@ -206,4 +208,30 @@ void HexBoard::setNumofhexgons(int numofhexgon) {
     repgraph.push_back(node);
   }
   numofedges = 0;
+  initEmptyHexIndicators();
+}
+//Set the valud of hexgon and push the move into move vector
+//INPUT:
+//indexofnode: the index of node whose value needs to be set
+//value: the value needs to be set
+//OUTPUT:
+void HexBoard::setNodeValue(int indexofnode, hexgonValKind value) {
+  Graph<hexgonValKind, int>::setNodeValue(indexofnode, value);
+  if (value == hexgonValKind::RED)
+    redmoves.push_back(indexofnode);
+  else
+    bluemoves.push_back(indexofnode);
+  assert(emptyhexindicators.get() != nullptr);
+  emptyhexindicators.get()[indexofnode - 1] = false;
+  numofemptyhexgons--;
+}
+void HexBoard::initEmptyHexIndicators() {
+  if (numofvertices) {
+    emptyhexindicators = shared_ptr<bool>(new bool[numofvertices],
+                                          default_delete<bool[]>());
+    bool* ptrtoemptyhexindicators = emptyhexindicators.get();
+    fill(ptrtoemptyhexindicators, ptrtoemptyhexindicators + numofvertices,
+         true);
+    numofemptyhexgons = numofvertices;
+  }
 }

@@ -7,10 +7,11 @@
 #ifndef PRIORITYQUEUE_H_
 #define PRIORITYQUEUE_H_
 
-#include "Graph.h"
 #include <queue>
 #include <deque>
 #include <algorithm>
+
+#include "Graph.h"
 
 /* PriorityQueue Class is used to hold the distance from the source node
  * and for the purpose to return the node with minimal distance
@@ -28,15 +29,24 @@
 template<class N, class Val>
 class PriorityQueue {
 
- //NodePriority structure is used to hold the node and priority of the node.
- //In shortest path calculation should be the total weight of the path leading to the node.
+  //NodePriority structure is used to hold the node and priority of the node.
+  //In shortest path calculation should be the total weight of the path leading to the node.
  private:
   struct NodePriority {
-    const N* node;
+    N node;
     Val priority;  //priority of the node or the total weight of the path leading to the node
 
     friend bool operator ==(NodePriority& a, NodePriority& b) {
-      return *(a.node) == *(b.node);
+      return (a.node) == (b.node);
+    }
+    friend bool operator !=(NodePriority& a, NodePriority& b) {
+      return (a.node) != (b.node);
+    }
+    friend bool operator ==(const NodePriority& a, const NodePriority& b) {
+      return (a.node) == (b.node);
+    }
+    friend bool operator !=(const NodePriority& a, const NodePriority& b) {
+      return (a.node) != (b.node);
     }
   };
   //NodeComparator is used to define how to compare the node object in make_heap function
@@ -61,6 +71,8 @@ class PriorityQueue {
   std::vector<NodePriority> nodetracker;  //the underlying representation of priority queue, is used to hold the elements
 
  public:
+  PriorityQueue() {
+  }
   //Constructor, to reserve size for future constructing
   PriorityQueue(unsigned reservedsize) {
     nodetracker.reserve(reservedsize);
@@ -71,6 +83,40 @@ class PriorityQueue {
   virtual ~PriorityQueue() {
   }
   ;
+  //Implement a const_iterator for PrioroityQueue container, non-modifiable
+  class const_iterator {
+   public:
+    typedef const_iterator self_type;  //define self_type
+    //define iterator_traits, in order to pass into std algorithms
+    typedef size_t difference_type;
+    typedef NodePriority value_type;
+    typedef const NodePriority* const_pointer;
+    typedef const NodePriority& const_reference;
+    typedef std::random_access_iterator_tag iterator_category;
+    typedef typename std::vector<NodePriority>::const_iterator const_realiter;
+    const_iterator(const_realiter realiter, size_t pos)
+        : _pos(pos),
+          _realiter(realiter) {
+      _ptr = &(*realiter);
+    }
+    //overloading operators
+    const_reference operator*();
+    const_pointer operator->();
+    self_type &operator++();  //prefix increment
+    self_type operator++(int);  //postfix increment
+    self_type &operator--();  //prefix decrement
+    self_type operator--(int);  //postfix decrement
+    self_type operator+(difference_type);
+    self_type &operator+=(difference_type);
+    self_type operator-(difference_type);
+    self_type &operator-=(difference_type);
+    bool operator==(const self_type&) const;
+    bool operator!=(const self_type&) const;
+   private:
+    const_pointer _ptr;
+    size_t _pos;
+    const_realiter _realiter;
+  };
   //Change the priority or the total weight of the path leading to the specified node
   //Input:
   //node: the current end node of a trial path
@@ -79,32 +125,11 @@ class PriorityQueue {
   //A boolean variable to indicate if the change of priority is successful.
   //TRUE: change priority of the specified node is successful
   //FALSE: change priority of the specified node is unsuccessful
-  bool chgPrioirity(const N& node, Val priority) {
-    bool issuccess = false;
-    NodePriority newqelement;
-    newqelement.node = &node;
-    newqelement.priority = priority;
-    typename std::vector<NodePriority>::iterator chgiter = findElement(
-        newqelement);
-    if (chgiter != nodetracker.end()) {
-      chgiter->priority = priority;
-      std::make_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
-      issuccess = true;
-    }
-    return issuccess;
-  }
-  ;
+  bool chgPrioirity(const N& node, Val priority);
   //Return the Node with the minimal priority or the total weight
   //Input: NONE
   //Output: the node associating with the minimal priority or the total weight of a path
-  const N minPrioirty() {
-    //removes the top element of the queue.
-    const N minnode = top();
-    pop_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
-    nodetracker.pop_back();
-    return minnode;
-  }
-  ;
+  const N minPrioirty();
   //Test if the priority queue contains the specified node
   //Input:
   //node: the inquiring node
@@ -112,45 +137,35 @@ class PriorityQueue {
   //the boolean value to indicate if the node is contained in the queue or not
   //TRUE: the node is contained in the priority queue
   //FALSE: the node is not contained in the priority queue
-  bool contains(const N& node) {
-    NodePriority newqelement;
-    newqelement.node = &node;
-    bool iscontained = findElement(newqelement) != nodetracker.end();
-    return iscontained;
-  }
-  ;
+  bool contains(const N& node);
   //Insert element into queue
   //Input:
   //node: the node needs to be inserted
   //priority:  the corresponding priority of the node
   //Output: NONE
-  void insert(const N& node, Val priority) {
-    NodePriority qelement;
-    qelement.node = &node;
-    qelement.priority = priority;
-    nodetracker.push_back(qelement);
-    std::push_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
-  }
-  ;
+  void insert(const N& node, Val priority);
+  //Insert element into queue with reference of r-value
+  //Input:
+  //node: the node needs to be inserted
+  //priority:  the corresponding priority of the node
+  //Output: NONE
+  void insert(const N&& node, Val priority);
   //Returns the top element of the queue.
   //Input: NONE
   //Output:
   //Return the Node object with the minimal priority or weight.
   //Calling this function won't remove top node from queue
-  const N top() {
-    NodePriority topnode = nodetracker.front();
-    return *topnode.node;
-  }
-  ;
+  const N top();
   //Return the number of queue_elements.
   //Input: NONE
   //Output:
   //The size of current priority queue
-  unsigned size() {
-    return nodetracker.size();
-  }
-  ;
+  unsigned size();
+  const_iterator begin() const;
+  const_iterator end() const;
 }
 ;
+
+#include "PriorityQueue.cpp"
 
 #endif /* PRIORITYQUEUE_H_ */

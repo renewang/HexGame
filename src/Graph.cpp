@@ -194,8 +194,8 @@ template<class Type, class Val>
 void Graph<Type, Val>::setEdgeValue(int indexofnodefrom, int indexofnodeto,
                                     Val value) {
   if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-    Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofnodefrom));
-    Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofnodeto));
+    Node* nodefrom = findNodeByIndex(indexofnodefrom);
+    Node* nodeto = findNodeByIndex(indexofnodeto);
 
     std::list<Edge>* neighbors = &(nodefrom->neighbors);
 
@@ -246,8 +246,8 @@ Val Graph<Type, Val>::getEdgeValue(int indexofnodefrom,
 template<class Type, class Val>
 void Graph<Type, Val>::deleteEdge(int indexofnodefrom, int indexofnodeto) {
   if (isAdjacent(indexofnodefrom, indexofnodeto)) {
-    Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofnodefrom));
-    Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofnodeto));
+    Node* nodefrom = findNodeByIndex(indexofnodefrom);
+    Node* nodeto = findNodeByIndex(indexofnodeto);
 
     std::list<Edge>* neighbors = &(nodefrom->neighbors);
 
@@ -285,8 +285,8 @@ void Graph<Type, Val>::deleteEdge(int indexofnodefrom, int indexofnodeto) {
 //Output: NONE
 template<class Type, class Val>
 void Graph<Type, Val>::addEdge(int indexofsource, int indexofdest, Val value) {
-  Node* nodefrom = const_cast<Node*>(findNodeByIndex(indexofsource));
-  Node* nodeto = const_cast<Node*>(findNodeByIndex(indexofdest));
+  Node* nodefrom = findNodeByIndex(indexofsource);
+  Node* nodeto = findNodeByIndex(indexofdest);
 
   Edge edge;
   edge.indexoffromnode = indexofsource;
@@ -313,7 +313,7 @@ void Graph<Type, Val>::addEdge(int indexofsource, int indexofdest, Val value) {
 //Output:
 //The size of connected neighbors
 template<class Type, class Val>
-const int Graph<Type, Val>::getNeighborsSize(int idxofnode) {
+int Graph<Type, Val>::getNeighborsSize(int idxofnode) {
   const Node* node = findNodeByIndex(idxofnode);
   return node->numofneighbors;
 }
@@ -363,18 +363,6 @@ bool Graph<Type, Val>::isAdjacent(int idxofnodefrom, int idxofnodeto) const {
   int neigh = findNeighborByIndex(nodefrom, idxofnodeto);
   return idxofnodeto == neigh;
 }
-//Copy constructor
-template<class Type, class Val>
-Graph<Type, Val>::Graph(const Graph& graph) {
-  this->density = graph.density;
-  this->distance = graph.distance;
-  this->isundirected = graph.isundirected;
-  this->mindistance = graph.mindistance;
-  this->numofedges = graph.numofedges;
-  this->numofvertices = graph.numofvertices;
-  this->repgraph = std::vector<Node>(graph.repgraph);
-  this->repmatrix = std::vector<std::vector<Val> >(graph.repmatrix);
-}
 //Create a empty graph
 template<class Type, class Val>
 Graph<Type, Val>::Graph(unsigned numofvertices) {
@@ -405,10 +393,19 @@ Graph<Type, Val>::Graph(AbstractParser& parser) {
 
   for (unsigned i = 1; i < graphfromtext.size(); i++) {
     std::vector<Val> vecTrans(graphfromtext[i].size());
+    // the conversion from string to numeric primitives when parsing the graph from text file.
     transform(graphfromtext[i].begin(), graphfromtext[i].end(),
-              vecTrans.begin(), MyTransfom());
+              vecTrans.begin(), [](const string str)->Val {
+                Val value = static_cast<Val>(0);
+                if (typeid(Val) == typeid(int)) {
+                  value = static_cast<Val>(atoi(str.c_str()));
+                } else if (typeid(Val) == typeid(double)
+                    || typeid(Val) == typeid(float)) {
+                  value = static_cast<Val>(atof(str.c_str()));
+                }
+                return value;});
     assert(graphfromtext[i].size() == 3);
-    repmatrix[vecTrans[0]][vecTrans[1]] = vecTrans[2];
+    repmatrix[(int)vecTrans[0]][(int)vecTrans[1]] = vecTrans[2];
   }
   toListGraphRep();
 }

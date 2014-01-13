@@ -3,6 +3,8 @@
  *
  */
 
+#include <cstdlib>
+#include <memory>
 #include "AbstractStrategyImpl.h"
 
 using namespace std;
@@ -21,7 +23,7 @@ int AbstractStrategyImpl::genMove() {
 //OUTPUT:
 //an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
 int AbstractStrategyImpl::checkWinnerExist(vector<int>& babywatsons,
-                               vector<int>& opponents) {
+                                           vector<int>& opponents) {
   if (isWinner(babywatsons, ptrtoplayer->getWestToEastCondition()))
     return 1;
   else if (isWinner(opponents, !ptrtoplayer->getWestToEastCondition()))
@@ -89,4 +91,33 @@ bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
     }
   }
   return iswinner;
+}
+//generate the random next move representing with index [1, number of hexgon per side]
+//INPUT: NONE
+//OUPUT: NONE
+int AbstractStrategyImpl::genNextRandom(shared_ptr<bool>& emptyindicators,
+                                        unsigned proportionofempty) {
+  bool isoccupied = true;
+  int index = -1;
+  srand((unsigned long)clock());
+
+  while (isoccupied && proportionofempty > 0) {
+    index = rand() % (ptrtoboard->getSizeOfVertices()) + 1;
+    if (emptyindicators.get()[index - 1]) {
+      isoccupied = false;
+     emptyindicators.get()[index - 1] = false;
+    }
+  }
+  return index;
+}
+//initialize the following containers to the current progress of playing board
+void AbstractStrategyImpl::initGameState(shared_ptr<bool>& emptyglobal,vector<int>& bwglobal, vector<int>& oppglobal) {
+  emptyglobal = ptrtoboard->getEmptyHexIndicators();
+  if(ptrtoplayer->getViewLabel() == 'R'){
+    bwglobal = ptrtoboard->getRedmoves();
+    oppglobal = ptrtoboard->getBluemoves();
+  }else{
+    bwglobal = ptrtoboard->getBluemoves();
+    oppglobal = ptrtoboard->getRedmoves();
+  }
 }

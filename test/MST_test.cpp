@@ -228,7 +228,7 @@ TEST_F(MinSpanTreeTest,KruskalMSTCheckTwo) {
   MinSpanTreeAlgo<string, double>::Kruskals kruskals(mstalgo);
   mstalgo.calculate(kruskals);
   Graph<string, double> msttree = mstalgo.getMsttree();
-  EXPECT_FLOAT_EQ(1.81, mstalgo.getTotalminwieght());
+  EXPECT_FLOAT_EQ((float)1.81, static_cast<float>(mstalgo.getTotalminwieght()));
   EXPECT_EQ("(1(8(2,6(5)),3(4,7)))", msttree.printMST(1));
 }
 TEST_F(MinSpanTreeTest, KruskalMSForest) {
@@ -296,7 +296,7 @@ TEST_F(MinSpanTreeTest, KruskalUnionFindTwo) {
   MinSpanTreeAlgo<string, double>::UnionFind unionfind(mstalgo);
   mstalgo.calculate(unionfind);
   Graph<string, double> msttree = mstalgo.getMsttree();
-  EXPECT_FLOAT_EQ(1.81, mstalgo.getTotalminwieght());
+  EXPECT_FLOAT_EQ((float)1.81, static_cast<float>(mstalgo.getTotalminwieght()));
   EXPECT_EQ("(1(8(2,6(5)),3(4,7)))", msttree.printMST(1));
 }
 TEST_F(MinSpanTreeTest, KruskalUnionFindForest) {
@@ -358,7 +358,7 @@ TEST_F(MinSpanTreeTest, PrimCheckTwo) {
   MinSpanTreeAlgo<string, double>::Prim prim(mstalgo);
   mstalgo.calculate(prim);
   Graph<string, double> msttree = mstalgo.getMsttree();
-  EXPECT_FLOAT_EQ(1.81, mstalgo.getTotalminwieght());
+  EXPECT_FLOAT_EQ((float)1.81, static_cast<float>(mstalgo.getTotalminwieght()));
   //TODO verify this after implementing sorted neighbor
   //EXPECT_EQ("(1(8(2,6(5)),3(4,7)))", msttree.printMST(1));
 }

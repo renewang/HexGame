@@ -26,16 +26,19 @@ int queryHumanMove(int& userrow, int& usercol);
 void simulations(float threshold, float randomness);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
-const int numofhexgon = 11;
+int numofhexgon = 11;
 
 int main(int argc, char **argv) {
 
   float threshold = 0.3;
   float randomness = 0.7;
   bool isstop = false;
-  if (argc == 3) {
+  if (argc >= 3) {
     threshold = atof(argv[1]);
     randomness = atof(argv[2]);
+    if(argc == 4)
+	    numofhexgon = atoi(argv[3]);
+
     cout << "Doing Simulation for two virtual players" << endl;
     simulations(threshold, randomness);
     return 0;

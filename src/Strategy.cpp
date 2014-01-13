@@ -4,8 +4,6 @@
  *
  */
 #include <chrono>
-#include <cstdlib>
-
 #include "Strategy.h"
 
 using namespace std;
@@ -27,23 +25,6 @@ Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
       numberoftrials(3000) {
   numofhexgons = ptrtoboard->getNumofhexgons();
 }
-//generate the random next move representing with index [1, number of hexgon per side]
-//INPUT: NONE
-//OUPUT: NONE
-int Strategy::genNextRandom(bool* emptyindicators, unsigned proportionofempty) {
-  bool isoccupied = true;
-  int index = -1;
-  srand(clock());
-
-  while (isoccupied && proportionofempty > 0) {
-    index = rand() % (ptrtoboard->getSizeOfVertices()) + 1;
-    if (emptyindicators[index - 1]) {
-      isoccupied = false;
-      emptyindicators[index - 1] = false;
-    }
-  }
-  return index;
-}
 //simulation body
 //INPUT: NONE
 //OUTPUT:
@@ -51,27 +32,14 @@ int Strategy::genNextRandom(bool* emptyindicators, unsigned proportionofempty) {
 int Strategy::simulation() {
 
   vector<unsigned> result(ptrtoboard->getSizeOfVertices(), 0);
-  int cutoff = static_cast<int>(threshold * (ptrtoboard->getSizeOfVertices()));
+  int cutoff = static_cast<int>(threshold
+      * (float) (ptrtoboard->getSizeOfVertices()));
 
-  //initialize the following containers to the current progress of playing board
-  bool* emptyglobal = new bool[ptrtoboard->getSizeOfVertices()];
+  shared_ptr<bool> emptyglobal;
   vector<int> bwglobal, oppglobal;
+  initGameState(emptyglobal, bwglobal, oppglobal);
 
-  for (int j = 0; j < ptrtoboard->getSizeOfVertices(); j++) {
-    //set the current empty location as true
-    if (ptrtoboard->getNodeValue(j + 1) == hexgonValKind::EMPTY)
-      emptyglobal[j] = true;
-    else {
-      emptyglobal[j] = false;
-      result[j] = -1;
-      if (ptrtoboard->getNodeValue(j + 1) == ptrtoplayer->getPlayerlabel())
-        bwglobal.push_back(j + 1);
-      else
-        oppglobal.push_back(j + 1);
-    }
-  }
-  int currentempty = count(emptyglobal,
-                           emptyglobal + ptrtoboard->getSizeOfVertices(), true);
+  int currentempty = ptrtoboard->getNumofemptyhexgons();
 
   //fill up the rest of the empty cells
   vector<pair<int, int> > counter(currentempty);
@@ -87,10 +55,12 @@ int Strategy::simulation() {
   for (int i = 0; i < numberoftrials; i++) {
 
     //initialize the following containers to the current progress of playing board
-    bool* emptyindicators = new bool[ptrtoboard->getSizeOfVertices()];
+    shared_ptr<bool> emptyindicators = shared_ptr<bool>(
+        new bool[ptrtoboard->getSizeOfVertices()], default_delete<bool[]>());
     vector<int> babywatsons(bwglobal), opponents(oppglobal);
-    copy(emptyglobal, emptyglobal + ptrtoboard->getSizeOfVertices(),
-         emptyindicators);
+    bool* ptrtoemptyglobal = emptyglobal.get();
+    copy(ptrtoemptyglobal, ptrtoemptyglobal + ptrtoboard->getSizeOfVertices(),
+         emptyindicators.get());
     PriorityQueue<int, int> emptyqueue(ptrtoboard->getSizeOfVertices());
     int portionofempty = currentempty;
 
@@ -128,8 +98,6 @@ int Strategy::simulation() {
     assert(winner != 0);
     if (winner == 1)
       result[nextmove - 1]++;
-
-    delete[] emptyindicators;
   }
 
 //find the move with the maximal successful simulated outcome
@@ -140,8 +108,6 @@ int Strategy::simulation() {
     queue.insert(index[i], -1 * result[i]);
   }
 
-  delete[] emptyglobal;
-
   return queue.minPrioirty();
 }
 //initialize counter for neighbors
@@ -150,11 +116,12 @@ int Strategy::simulation() {
 //moves, the current move made by one of player
 //counter, the counter to record the number of neighbors
 //OUTPUT: NONE
-void Strategy::countNeighbors(bool* emptyindicators, unordered_set<int>& moves,
+void Strategy::countNeighbors(shared_ptr<bool> emptyindicators,
+                              unordered_set<int>& moves,
                               vector<pair<int, int> >& counter) {
   int countofempty = 0;
   for (int i = 0; i < ptrtoboard->getSizeOfVertices(); i++) {
-    if (emptyindicators[i]) {
+    if (emptyindicators.get()[i]) {
       vector<int> indexofneigh = ptrtoboard->getNeighbors((i + 1));
       int neighbors = 0;
       for (auto v : indexofneigh)
@@ -172,10 +139,10 @@ void Strategy::countNeighbors(bool* emptyindicators, unordered_set<int>& moves,
 //counter: the auxiliary vector which stores the index of position and priority
 //OUPUT:
 //next move
-int Strategy::genNextFill(bool* emptyindicators,
+int Strategy::genNextFill(shared_ptr<bool>& emptyindicators,
                           PriorityQueue<int, int>&queue) {
   int nexloc = queue.minPrioirty();
-  emptyindicators[nexloc - 1] = false;
+  emptyindicators.get()[nexloc - 1] = false;
   return nexloc;
 }
 //assign random number to neighbors counter
@@ -187,7 +154,7 @@ void Strategy::assignRandomNeighbors(PriorityQueue<int, int>& queue,
                                      vector<pair<int, int> >& counter,
                                      int currentempty) {
 
-  unsigned long seed = chrono::system_clock::now().time_since_epoch().count();
+  long long seed = chrono::system_clock::now().time_since_epoch().count();
   default_random_engine generator(seed);
 
   //ensure assign unique number

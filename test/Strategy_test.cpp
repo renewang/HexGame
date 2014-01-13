@@ -288,13 +288,10 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     Strategy strategyred(&board, &playera);
     vector<int> test;
     bool winner = false;
-    bool* emptyindicators = new bool[numofhexgon * numofhexgon];
-    fill(emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
     Game hexboardgame(board);
     while (!winner) {
-      unsigned portionofempty = (unsigned) ((count(
-          emptyindicators, emptyindicators + numofhexgon * numofhexgon, true)
-          / (float) numofhexgon * numofhexgon));
+      unsigned portionofempty = board.getNumofemptyhexgons();
       int move = strategyred.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -311,7 +308,6 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
       cout << hexboardgame.showView(playera, playerb);
     }
     EXPECT_EQ(winnerwho, playername);
-    delete[] emptyindicators;
   }
 //purely random to compare the result of MST and approximate approach to find a winner for west to east
   for (unsigned i = 0; i < 3000; i++) {
@@ -322,11 +318,9 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     Strategy strategyblue(&board, &playerb);
     vector<int> test;
     bool winner = false;
-    bool* emptyindicators = new bool[numofhexgon * numofhexgon];
-    fill(emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
-      unsigned portionofempty = count(
-          emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+      unsigned portionofempty = board.getNumofemptyhexgons();
       int move = strategyblue.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -343,7 +337,6 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
       cout << hexboardgame.showView(playera, playerb);
     }
     EXPECT_EQ(winnerwho, playername);
-    delete[] emptyindicators;
   }
 }
 TEST_F(StrategyTest,CheckWinnerElevenTest) {
@@ -357,12 +350,9 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
     Game hexboardgame(board);
     vector<int> test;
     bool winner = false;
-    bool* emptyindicators = new bool[numofhexgon * numofhexgon];
-    fill(emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
-      unsigned portionofempty = (unsigned) ((count(
-          emptyindicators, emptyindicators + numofhexgon * numofhexgon, true)
-          / (float) numofhexgon * numofhexgon));
+      unsigned portionofempty = (unsigned) board.getNumofemptyhexgons();
       int move = strategyred.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -379,7 +369,6 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
       cout << hexboardgame.showView(playera, playerb);
     }
     EXPECT_EQ(winnerwho, playername);
-    delete[] emptyindicators;
   }
   for (unsigned i = 0; i < 3000; i++) {
     HexBoard board(numofhexgon);
@@ -389,11 +378,10 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
     Game hexboardgame(board);
     vector<int> test;
     bool winner = false;
-    bool* emptyindicators = new bool[numofhexgon * numofhexgon];
-    fill(emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+
     while (!winner) {
-      unsigned portionofempty = count(
-          emptyindicators, emptyindicators + numofhexgon * numofhexgon, true);
+      unsigned portionofempty = (unsigned) board.getNumofemptyhexgons();
       int move = strategyblue.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -410,7 +398,6 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
       cout << hexboardgame.showView(playera, playerb);
     }
     EXPECT_EQ(winnerwho, playername);
-    delete[] emptyindicators;
   }
 }
 TEST_F(StrategyTest,CheckGenNextFillBasic) {
@@ -420,8 +407,8 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
   Strategy strategyred(&board, &playera, 1.0, 0.0);
   Game hexboardgame(board);
-  bool* emptyindicators = new bool[board.getSizeOfVertices()];
-  vector<int> babywatsons;
+  shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+  vector<int>& babywatsons = const_cast<vector<int>&>(board.getRedmoves());
 
   hexboardgame.setMove(playera, 1, 3);
   hexboardgame.setMove(playera, 1, 4);
@@ -438,19 +425,7 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
 
   cout << hexboardgame.showView(playera, playerb);
 
-  for (int j = 0; j < board.getSizeOfVertices(); j++) {
-    //set the current empty location as true
-    if (board.getNodeValue(j + 1) == hexgonValKind::EMPTY)
-      emptyindicators[j] = true;
-    else {
-      emptyindicators[j] = false;
-      if (board.getNodeValue(j + 1) == playera.getPlayerlabel())
-        babywatsons.push_back(j + 1);
-    }
-  }
-
-  int currentempty = count(emptyindicators,
-                           emptyindicators + board.getSizeOfVertices(), true);
+  int currentempty = board.getNumofemptyhexgons();
 
   PriorityQueue<int, int> queue(board.getSizeOfVertices());
   vector<pair<int, int> > counter(currentempty);

@@ -48,7 +48,6 @@ public:
 	bool setMove(Player& player, int indexofrow, int indexofcol);
 	//get the winner
 	std::string getWinner(Player& playera, Player& playerb);
-
 	int genMove(AbstractStrategy& aistrategy);
 };
 

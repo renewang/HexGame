@@ -1,25 +1,30 @@
 /*
- * MinMax.cpp
+ * TwoDistancePotential.cpp
  *
+ *  Created on: Dec 25, 2013
+ *      Author: renewang
  */
-
 #include <queue>
 #include <vector>
 #include <limits>
 #include <algorithm>
 
-#include "MinMax.h"
+#include "TwoDistancePotential.h"
 
 using namespace std;
 
-MinMax::MinMax(const HexBoard* board, const Player* aiplayer)
-    : AbstractStrategyImpl(board, aiplayer),
-      ptrtoboard(board),
-      ptrtoplayer(aiplayer) {
+TwoDistancePotential::TwoDistancePotential(const HexBoard* board,
+                                           const Player* aiplayer)
+    : ptrtoboard(board),
+      ptrtoplayer(aiplayer),
+      potentials(
+          vector<int>(ptrtoboard->getSizeOfVertices(),
+                      numeric_limits<int>::max())),
+      ends(vector<int>(numofhexgons)) {
   numofhexgons = ptrtoboard->getNumofhexgons();
+  initPotentials();
 }
-void MinMax::initPotentials(vector<int>& potentials) {
-  vector<int> ends(numofhexgons);
+void TwoDistancePotential::initPotentials() {
   for (int i = 0; i < static_cast<int>(ends.size()); i++) {
     if (ptrtoplayer->getWestToEastCondition())
       ends[i] = ((i * numofhexgons + 1));  //col = 0
@@ -27,16 +32,20 @@ void MinMax::initPotentials(vector<int>& potentials) {
       ends[i] = ((i + 1));  //row = 0
   }
 
-  vector<priority_queue<int> > traceback;
-
 //initialize
   for (int i = 0; i < numofhexgons; i++)
     potentials[ends[i] - 1] = 1;
 
+  calcPotentials();
+
+}
+void TwoDistancePotential::calcPotentials() {
+  vector<priority_queue<int> > traceback;
+
   for (int i = 0; i < numofhexgons * numofhexgons; i++)
     traceback.push_back(priority_queue<int>());
 
-//update minimums
+  //update minimums
   for (int i = 0; i < numofhexgons; i++) {
     for (int j = 0; j < numofhexgons; j++) {
       int index;
@@ -68,22 +77,4 @@ void MinMax::initPotentials(vector<int>& potentials) {
     cout << endl;
   }
 #endif
-}
-void MinMax::calcPotentials(vector<int>& potentials) {
-
-}
-
-int MinMax::simulation() {
-//construct a game tree
-//which evaluation function => Queenbee's two distance
-//1) modify it as two distance
-//2) calculate the total potential by summing the R-potential and B-potential
-//recursive form, top-bottom and stop at the leaves
-//a) self' position: 1) maximize the gain from the  level, 2) assign score to leaves
-//b) opponent's position: 1) minimize the loss from
-//combine a) and b) use the single min function (due to distance) to calculate the position for the next player
-//the 2D matrices to store the potentials/distances
-  vector<int> potentials(numofhexgons * numofhexgons, 0);
-  int nextmove = -1;
-  return nextmove;
 }

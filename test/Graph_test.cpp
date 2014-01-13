@@ -5,8 +5,9 @@
 // Copyright   : Your copyright notice
 // Description : Google Test for Dijkstra and basic graph unit tests
 //============================================================================
-#include <iostream>
 #include <map>
+#include <sstream>
+#include <iostream>
 #include "gtest/gtest.h"
 #include "Graph.h"
 #include "ShortestPathAlgo.h"
@@ -166,8 +167,10 @@ TEST_F(GraphTest,BasicGraphCheck) {
   EXPECT_EQ(5, pathSize);
 
   //test the average shortest path for a given Graph
-  EXPECT_FLOAT_EQ(35.0 / 15.0, algo.averageAllPathSize());
-  EXPECT_FLOAT_EQ(15.0 / 5.0, algo.averagePathSize(1));
+  EXPECT_FLOAT_EQ(float(35.0 / 15.0),
+                  static_cast<float>(algo.averageAllPathSize()));
+  EXPECT_FLOAT_EQ((float )(15.0 / 5.0),
+                  static_cast<float>(algo.averagePathSize(1)));
 
   //test the deleteEdge and addEdge for a Graph
   testG.deleteEdge(1, 2);
@@ -193,8 +196,10 @@ TEST_F(GraphTest,BasicGraphCheck) {
   EXPECT_EQ(5, algo.path_size(1, 6));
 
   //test the average shortest path for a given Graph
-  EXPECT_FLOAT_EQ(35.0 / 15.0, algo.averageAllPathSize());
-  EXPECT_FLOAT_EQ(15.0 / 5.0, algo.averagePathSize(1));
+  EXPECT_FLOAT_EQ((float )(35.0 / 15.0),
+                  static_cast<float>(algo.averageAllPathSize()));
+  EXPECT_FLOAT_EQ((float )(15.0 / 5.0),
+                  static_cast<float>(algo.averagePathSize(1)));
 
   //case 3: modify the Graph and recalculate the shortest path, by delete one of the path in the previous shortest path
   testG.deleteEdge(1, 2);
@@ -212,10 +217,12 @@ TEST_F(GraphTest,BasicGraphCheck) {
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
   EXPECT_EQ(5, algo.path_size(1, 6));
   //test the average shortest path for a given Graph
-  EXPECT_FLOAT_EQ(37.0 / 15.0, algo.averageAllPathSize());
-  EXPECT_FLOAT_EQ(17.0 / 5.0, algo.averagePathSize(1));
+  EXPECT_FLOAT_EQ((float )(37.0 / 15.0),
+                  static_cast<float>(algo.averageAllPathSize()));
+  EXPECT_FLOAT_EQ((float )(17.0 / 5.0),
+                  static_cast<float>(algo.averagePathSize(1)));
 
-  double expectAveFromNode[] = { 19.0, 21.0, 23.0 };
+  float expectAveFromNode[] = { 19.0, 21.0, 23.0 };
   //case 4: delete the edges for 2 until it is isolated
   for (int i = 3; i < testG.getSizeOfVertices(); i++) {
     testG.deleteEdge(2, i);
@@ -233,7 +240,8 @@ TEST_F(GraphTest,BasicGraphCheck) {
     EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
     EXPECT_EQ(5, algo.path_size(1, 6));
     //test the average shortest path for a given Graph
-    EXPECT_FLOAT_EQ(expectAveFromNode[i - 3] / 5.0, algo.averagePathSize(1));
+    EXPECT_FLOAT_EQ(expectAveFromNode[i - 3] / (float )5.0,
+                    static_cast<float>(algo.averagePathSize(1)));
   }
 
   testG.deleteEdge(2, 6);
@@ -252,7 +260,7 @@ TEST_F(GraphTest,BasicGraphCheck) {
   EXPECT_EQ(0, algo.path_size(1, 2));
   shortestPath = algo.path(1, 2);
   EXPECT_EQ(1, static_cast<int>(shortestPath.size()));
-  EXPECT_FLOAT_EQ(14.0 / 4.0, algo.averagePathSize(1));
+  EXPECT_FLOAT_EQ(14.0 / 4.0, static_cast<float>(algo.averagePathSize(1)));
 }
 TEST_F(GraphTest, AlternativeGraphCheck) {
   Graph<int, int> testG(testAlter, 6);
@@ -280,11 +288,11 @@ TEST_F(GraphTest, AlternativeGraphCheck) {
     shortestPathActual.push_back(*iter);
   }
   EXPECT_TRUE(ArraysMatch(shortestPathExpect, shortestPathActual));
-  EXPECT_FLOAT_EQ(5.0, algoD.path_size(1, 6));
+  EXPECT_FLOAT_EQ(5.0, static_cast<float>(algoD.path_size(1, 6)));
 }
 
 TEST_F(GraphTest,RandomGraphCheck) {
-  Graph<string, int> randomG(50, 0.7, 10);
+  Graph<string, int> randomG(50, (float) 0.7, 10);
   ASSERT_EQ(50, randomG.getSizeOfVertices());
 
   vector<int> nodes(randomG.getSizeOfVertices());
@@ -300,7 +308,7 @@ TEST_F(GraphTest,RandomGraphCheck) {
   EXPECT_TRUE(algo.averageAllPathSize() > 0);
 
   for (unsigned i = 0; i < 10; i++) {
-    Graph<string, int> randomG2(50, 0.4, 10);
+    Graph<string, int> randomG2(50, (float) 0.4, 10);
     ShortestPathAlgo<string, int> algo2(randomG2);
     EXPECT_TRUE(algo2.averagePathSize(1) > 0);
     /*
@@ -387,8 +395,8 @@ TEST_F(GraphTest, MSTGraphCheck) {
 
   //test with undirected graph
   for (unsigned i = 0; i < sizeoftestgraph; i++)
-    EXPECT_TRUE(testG.isLoopExisting(i + 1)) << " test loop true for undirected graph "
-                                             << (i + 1);
+    EXPECT_TRUE(testG.isLoopExisting(i + 1))
+        << " test loop true for undirected graph " << (i + 1);
 
   testG.deleteEdge(1, 4);
   testG.deleteEdge(1, 5);
@@ -402,9 +410,83 @@ TEST_F(GraphTest, MSTGraphCheck) {
   testG.deleteEdge(5, 6);
 
   for (unsigned i = 0; i < sizeoftestgraph; i++)
-     EXPECT_FALSE(testG.isLoopExisting(i + 1)) << " test loop false for undirected graph "
-                                              << (i + 1);
+    EXPECT_FALSE(testG.isLoopExisting(i + 1))
+        << " test loop false for undirected graph " << (i + 1);
 
+}
+TEST_F(GraphTest,PriorityQIterCheck) {
+  vector<int> vertices(10);
+  for (unsigned i = 1; i <= 10; i++)
+    vertices[i - 1] = i;
+
+  PriorityQueue<int, int> testPQ(vertices.size());
+
+  for (unsigned i = 0; i < vertices.size(); i++)
+    testPQ.insert(vertices[i], 10 - i);
+
+  PriorityQueue<int, int>::const_iterator iterator = testPQ.begin();
+  EXPECT_EQ(10, (*iterator).node);
+  EXPECT_EQ(1, (*iterator).priority);
+  iterator++;
+  EXPECT_EQ(9, (*iterator).node);
+  EXPECT_EQ(2, (*iterator).priority);
+  iterator--;
+  EXPECT_EQ(10, (*iterator).node);
+  EXPECT_EQ(1, (*iterator).priority);
+  PriorityQueue<int, int>::const_iterator terminal = ++testPQ.begin();
+  EXPECT_FALSE(terminal == iterator);
+  EXPECT_TRUE(terminal != iterator);
+  EXPECT_EQ(9, (*(iterator + 1)).node);
+  EXPECT_EQ(10, ((iterator - 1)->node));
+}
+TEST_F(GraphTest,PriorityQRValueCheck) {
+  int size = 5;
+  PriorityQueue<int, int> testPQ(size);
+
+  for (int i = 0; i < size; i++)
+    testPQ.insert((i + 1), 10 - i);
+
+  // test PriorityQueue contains
+  EXPECT_TRUE(testPQ.contains((1)));
+  EXPECT_FALSE(testPQ.contains(100));
+
+  // test PriorityQueue top and minPriority
+  int minNode = testPQ.top();
+  EXPECT_EQ(5, minNode);
+  for (int i = 0; i < size; i++) {
+    EXPECT_TRUE(testPQ.chgPrioirity((i + 1), 5 - i));
+    minNode = testPQ.top();
+    EXPECT_EQ((int )i + 1, minNode);
+  }
+  minNode = testPQ.minPrioirty();
+  EXPECT_EQ(5, minNode);
+  minNode = testPQ.top();
+  EXPECT_EQ(4, minNode);
+
+  //test string
+  PriorityQueue<string, int> stringPQ(size);
+  for (int i = 0; i < size; i++) {
+    stringstream buffer;
+    buffer << "test" << (i + 1);
+    stringPQ.insert(buffer.str(), 10 - i);
+  }
+
+  EXPECT_TRUE(stringPQ.contains("test1"));
+  EXPECT_FALSE(stringPQ.contains("test0"));
+
+  string minStr = stringPQ.top();
+  EXPECT_EQ("test5", minStr);
+  for (int i = 0; i < size; i++) {
+    stringstream buffer;
+    buffer << "test" << (i + 1);
+    EXPECT_TRUE(stringPQ.chgPrioirity(buffer.str(), 5 - i));
+    minStr = stringPQ.top();
+    EXPECT_EQ(buffer.str(), minStr);
+  }
+  minStr = stringPQ.minPrioirty();
+  EXPECT_EQ("test5", minStr);
+  minStr = stringPQ.top();
+  EXPECT_EQ("test4", minStr);
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

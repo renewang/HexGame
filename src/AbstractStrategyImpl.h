@@ -11,15 +11,20 @@
 class AbstractStrategyImpl : public AbstractStrategy {
  private:
   //the actual playing board in the game. Need to ensure it not to be modified during the simulation
-  const HexBoard* ptrtoboard;
+  const HexBoard* const ptrtoboard;
   //the actual player computer plays. Need to ensure it not to be modified during the simulation
-  const Player* ptrtoplayer;
+  const Player* const ptrtoplayer;
   int numofhexgons;
+
  protected:
+  //generate the random next move in terms of index of row and index of column [1, number of hexgon per side]
+  virtual int genNextRandom(std::shared_ptr<bool>& emptyindicators, unsigned proportionofempty);
   //check if the winner exists for this stage of simulation
   virtual int checkWinnerExist(std::vector<int>&, std::vector<int>&);
   virtual bool isWinner(std::vector<int>& test, bool iswestoeast);
+  virtual void initGameState(std::shared_ptr<bool>& emptyglobal, vector<int>& bwglobal, vector<int>& oppglobal);
   virtual int simulation() = 0;
+
  public:
   AbstractStrategyImpl():ptrtoboard(nullptr), ptrtoplayer(nullptr),numofhexgons(0){};
   AbstractStrategyImpl(const HexBoard* board, const Player* aiplayer)
@@ -45,17 +50,8 @@ class AbstractStrategyImpl : public AbstractStrategy {
   const HexBoard* getPtrtoboard() const {
     return ptrtoboard;
   }
-
-  void setPtrtoboard(const HexBoard*& ptrtoboard) {
-    this->ptrtoboard = ptrtoboard;
-  }
-
   const Player* getPtrtoplayer() const {
     return ptrtoplayer;
-  }
-
-  void setPtrtoplayer(const Player*& ptrtoplayer) {
-    this->ptrtoplayer = ptrtoplayer;
   }
 };
 #endif /* ABSTRACTSTRATEGYIMPL_H_ */

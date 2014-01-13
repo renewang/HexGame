@@ -1,6 +1,6 @@
 /*
  * Strategy.h
- * This file defines MC simulation strategy for AI player. The constructor takes a pointer to
+ * This file defines pure Monte Carlo simulation strategy for AI player. The constructor takes a pointer to
  * hexboard and a pointer to player.
  *
  * Sample Usage:
@@ -39,14 +39,12 @@ class Strategy : public AbstractStrategyImpl {
   //the actual player computer plays. Need to ensure it not to be modified during the simulation
   const Player* ptrtoplayer;
   const int numberoftrials;
-  //generate the random next move in terms of index of row and index of column [1, number of hexgon per side]
-  int genNextRandom(bool* emptyindicators, unsigned proportionofempty);
   //fill up the board
-  int genNextFill(bool* emptyindicators, PriorityQueue<int, int>&queue);
+  int genNextFill(std::shared_ptr<bool>& emptyindicators, PriorityQueue<int, int>&queue);
   //simulation body
   int simulation();
   //count the number of neighbors for current game progress
-  void countNeighbors(bool*, std::unordered_set<int>&,
+  void countNeighbors(std::shared_ptr<bool>, std::unordered_set<int>&,
                       std::vector<std::pair<int, int> >&);
   //assign random number to neighbors counter
   void assignRandomNeighbors(PriorityQueue<int, int>&,

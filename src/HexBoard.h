@@ -6,6 +6,7 @@
 #ifndef HEXBOARD_H_
 #define HEXBOARD_H_
 
+#include <memory>
 #include "Graph.h"
 /*
  * hexgonValKind enum type
@@ -38,7 +39,7 @@ class HexBoard : public Graph<hexgonValKind, int> {
   //HexgonLocType inner class
   class HexgonLocType {
    private:
-    HexBoard& board; // in order to access enclosing class
+    HexBoard& board;  // in order to access enclosing class
    public:
     HexgonLocType(HexBoard& board)
         : board(board) {
@@ -60,6 +61,15 @@ class HexBoard : public Graph<hexgonValKind, int> {
     numLocEdges getLocEdges(int row, int col);
   };
   int numofhexgons;  //hexgon per side which constitutes numofvertices = numofhexgon*numofhexgon board
+
+  std::vector<int> redmoves;
+  std::vector<int> bluemoves;
+  std::shared_ptr<bool> emptyhexindicators;
+  int numofemptyhexgons;
+
+  //init emptyhexgons
+  void initEmptyHexIndicators();
+
  protected:
   //overriding base class' initNode function
   virtual void initNode(Node& node, int index);
@@ -78,7 +88,22 @@ class HexBoard : public Graph<hexgonValKind, int> {
   inline int getNumofhexgons() const {
     return numofhexgons;
   }
+  void setNodeValue(int indexofnode, hexgonValKind value);
   //setter for private member numofhexgons
   void setNumofhexgons(int numofhexgon);
+  const std::vector<int>& getBluemoves() const {
+    return bluemoves;
+  }
+
+  inline const std::shared_ptr<bool>& getEmptyHexIndicators() const {
+    return emptyhexindicators;
+  }
+
+  inline const std::vector<int>& getRedmoves() const {
+    return redmoves;
+  }
+  inline int getNumofemptyhexgons() const {
+    return numofemptyhexgons;
+  }
 };
 #endif /* HEXBOARD_H_ */

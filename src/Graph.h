@@ -71,23 +71,6 @@ class Graph {
   float distance;  //maximal distance to generate random Graph
   Val mindistance;  //hold the minimal distance which should equal to 1
 
-  /*
-   * MyTransform is a private structure used as functional object in STL Transform function.
-   * It is used to do the conversion from string to numeric primitives when parsing the graph from text file.
-   */
-  struct MyTransfom {
-   public:
-    Val operator()(const std::string str) {
-      Val value = static_cast<Val>(0);
-      if (typeid(Val) == typeid(int)) {
-        value = static_cast<Val>(atoi(str.c_str()));
-      } else if (typeid(Val) == typeid(double)
-          || typeid(Val) == typeid(float)) {
-        value = static_cast<Val>(atof(str.c_str()));
-      }
-      return value;
-    }
-  };
   //Implementation of Monte Carlo simulation to generate undirected graph.
   void randomGraphGenerator();
  protected:
@@ -147,6 +130,11 @@ class Graph {
   void toListGraphRep();
   //Provide the functionality to retrieve node's pointer given the index of source node
   const Node* findNodeByIndex(int index) const {
+    assert(index >= 1 && index <= static_cast<int>(numofvertices));
+    return &(repgraph[index - 1]);
+  }
+  //non-const this version
+  Node* findNodeByIndex(int index){
     assert(index >= 1 && index <= static_cast<int>(numofvertices));
     return &(repgraph[index - 1]);
   }
@@ -271,8 +259,6 @@ class Graph {
   Graph(AbstractParser& parser);
 //Create a empty graph
   Graph(unsigned numofvertices);
-//Copy constructor
-  Graph(const Graph& graph);
 //destructor
   virtual ~Graph() {
   }
@@ -313,7 +299,7 @@ class Graph {
 //idxofnode: the vertexindex of the inquiring node
 //Output:
 //The size of connected neighbors
-  const int getNeighborsSize(int idxofnode);
+  int getNeighborsSize(int idxofnode);
 //Add Edge between the two specified nodes with the specified value
 //Input:
 //indexofsource: the vertexindex of the source node
@@ -342,8 +328,8 @@ class Graph {
 //indexofnode: the vertexindex of the inquiring node
 //value: The label or the representing value of the inquiring node
 //Output: None
-  void setNodeValue(int indexofnode, Type value) {
-    Node* node = const_cast<Node*>(findNodeByIndex(indexofnode));
+  virtual void setNodeValue(int indexofnode, Type value) {
+    Node* node = findNodeByIndex(indexofnode);
     node->vertexvalue = value;
   }
   ;
