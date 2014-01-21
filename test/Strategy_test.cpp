@@ -291,7 +291,7 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
     Game hexboardgame(board);
     while (!winner) {
-      unsigned portionofempty = board.getNumofemptyhexgons();
+      int portionofempty = board.getNumofemptyhexgons();
       int move = strategyred.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -320,7 +320,7 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     bool winner = false;
     shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
-      unsigned portionofempty = board.getNumofemptyhexgons();
+      int portionofempty = board.getNumofemptyhexgons();
       int move = strategyblue.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -352,7 +352,7 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
     bool winner = false;
     shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
-      unsigned portionofempty = (unsigned) board.getNumofemptyhexgons();
+      int portionofempty = (unsigned) board.getNumofemptyhexgons();
       int move = strategyred.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -381,7 +381,7 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
     shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
 
     while (!winner) {
-      unsigned portionofempty = (unsigned) board.getNumofemptyhexgons();
+      int portionofempty = (unsigned) board.getNumofemptyhexgons();
       int move = strategyblue.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
@@ -435,25 +435,25 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
   strategyred.countNeighbors(emptyindicators, allmoves, counter);
   strategyred.assignRandomNeighbors(queue, counter, currentempty);
 
-  int move = strategyred.genNextFill(emptyindicators, queue);
+  int move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(8, move);
 
-  move = strategyred.genNextFill(emptyindicators, queue);
+  move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(17, move);
 
-  move = strategyred.genNextFill(emptyindicators, queue);
+  move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(5, move);
 
-  move = strategyred.genNextFill(emptyindicators, queue);
+  move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(11, move);
 
-  move = strategyred.genNextFill(emptyindicators, queue);
+  move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(18, move);
 
-  move = strategyred.genNextFill(emptyindicators, queue);
+  move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(19, move);
 
-  move = strategyred.genNextFill(emptyindicators, queue);
+  move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(2, move);
 }
 TEST_F(StrategyTest, CheckSimulationTest) {

@@ -7,9 +7,8 @@
 #ifndef GAMETREE_H_
 #define GAMETREE_H_
 
+#include <cmath>
 #include <iterator>
-#include <boost/dynamic_bitset.hpp>
-#include <boost/functional/hash.hpp>
 #include <boost/graph/graph_as_tree.hpp>
 #include <boost/graph/adjacency_list.hpp>
 
@@ -27,27 +26,83 @@ enum vertex_key_t {
 };
 BOOST_INSTALL_PROPERTY(vertex, value);
 BOOST_INSTALL_PROPERTY(vertex, position);
-BOOST_INSTALL_PROPERTY(vertex, key);
-}
-//TODO, temporary
+BOOST_INSTALL_PROPERTY(vertex, key);}
+
+//TODO
+//1. template for featureholder
+//2. move out UTCPolicy and think about the possible design to adapt different policies
 class UTCPolicy {
  private:
-  std::size_t visitcount;
-  double value;
+  double value; //this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
+  double balance; //this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
   const double coefficient;
+  std::size_t numoffeatures;
+  std::vector<int> featureholder;
  public:
+  enum valuekind {
+    visitcount = 0,
+    wincount
+  };
   UTCPolicy()
-      : visitcount(0),
-        value(0.0),
-        coefficient(1.0) {
+      : value(0.0),
+        balance(value),
+        coefficient(2.0),
+        numoffeatures(2),
+        featureholder(std::vector<int>(numoffeatures)){
+    std::fill(featureholder.begin(), featureholder.end(), 0);
   }
   ;
   UTCPolicy& operator=(const UTCPolicy& policy) {
-    this->visitcount = policy.visitcount;
     this->value = policy.value;
+    this->balance = policy.balance;
+    this->numoffeatures = policy.numoffeatures;
+    this->featureholder = std::vector<int>(policy.featureholder);
     return *this;
   }
-  double calculate();
+  std::string print() {
+    std::stringstream buffer;
+    buffer << " [" << value << "|" << balance <<"|"<< featureholder.at(wincount) << "|"
+           << featureholder.at(visitcount) << "] ";
+    return buffer.str();
+  }
+  double estimate() {
+    assert(featureholder.at(visitcount) > 0);
+    value = static_cast<double>(featureholder.at(wincount))
+        / static_cast<double>(featureholder.at(visitcount));
+    return value;
+  }
+  ;
+  double calculate(UTCPolicy& parent, bool isgreedy = false){
+   //choose the maximal value for non-uct implementation (greedy mc) if isgreedy = true
+    double value = estimate();
+    if(!isgreedy){
+      //calculate UCT value (Upper Confidence Bound applied to Tree)
+      //equation is used from Chaslot G et al,
+      double vcount = static_cast<double>(featureholder.at(visitcount));
+      double vcountofparent = static_cast<double>(parent.feature(visitcount));
+      balance = (value + (std::sqrt(coefficient*std::log(vcountofparent)/vcount)));
+    }else
+      balance = value;
+    return balance;
+  }
+  bool update(int indexofkind, int value, int increment = 0) {
+    if (value == 0)  //simply incrementing original value
+      featureholder.at(indexofkind) =  featureholder.at(indexofkind) + increment;
+    else
+      featureholder.at(indexofkind) = value;
+    return true;
+  }
+  ;
+  int feature(int indexofkind){
+    return  featureholder.at(indexofkind);
+  }
+  double getValue() const {
+    return value;
+  }
+
+  double getBalance() const {
+    return balance;
+  }
 };
 class GameTree {
   //for property
@@ -56,9 +111,7 @@ class GameTree {
       vertex_value_prop> vertex_color_prop;
   typedef boost::property<boost::vertex_name_t, std::string, vertex_color_prop> vertex_name_prop;
   typedef boost::property<boost::vertex_position_t, std::size_t,
-      vertex_name_prop> vertex_position_prop;
-  typedef boost::property<boost::vertex_key_t,
-      boost::dynamic_bitset<unsigned char>, vertex_position_prop> vertex_final_prop;
+        vertex_name_prop> vertex_final_prop;
 
   //for graph and tree
   typedef boost::adjacency_list<boost::listS, boost::vecS,
@@ -77,11 +130,11 @@ class GameTree {
   typedef boost::property_map<basegraph, boost::vertex_color_t>::type vertex_colormap_t;
   typedef boost::property_map<basegraph, boost::vertex_value_t>::type vertex_valuemap_t;
   typedef boost::property_map<basegraph, boost::vertex_position_t>::type vertex_positionmap_t;
-  typedef boost::property_map<basegraph, boost::vertex_key_t>::type vertex_keymap_t;
+  typedef boost::property_map<basegraph, boost::vertex_index_t>::type vertex_indexmap_t;
 
   //for tree
   typedef boost::iterator_property_map<std::vector<vertex_t>::iterator,
-      boost::property_map<basegraph, boost::vertex_key_t>::type> parent_map_t;
+      boost::property_map<basegraph, boost::vertex_index_t>::type> parent_map_t;
   typedef boost::graph_as_tree<basegraph, parent_map_t> gametree;
 
  private:
@@ -90,42 +143,29 @@ class GameTree {
   vertex_colormap_t vertexcolor;
   vertex_valuemap_t vertexvalue;
   vertex_positionmap_t vertexposition;
-  vertex_keymap_t vertexkey;
+  vertex_indexmap_t vertexindex;
   vertex_t _root;
 
-  //boost::hash<std::string> _namehash;
-  //original idea to use _namehash is to have the following lookup:
-  //string nameoftarget;
-  //to_string(keyoftarget, nameoftarget);
-  //size_t indexoftarget = _namehash(nameoftarget);
-  //vertex_t target = vertex(indexoftarget, thetree);
-  //Major problem: the hash value provided by string object is still too large
-  //to fit in the maximal size of vector<size_t> which is used for index_map
-  //in boost. Defer the implementation until I fully understand trie structure
-
-  //add the edge between indeoxofsource and indexoftarget
-  bool addChild(vertex_t source, boost::dynamic_bitset<unsigned char> keyoftarget,
-               std::size_t positionofchild, char color);
+  vertex_t addNode(std::size_t positionofchild, char color);
+  bool addEdge(vertex_t source, vertex_t target);
   void removeChidren(std::string nameofsource);
-  //update the name of a given node
-  void updateNodeName(vertex_t node, boost::dynamic_bitset<unsigned char> key);
-  void updateNodeName(vertex_t node, std::string nameofnode);
-  //update the key of a given node
-  void updateNodeKey(vertex_t node, boost::dynamic_bitset<unsigned char> key);
+  void updateNodeName(vertex_t node);
   //update the value of a given node
-  void updateNodeValue(vertex_t node, UTCPolicy policy);
+  void updateNodeValue(vertex_t node, UTCPolicy& policy);
+  void updateNodeValue(vertex_t node);
   //update the color of a given node
   void updateNodeColor(vertex_t node, char color);
   //update the board position of a given node
   void updateNodePosition(vertex_t node, std::size_t position);
   //re-root a subtree whose parents and siblings are removed if isprune is true
-  void reRoot(std::string key, bool isprune);
+  void reRoot(vertex_t node, bool isprune);
   //prune the subtree of given vertex index
-  void prune(std::string nameofindex);
+  void prune(vertex_t node);
   //Propagate the calculation from the leaf up to the root
-  void backpropogate(boost::dynamic_bitset<unsigned char> indexofoffspring,
-                     int level);
+  void backpropagate(vertex_t leaf, int value, int level);
+  void traversetoPruneBy(std::size_t position, int level, vertex_t node);
 
+  //for print
   class TreePrinter {
    private:
     std::ostream_iterator<std::string> _bufiter;
@@ -140,35 +180,41 @@ class GameTree {
     }
     template<typename Node, typename Tree>
     void inorder(Node n, Tree& t) {
-      *_bufiter++ = get(boost::vertex_name, t)[n];
+      *_bufiter++ = get(boost::vertex_name, t)[n]
+          + get(boost::vertex_value, t)[n].print();
     }
     template<typename Node, typename Tree>
     void postorder(Node, Tree&) {
       *_bufiter++ = ")";
     }
   };
+
  public:
-  GameTree(std::size_t indexofroot);
+  GameTree();
+  GameTree(char playerslabel);
+  GameTree(char playerslabel, std::size_t indexofroot);
 
   //print out the tree
-  std::string printGameTree(std::string key);
+  std::string printGameTree(int key);
+  std::size_t getNodePosition(std::size_t indexofnode);
 
   //tree expansion
-  bool expandLeaf(std::string nameofparent, int move, char color = 'W');
+  int expandNode(int indexofsource, int move, char color = 'W');
 
   //update by position of game
-  void prunebyPosition(std::size_t position);
-  void reRootbyPosition(std::size_t position, bool isprune);
+  void reRootfromSimulation(int indexofnode, bool isprune = true);
 
   //for simulation
-  void addSimulatedMove(int move, char color);
-  void updateNodefromSimulation(int winner);
-  void backpropogatefromSimulation();
-  std::pair<std::vector<int>, std::vector<int>> getMovesfromSimulation();
-  double getBestMoveValuefromSimulation();
-  int getBestMovefromSimulation();
-  //to calculate the upper confidence bound according to a value function to evaluate the selection  of a move
-  std::string calcUpperConfidenceBound();
+  int updateNodefromSimulation(int indexofnode, int winner);
+  void backpropagatefromSimulation(int indexofnode, int value, int level = -1);
+  std::pair<int, double> getBestMovefromSimulation();
+  int selectMaxBalanceNode(int currentempty);
+  void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons, std::vector<int>& opponents, char playerscolor);
+  void prunebyPosition(std::size_t position, int level);
+  int reRootbyPosition(size_t position);
+
+  //node property relevant
+  int getNodeValueFeature(int indexofnode, int indexofkind);
 };
 
 #endif /* GAMETREE_H_ */

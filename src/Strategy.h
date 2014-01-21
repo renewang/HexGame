@@ -40,7 +40,7 @@ class Strategy : public AbstractStrategyImpl {
   const Player* ptrtoplayer;
   const int numberoftrials;
   //fill up the board
-  int genNextFill(std::shared_ptr<bool>& emptyindicators, PriorityQueue<int, int>&queue);
+  int genNextFill(std::shared_ptr<bool>& emptyindicators, PriorityQueue<int, int>&queue, int& proportionofempty);
   //simulation body
   int simulation();
   //count the number of neighbors for current game progress

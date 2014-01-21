@@ -96,7 +96,7 @@ bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
 //INPUT: NONE
 //OUPUT: NONE
 int AbstractStrategyImpl::genNextRandom(shared_ptr<bool>& emptyindicators,
-                                        unsigned proportionofempty) {
+                                        int& proportionofempty) {
   bool isoccupied = true;
   int index = -1;
   srand((unsigned long)clock());
@@ -108,6 +108,7 @@ int AbstractStrategyImpl::genNextRandom(shared_ptr<bool>& emptyindicators,
      emptyindicators.get()[index - 1] = false;
     }
   }
+  proportionofempty--;
   return index;
 }
 //initialize the following containers to the current progress of playing board

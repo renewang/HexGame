@@ -14,6 +14,10 @@
 #include "AbstractStrategyImpl.h"
 #include "MonteCarloTreeSearch.h"
 
+#ifndef NDEBUG
+#include "gtest/gtest_prod.h"
+#endif
+
 class MonteCarloTreeSearch : public AbstractStrategyImpl {
  private:
   int numofhexgons;
@@ -21,33 +25,46 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
   const HexBoard* const ptrtoboard;
   //the actual player computer plays. Need to ensure it not to be modified during the simulation
   const Player* const ptrtoplayer;
-  std::vector<GameTree> treeholder;
-  const int numberoftrials;
-  const std::size_t numofchildren;
+  const std::size_t numberoftrials;
   char babywatsoncolor, oppoenetcolor;
+  GameTree& gametree;
 
-  //for the shared game tree or unshared game trees (one tree per simulation) to record the simulated moves through the game
-  void registerGameTree(std::size_t);  //initialize the game tree and register them
   int getBestMove();
 
   //Monte Carlo tree search steps
   //in-tree phase
-  void selection(std::vector<std::string>& leavesforexpanded,
-                 int currentempty);
-  void expansion(std::vector<std::string>& leavesforexpanded,
-                 std::size_t numofchildren,
-                 std::shared_ptr<bool>& emptyindicators, int& portionofempty);
+  int selection(int currentempty);
+  int expansion(int expandedleaf, std::shared_ptr<bool>& emptyindicators,
+                int& portionofempty, vector<int>& babywatsons,
+                vector<int>& opponents);
   //play-out phase
-  void playout(std::shared_ptr<bool>& emptyindicators, int portionofempty);  //simulation on particular node
-  //update
-  void backpropagate();
+  int playout(std::shared_ptr<bool>& emptyindicators, int& portionofempty,
+              vector<int>& babywatsons, vector<int>& opponents);
+  void backpropagation(int backupnode, int winner);
+
+#ifndef NDEBUG
+  //for google test framework
+  friend class MinMaxTest;FRIEND_TEST(MinMaxTest,MCSTBasic);FRIEND_TEST(MinMaxTest,SimulationCombine);
+#endif
 
  public:
   //constructor
-  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer);
+  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer,
+                       GameTree& gametree);
+  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer,
+                       GameTree& gametree, size_t numberoftrials);
   virtual ~MonteCarloTreeSearch() {
   }
   ;
   int simulation();
+
+  const GameTree& getGametree() const {
+    return gametree;
+  }
+//TODO, don't know why compiler issue the warning that I need to drop const on return type
+  //const std::size_t getNumberoftrials() const
+  std::size_t getNumberoftrials() {
+    return numberoftrials;
+  }
 };
 #endif /* MONTECARLOTREESEARCH_H_ */

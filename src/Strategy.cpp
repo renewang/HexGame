@@ -50,17 +50,18 @@ int Strategy::simulation() {
 
   unordered_set<int> allmoves(moves.begin(), moves.end());
   countNeighbors(emptyglobal, allmoves, counter);
+  shared_ptr<bool> emptyindicators = shared_ptr<bool>(
+      new bool[ptrtoboard->getSizeOfVertices()], default_delete<bool[]>());
+  bool* ptrtoemptyglobal = emptyglobal.get();
 
   //start the simulation
   for (int i = 0; i < numberoftrials; i++) {
 
     //initialize the following containers to the current progress of playing board
-    shared_ptr<bool> emptyindicators = shared_ptr<bool>(
-        new bool[ptrtoboard->getSizeOfVertices()], default_delete<bool[]>());
     vector<int> babywatsons(bwglobal), opponents(oppglobal);
-    bool* ptrtoemptyglobal = emptyglobal.get();
     copy(ptrtoemptyglobal, ptrtoemptyglobal + ptrtoboard->getSizeOfVertices(),
          emptyindicators.get());
+
     PriorityQueue<int, int> emptyqueue(ptrtoboard->getSizeOfVertices());
     int portionofempty = currentempty;
 
@@ -76,22 +77,20 @@ int Strategy::simulation() {
         move = genNextRandom(emptyindicators, portionofempty);
       else
         //fill up the board by non-random
-        move = genNextFill(emptyindicators, emptyqueue);
+        move = genNextFill(emptyindicators, emptyqueue, portionofempty);
 
       if (nextmove < 0)
         nextmove = move;
 
       babywatsons.push_back(move);
-      portionofempty--;
 
       //random generate a move for virtual opponent
       if (currentempty > cutoff && portionofempty > 0)
         oppmove = genNextRandom(emptyindicators, portionofempty);
       else if (portionofempty > 0)
-        oppmove = genNextFill(emptyindicators, emptyqueue);
+        oppmove = genNextFill(emptyindicators, emptyqueue, portionofempty);
 
       opponents.push_back(oppmove);
-      portionofempty--;
     }
     int winner = checkWinnerExist(babywatsons, opponents);
     assert(nextmove != -1);
@@ -140,9 +139,10 @@ void Strategy::countNeighbors(shared_ptr<bool> emptyindicators,
 //OUPUT:
 //next move
 int Strategy::genNextFill(shared_ptr<bool>& emptyindicators,
-                          PriorityQueue<int, int>&queue) {
+                          PriorityQueue<int, int>&queue, int& proportionofempty) {
   int nexloc = queue.minPrioirty();
   emptyindicators.get()[nexloc - 1] = false;
+  --proportionofempty;
   return nexloc;
 }
 //assign random number to neighbors counter

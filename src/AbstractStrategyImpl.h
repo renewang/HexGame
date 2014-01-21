@@ -18,7 +18,7 @@ class AbstractStrategyImpl : public AbstractStrategy {
 
  protected:
   //generate the random next move in terms of index of row and index of column [1, number of hexgon per side]
-  virtual int genNextRandom(std::shared_ptr<bool>& emptyindicators, unsigned proportionofempty);
+  virtual int genNextRandom(std::shared_ptr<bool>& emptyindicators, int& proportionofempty);
   //check if the winner exists for this stage of simulation
   virtual int checkWinnerExist(std::vector<int>&, std::vector<int>&);
   virtual bool isWinner(std::vector<int>& test, bool iswestoeast);
