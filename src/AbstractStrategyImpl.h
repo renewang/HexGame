@@ -38,6 +38,7 @@ class AbstractStrategyImpl : public AbstractStrategy {
   ;
   //called by the client
   virtual int genMove();
+  virtual std::string name() = 0;
 
   int getNumofhexgons() const {
     return numofhexgons;

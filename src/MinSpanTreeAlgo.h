@@ -48,6 +48,7 @@ class MinSpanTreeAlgo {
     //2. Extract the edges and sort from min to max
     //3. Connect the edge in empty graph if there's no loop created
     void calculate();
+    inline virtual string name(){return string("Kruskals + DFS");};
   };
   class UnionFind : public AbstractAlgorithm {
    private:
@@ -62,6 +63,7 @@ class MinSpanTreeAlgo {
     //2. Weighted Union: to join the smaller size of linked list to the larger one by pointing to the head/leader of the list
     //3. Find: to return the new head/leader of the joined list
     void calculate();
+    inline virtual string name(){return string("Kruskals + UnionFind");};
   };
   class Prim : public AbstractAlgorithm {
    private:
@@ -73,6 +75,7 @@ class MinSpanTreeAlgo {
     ;
     //implement prim algorithm
     void calculate();
+    inline virtual string name(){return string("Prim");};
   };
 //default constructor, do nothing
   MinSpanTreeAlgo();

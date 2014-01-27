@@ -194,9 +194,19 @@ class GameTree {
   GameTree(char playerslabel);
   GameTree(char playerslabel, std::size_t indexofroot);
 
+  //TODO generalize
+  //for retreiving tree information
+  std::size_t getNodeDepth(int indexofnode);
+  std::size_t getSizeofNodes();
+  std::size_t getSizeofEdges();
+  std::size_t getNodePosition(std::size_t indexofnode);
+  void setNodePosition(std::size_t indexofnode, std::size_t position);
+
   //print out the tree
   std::string printGameTree(int key);
-  std::size_t getNodePosition(std::size_t indexofnode);
+
+  //for tree utility
+  void clearAll();
 
   //tree expansion
   int expandNode(int indexofsource, int move, char color = 'W');
@@ -209,7 +219,7 @@ class GameTree {
   void backpropagatefromSimulation(int indexofnode, int value, int level = -1);
   std::pair<int, double> getBestMovefromSimulation();
   int selectMaxBalanceNode(int currentempty);
-  void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons, std::vector<int>& opponents, char playerscolor);
+  void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons, std::vector<int>& opponents);
   void prunebyPosition(std::size_t position, int level);
   int reRootbyPosition(size_t position);
 

@@ -2,6 +2,7 @@
 #define ABSTRACTSTRATEGY_H_
 
 #include <vector>
+#include <string>
 #include "Player.h"
 #include "HexBoard.h"
 
@@ -23,6 +24,7 @@ class AbstractStrategy {
   ;
   //called by the client
   virtual int genMove() = 0;
+  virtual std::string name() = 0;
 };
 
 #endif /* ABSTRACTSTRATEGY_H_ */

@@ -48,6 +48,10 @@ class PriorityQueue {
     friend bool operator !=(const NodePriority& a, const NodePriority& b) {
       return (a.node) != (b.node);
     }
+    friend std::ostream& operator <<(std::ostream& os, const NodePriority& obj){
+      os << obj.node << ":" << obj.priority;
+      return os;
+    }
   };
   //NodeComparator is used to define how to compare the node object in make_heap function
   struct NodeComparator {

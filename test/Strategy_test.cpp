@@ -423,7 +423,7 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
   hexboardgame.setMove(playera, 5, 2);
   hexboardgame.setMove(playera, 5, 4);
 
-  cout << hexboardgame.showView(playera, playerb);
+  //cout << hexboardgame.showView(playera, playerb);
 
   int currentempty = board.getNumofemptyhexgons();
 
@@ -442,10 +442,10 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
   EXPECT_EQ(17, move);
 
   move = strategyred.genNextFill(emptyindicators, queue, currentempty);
-  EXPECT_EQ(5, move);
+  EXPECT_EQ(11, move);
 
   move = strategyred.genNextFill(emptyindicators, queue, currentempty);
-  EXPECT_EQ(11, move);
+  EXPECT_EQ(5, move);
 
   move = strategyred.genNextFill(emptyindicators, queue, currentempty);
   EXPECT_EQ(18, move);

@@ -8,6 +8,7 @@
  */
 #include <cctype>
 #include <string>
+#include <memory>
 #include <cassert>
 #include <sstream>
 #include <iomanip>
@@ -17,13 +18,14 @@
 #include "Player.h"
 #include "HexBoard.h"
 #include "Strategy.h"
+#include "MonteCarloTreeSearch.h"
 
 using namespace std;
 
 string printHeader();
 void parserMove(string movestring, int& row, int& col);
 int queryHumanMove(int& userrow, int& usercol);
-void simulations(float threshold, float randomness);
+void simulations(unique_ptr<AbstractStrategy>& strategyred, unique_ptr<AbstractStrategy>& strategyblue, float threshold, float randomness);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
 int numofhexgon = 11;
@@ -40,7 +42,10 @@ int main(int argc, char **argv) {
 	    numofhexgon = atoi(argv[3]);
 
     cout << "Doing Simulation for two virtual players" << endl;
-    simulations(threshold, randomness);
+    unique_ptr<AbstractStrategy> ptrtostrategyforred(nullptr);
+    unique_ptr<AbstractStrategy> ptrtostrategyforblue(nullptr);
+
+    simulations(ptrtostrategyforred, ptrtostrategyforblue, threshold, randomness);
     return 0;
   }
   cout << printHeader() << "\n\n";
@@ -125,16 +130,15 @@ int main(int argc, char **argv) {
   }
   return 0;
 }
-void simulations(float threshold, float randomness) {
+void simulations(unique_ptr<AbstractStrategy>& strategyred, unique_ptr<AbstractStrategy>& strategyblue, float threshold, float randomness) {
   HexBoard board(numofhexgon);
 
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 
-  Strategy strategyred(&board, &playera, threshold, randomness);
-  Strategy strategyblue(&board, &playerb, threshold, randomness);
-
   Game hexboardgame(board);
+  strategyred.reset(new Strategy(&board, &playera, threshold, randomness));
+  strategyblue.reset(new MonteCarloTreeSearch(&board, &playerb));
 
   string winner = "UNKNOWN";
   int round = 0;
@@ -142,14 +146,14 @@ void simulations(float threshold, float randomness) {
   while (winner == "UNKNOWN") {
     //the virtual player moves
     int redmove, redrow, redcol;
-    redmove = hexboardgame.genMove(strategyred);
+    redmove = hexboardgame.genMove(*strategyred);
     redrow = (redmove - 1) / numofhexgon + 1;
     redcol = (redmove - 1) % numofhexgon + 1;
     hexboardgame.setMove(playera, redrow, redcol);
 
     //the virtual opponent moves
     int bluemove, bluerow, bluecol;
-    bluemove = hexboardgame.genMove(strategyblue);
+    bluemove = hexboardgame.genMove(*strategyblue);
     bluerow = (bluemove - 1) / numofhexgon + 1;
     bluecol = (bluemove - 1) % numofhexgon + 1;
     hexboardgame.setMove(playerb, bluerow, bluecol);
@@ -157,6 +161,7 @@ void simulations(float threshold, float randomness) {
     round++;
     winner = hexboardgame.getWinner(playera, playerb);
   }
+  cout <<  strategyred->name() <<" (RED) plays against "<< strategyblue->name() <<" (BLUE)"<< endl;
   cout << "simulation: " << round << endl;
   cout << "simulation: the winner is " << winner << endl;
 }

@@ -8,6 +8,7 @@
 
 #include <map>
 #include <string>
+#include <memory>
 #include <utility>
 #include <iostream>
 
@@ -19,17 +20,31 @@
 using namespace std;
 
 const char *USAGE =
-    "\n\nCalculate the minimal spanning tree for a graph file via Kruskal Minimal Spanning Tree Algorithm\n\n"
+    "\n\nCalculate the minimal spanning tree for a graph file via different algorithms\n\n"
         "Usage:\n\n"
-        "./KruskaMSTAlg <file_path_to_sample_graph_file>\n\n"
+        "./KruskaMSTAlg <file_path_to_sample_graph_file> [algorithm]\n\n"
         "file_path_to_sample_graph_file: is a text file stores number of vertices in the first line\n"
         "                                and edges information in the following format\n"
-        "                                [index_of_source_node index_of_destination_node weight_of_edge]\n";
+        "                                [index_of_source_node index_of_destination_node weight_of_edge]\n"
+        "algorithm[unionfind(default)|dfs|prim]: the algorithms choices to calculate Minimal Spanning Tree\n"
+        "unionfind:                    : use kruskal + unionfind to calculate Minimal Spanning Tree\n"
+        "dfs:                          : use kruskal + dfs to calculate Minimal Spanning Tree\n"
+        "prim:                         : use prim to calculate Minimal Spanning Tree\n";
 
 int main(int argc, char **argv) {
-  if (argc != 2)
+  unsigned algochoice = 1;
+  if (argc != 2 && argc != 3)
     cout << USAGE << endl;
   else {
+
+    if (argc == 3) {
+      string algorithm = string(argv[2]);
+      if (algorithm.compare("dfs") == 0)
+        algochoice = 2;
+      else if (algorithm.compare("prim") == 0)
+        algochoice = 3;
+    }
+
     string filename(argv[1]);
     PlainParser parser(filename);
     Graph<string, int> graph(parser);
@@ -41,15 +56,28 @@ int main(int argc, char **argv) {
       edgesqueue.insert((*iter).first, (*iter).second);
 
     MinSpanTreeAlgo<string, int> mstalgo(graph);
-    mstalgo.calculate();
+    unique_ptr<AbstractAlgorithm> ptrtoalgo(nullptr);
+    switch (algochoice) {
+      case 2:
+        ptrtoalgo.reset(new MinSpanTreeAlgo<string, int>::Kruskals(mstalgo));
+        break;
+      case 3:
+        ptrtoalgo.reset(new MinSpanTreeAlgo<string, int>::Prim(mstalgo));
+        break;
+      default:
+        ptrtoalgo.reset(new MinSpanTreeAlgo<string, int>::UnionFind(mstalgo));
+    }
+    mstalgo.calculate(*ptrtoalgo);
     Graph<string, int> msttree = mstalgo.getMsttree();
 
+    cout << "\nUsing algorithm "<< ptrtoalgo->name() << endl;
     cout << "\nThe total weight for Minimal Spanning Tree is "
          << mstalgo.getTotalminwieght() << endl;
     cout
         << "\nThe Minimal Spanning Tree representation is  (index starting from 1):\n"
         << msttree.printMST(1) << endl;
-    cout << "\nInclude edges as following (index starting from 0, skipping symmetric edges) :\n";
+    cout
+        << "\nInclude edges as following (index starting from 0, skipping symmetric edges) :\n";
     map<int, int> mapmstedges = msttree.getAllEdgesValues();
     cout << msttree.getSizeOfVertices() << endl;
     for (map<int, int>::iterator iter = mapmstedges.begin();

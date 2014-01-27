@@ -27,40 +27,36 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
   const Player* const ptrtoplayer;
   const std::size_t numberoftrials;
   char babywatsoncolor, oppoenetcolor;
-  GameTree& gametree;
 
-  int getBestMove();
-
+  int getBestMove(GameTree& gametree);
+  int simulation();
   //Monte Carlo tree search steps
   //in-tree phase
-  int selection(int currentempty);
+  int selection(int currentempty, GameTree& gametree);
   int expansion(int expandedleaf, std::shared_ptr<bool>& emptyindicators,
                 int& portionofempty, vector<int>& babywatsons,
-                vector<int>& opponents);
+                vector<int>& opponents, GameTree& gametree);
   //play-out phase
   int playout(std::shared_ptr<bool>& emptyindicators, int& portionofempty,
               vector<int>& babywatsons, vector<int>& opponents);
-  void backpropagation(int backupnode, int winner);
+  void backpropagation(int backupnode, int winner, GameTree& gametree);
 
 #ifndef NDEBUG
   //for google test framework
-  friend class MinMaxTest;FRIEND_TEST(MinMaxTest,MCSTBasic);FRIEND_TEST(MinMaxTest,SimulationCombine);
+  friend class MinMaxTest;
+  FRIEND_TEST(MinMaxTest,MCSTExpansion);
+  FRIEND_TEST(MinMaxTest,SimulationCombine);
 #endif
 
  public:
   //constructor
-  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer,
-                       GameTree& gametree);
-  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer,
-                       GameTree& gametree, size_t numberoftrials);
+  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer);
+  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer, size_t numberoftrials);
   virtual ~MonteCarloTreeSearch() {
   }
   ;
-  int simulation();
+  std::string name(){return string("MonteCarloTreeSearch");};
 
-  const GameTree& getGametree() const {
-    return gametree;
-  }
 //TODO, don't know why compiler issue the warning that I need to drop const on return type
   //const std::size_t getNumberoftrials() const
   std::size_t getNumberoftrials() {

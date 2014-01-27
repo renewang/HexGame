@@ -68,6 +68,7 @@ class Strategy : public AbstractStrategyImpl {
   virtual ~Strategy() {
   }
   ;
+  std::string name(){return string("NaiveMonteCarlo");};
 };
 
 #endif /* STRATEGY_H_ */

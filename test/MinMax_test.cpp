@@ -6,6 +6,7 @@
 #include <limits>
 #include <cstdlib>
 #include <iostream>
+#include <algorithm>
 #include <functional>
 
 #include "gtest/gtest.h"
@@ -13,7 +14,6 @@
 #include "Game.h"
 #include "Player.h"
 #include "GameTree.h"
-#include "TwoDistancePotential.h"
 #include "MonteCarloTreeSearch.h"
 
 using namespace std;
@@ -27,55 +27,6 @@ class MinMaxTest : public ::testing::Test {
   }
   ;
 };
-TEST_F(MinMaxTest,PotentialInitialization) {
-  //test with conventional distance, empty cell
-  int numofhexgon = 5;
-  HexBoard board(numofhexgon);
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  TwoDistancePotential potentialred(&board, &playera);
-  vector<int> redpotentials = potentialred.getPotentials();
-  int red[5][5] = { { 1, 1, 1, 1, 1 }, { 2, 2, 2, 2, 3 }, { 3, 3, 3, 4, 5 }, {
-      4, 4, 5, 6, 7 }, { 5, 6, 6, 7, 7 } };
-  vector<int> redexpect;
-  for (int i = 0; i < numofhexgon; ++i)
-    for (int j = 0; j < numofhexgon; ++j)
-      redexpect.push_back(red[i][j]);
-  EXPECT_EQ(redexpect, redpotentials);
-
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-  TwoDistancePotential potentialblue(&board, &playerb);
-  vector<int> bluepotentials = potentialblue.getPotentials();
-  int blue[5][5] = { { 1, 2, 3, 4, 5 }, { 1, 2, 3, 4, 6 }, { 1, 2, 3, 5, 6 }, {
-      1, 2, 4, 6, 7 }, { 1, 3, 5, 7, 7 } };
-  vector<int> blueexpect;
-  for (int i = 0; i < numofhexgon; i++)
-    for (int j = 0; j < numofhexgon; j++)
-      blueexpect.push_back(blue[i][j]);
-  EXPECT_EQ(blueexpect, bluepotentials);
-}
-TEST_F(MinMaxTest,PotentialRecalculation) {
-  vector<int> bwsmoves;
-  bwsmoves.push_back(12);
-  bwsmoves.push_back(17);
-
-  vector<int> oppsmoves;
-
-  int numofhexgon = 5;
-  HexBoard board(numofhexgon);
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  TwoDistancePotential potentialred(&board, &playera);
-  potentialred.ReCalcPotentials(bwsmoves, oppsmoves);
-
-  vector<int> redpotentials = potentialred.getPotentials();
-  int red[5][5] = { { 1, 1, 1, 1, 1 }, { 2, 2, 2, 2, 3 }, { 3, 0, 3, 4, 5 }, {
-      3, 0, 3, 5, 5 }, { 3, 3, 4, 4, 4 } };
-
-  vector<int> redexpect;
-  for (int i = 0; i < numofhexgon; ++i)
-    for (int j = 0; j < numofhexgon; ++j)
-      redexpect.push_back(red[i][j]);
-  EXPECT_EQ(redexpect, redpotentials);
-}
 TEST_F(MinMaxTest,GameTreeConstruct) {
   //test expand child
   //expand from root
@@ -119,7 +70,7 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
   tree.expandNode(8, 9);
   tree.backpropagatefromSimulation(9, tree.updateNodefromSimulation(9, 1));
   EXPECT_EQ(tree.getNodeValueFeature(3, 0) + tree.getNodeValueFeature(4, 0) + 1,
-            tree.getNodeValueFeature(1, 0));  // should be visit count of node(3) + visit count of node(4) = visit count of node(1)
+            tree.getNodeValueFeature(1, 0));
   EXPECT_EQ(tree.getNodeValueFeature(1, 0) + tree.getNodeValueFeature(2, 0),
             tree.getNodeValueFeature(0, 0));
   EXPECT_EQ(
@@ -152,8 +103,8 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
   //tree.prunebyPosition(9, -1);
   //cout << tree.printGameTree(0);
 }
-TEST_F(MinMaxTest,MCSTBasic) {
-  //test with selection
+//test with selection
+TEST_F(MinMaxTest, MCSTSelection) {
   //1. always choose root if equal chances are distributed in the children: equal chances: there's no update from simulation
   GameTree tree('R');
   unsigned numofmoves = 9;
@@ -200,12 +151,17 @@ TEST_F(MinMaxTest,MCSTBasic) {
   node = tree.selectMaxBalanceNode(numofmoves);
   EXPECT_EQ(firstchild, node);
 
-  //3. select from the middle of the game
+  //3. test with the end of the game
+  node = tree.selectMaxBalanceNode(2);
+  EXPECT_EQ(firstchild, node);
+
+  //4. select from the middle of the game
   tree.reRootbyPosition(maxnode);
   node = tree.selectMaxBalanceNode(numofmoves - 1);
   EXPECT_EQ(firstchild, node);
-
-  //test with expansion
+}
+//test with expansion
+TEST_F(MinMaxTest,MCSTExpansion) {
   //1. expand from a visited node, check if the move is not repeating in the same level
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
@@ -213,116 +169,408 @@ TEST_F(MinMaxTest,MCSTBasic) {
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
   Game hexboardgame(board);
   GameTree gametree(playera.getViewLabel());
+  MonteCarloTreeSearch mcst(&board, &playera);
 
-  MonteCarloTreeSearch mcst(&board, &playera, gametree);
-  std::shared_ptr<bool> emptyglobal;
-  vector<int> bwglobal, oppglobal;
-  mcst.initGameState(emptyglobal, bwglobal, oppglobal);
-  int currentempty = board.getNumofemptyhexgons();
+  //restore the current game progress
+  std::shared_ptr<bool> emptyinit;
+  vector<int> bwinit, oppinit;
+  mcst.initGameState(emptyinit, bwinit, oppinit);
+  int initempty = board.getNumofemptyhexgons();
 
   int maxchild = -1, selectnode;
-  int proportionofempty = currentempty;
-  vector<int> babywatsons(bwglobal), opponents(oppglobal);
-  std::shared_ptr<bool> emptyindicators = std::shared_ptr<bool>(
-      new bool[board.getSizeOfVertices()], default_delete<bool[]>());
-  copy(emptyglobal.get(), emptyglobal.get() + board.getSizeOfVertices(),
-       emptyindicators.get());
-  cout << "game current state " << babywatsons.size() << " " << opponents.size()
-       << endl;
+
   for (int i = 0; i < board.getSizeOfVertices(); ++i) {
-    selectnode = mcst.selection(currentempty);
+    //initialize containers for simulation
+    vector<int> babywatsons(bwinit), opponents(oppinit);
+    std::shared_ptr<bool> emptyindicators = std::shared_ptr<bool>(
+        new bool[board.getSizeOfVertices()], default_delete<bool[]>());
+    copy(emptyinit.get(), emptyinit.get() + board.getSizeOfVertices(),
+         emptyindicators.get());
+
+    int proportionofempty = initempty;
+
+    selectnode = mcst.selection(proportionofempty, gametree);
     int expandedchild = mcst.expansion(selectnode, emptyindicators,
                                        proportionofempty, babywatsons,
-                                       opponents);
+                                       opponents, gametree);
     if (maxchild < 0)
       maxchild = expandedchild;
 
-    cout << "[i|selectnode|expandchild|BW's move size|OP's move size] " << i
-         << "|" << selectnode << "|" << expandedchild << "|"
-         << babywatsons.size() << "|" << opponents.size() << endl;
     ASSERT_FALSE(selectnode == expandedchild);
-    mcst.backpropagation(expandedchild, -1);
-    cout << gametree.printGameTree(0) << endl;
+    mcst.backpropagation(expandedchild, -1, gametree);
+
     EXPECT_EQ(0, selectnode);
   }
-  selectnode = mcst.selection(currentempty);
+  selectnode = mcst.selection(initempty, gametree);
   EXPECT_EQ(maxchild, selectnode);
 
-  //2. expand from a normal leaf, check the game state on the game tree is restored
-  copy(emptyglobal.get(), emptyglobal.get() + board.getSizeOfVertices(),
-         emptyindicators.get());
-  copy(bwglobal.begin(), bwglobal.end(), babywatsons.begin());
-  copy(oppglobal.begin(), oppglobal.end(), opponents.begin());
-  int cutoff = static_cast<int>(0.5 * board.getSizeOfVertices());
-  cout << "[current number of empty | cutoff] " << currentempty << "|" << cutoff << endl;
+  //clean out game tree for the current round of estimation
+  gametree.clearAll();
+  ASSERT_TRUE(gametree.getSizeofNodes() == 1);
+  ASSERT_TRUE(gametree.getSizeofEdges() == 0);
 
-  while (currentempty >= cutoff) {
+  //2. expand from a normal leaf, check the game state on the game tree is restored
+  int cutoff = static_cast<int>(0.75 * board.getSizeOfVertices());
+  /*cout << "[current number of empty | cutoff] " << initempty << "|" << cutoff
+   << endl;*/
+
+  //push the game forward towards 1/4 of the game
+  while (initempty >= cutoff) {
     int redmove, redrow, redcol;
-    redmove = mcst.genNextRandom(emptyindicators, currentempty);
+    redmove = mcst.genNextRandom(emptyinit, initempty);
     redrow = (redmove - 1) / numofhexgon + 1;
     redcol = (redmove - 1) % numofhexgon + 1;
     hexboardgame.setMove(playera, redrow, redcol);
-    babywatsons.push_back(redmove);
+    bwinit.push_back(redmove);
 
     //the virtual opponent moves
     int bluemove, bluerow, bluecol;
-    bluemove = mcst.genNextRandom(emptyindicators, currentempty);
+    bluemove = mcst.genNextRandom(emptyinit, initempty);
     bluerow = (bluemove - 1) / numofhexgon + 1;
     bluecol = (bluemove - 1) % numofhexgon + 1;
     hexboardgame.setMove(playerb, bluerow, bluecol);
-    opponents.push_back(bluemove);
-    cout << "[current number of empty | cutoff] " << currentempty << "|" << cutoff << endl;
+    oppinit.push_back(bluemove);
   }
 
-  int countofempty = std::count(emptyglobal.get(),
-                                emptyglobal.get() + board.getSizeOfVertices(),
-                                false);
-  ASSERT_TRUE(currentempty == countofempty);
-  ASSERT_EQ(countofempty + bwglobal.size() + oppglobal.size(),
-            board.getSizeOfVertices());
+  std::shared_ptr<bool> emptycurrent;
+  vector<int> bwcurrent, oppcurrent;
+  mcst.initGameState(emptycurrent, bwcurrent, oppcurrent);
+  int currentempty = board.getNumofemptyhexgons();
+
+  ASSERT_TRUE(
+      static_cast<int>(currentempty + bwcurrent.size() + oppcurrent.size())
+          == board.getSizeOfVertices());
+  int countofempty = std::count(emptyinit.get(),
+                                emptyinit.get() + board.getSizeOfVertices(),
+                                true);
+
+  ASSERT_TRUE(initempty == countofempty);
+  ASSERT_TRUE(currentempty == initempty);
+  ASSERT_EQ(bwinit.size(), bwcurrent.size());
+  ASSERT_EQ(oppinit.size(), oppcurrent.size());
+
+  //fast forward game tree construction till 1/2 of game
+  int halfgame = static_cast<int>(0.5 * board.getSizeOfVertices());
+  int treestate = 0, prevtreestate = treestate;
+  maxchild = 0;
+  while (treestate < halfgame) {
+    //initialize containers for simulation
+    vector<int> babywatsons(bwcurrent), opponents(oppcurrent);
+    std::shared_ptr<bool> emptyindicators = std::shared_ptr<bool>(
+        new bool[board.getSizeOfVertices()], default_delete<bool[]>());
+    copy(emptycurrent.get(), emptycurrent.get() + board.getSizeOfVertices(),
+         emptyindicators.get());
+
+    int proportionofempty = currentempty;
+
+    selectnode = mcst.selection(proportionofempty, gametree);
+    int expandedchild = mcst.expansion(selectnode, emptyindicators,
+                                       proportionofempty, babywatsons,
+                                       opponents, gametree);
+
+    prevtreestate = treestate;
+    treestate = (babywatsons.size() + opponents.size());
+    if (prevtreestate != treestate)
+      maxchild = expandedchild;
+    /*cout
+     << "[treestate|prevtreestate|proportionofempty|currentempty|selectnode|maxchild|expandchild|BW's move size|OP's move size] "
+     << treestate << "|" << prevtreestate << "|" << proportionofempty << "|"
+     << currentempty << "|" << selectnode << "|" << maxchild << "|"
+     << expandedchild << "|" << babywatsons.size() << "|" << opponents.size()
+     << endl;*/
+
+    int depth = gametree.getNodeDepth(expandedchild);
+
+    ASSERT_FALSE(selectnode == expandedchild);
+    ASSERT_TRUE(
+        (treestate + (currentempty - depth)
+            == static_cast<int>(board.getSizeOfVertices())));
+
+    //check if the game state is restored
+    vector<int> actual(babywatsons.size() + opponents.size());
+    sort(babywatsons.begin(), babywatsons.end());
+    sort(opponents.begin(), opponents.end());
+    merge(babywatsons.begin(), babywatsons.end(), opponents.begin(),
+          opponents.end(), actual.begin());
+    for (unsigned i = 1; i < actual.size(); ++i)
+      EXPECT_NE(actual[i - 1], actual[i]);
+
+    if (selectnode == maxchild)
+      mcst.backpropagation(expandedchild, 1, gametree);
+    else
+      mcst.backpropagation(expandedchild, -1, gametree);
+  }
 
   //3. expand from a leaf node whose state is the end of the game
+  //push the game forward towards the end of the game
+  cutoff = 3;
+  /*cout << "[current number of empty | cutoff] " << initempty << "|" << cutoff
+   << endl;*/
+
+  //push the game forward towards end of the game
+  while (initempty > cutoff) {
+    int redmove, redrow, redcol;
+    redmove = mcst.genNextRandom(emptyinit, initempty);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playera, redrow, redcol);
+    bwinit.push_back(redmove);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = mcst.genNextRandom(emptyinit, initempty);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+    oppinit.push_back(bluemove);
+  }
+  countofempty = std::count(emptyinit.get(),
+                            emptyinit.get() + board.getSizeOfVertices(), true);
+
+  ASSERT_TRUE(initempty == countofempty);
+  gametree.clearAll();
+  currentempty = initempty;
+  int depth = 0, predepth = depth;
+  for (int i = 0; i < (cutoff + 18); ++i) {
+    //initialize containers for simulation
+    vector<int> babywatsons(bwinit), opponents(oppinit);
+    std::shared_ptr<bool> emptyindicators = std::shared_ptr<bool>(
+        new bool[board.getSizeOfVertices()], default_delete<bool[]>());
+    copy(emptyinit.get(), emptyinit.get() + board.getSizeOfVertices(),
+         emptyindicators.get());
+
+    int proportionofempty = currentempty;
+
+    selectnode = mcst.selection(proportionofempty, gametree);
+    depth = gametree.getNodeDepth(selectnode);
+    int expandedchild = mcst.expansion(selectnode, emptyindicators,
+                                       proportionofempty, babywatsons,
+                                       opponents, gametree);
+    /*cout
+     << "[proportionofempty|currentempty|depth|selectnode|expandchild|BW's move size|OP's move size] "
+     << proportionofempty << "|" << currentempty << "|" << depth << "|"
+     << selectnode << "|" << expandedchild << "|" << babywatsons.size()
+     << "|" << opponents.size() << endl;*/
+
+    if (predepth != depth)
+      mcst.backpropagation(expandedchild, 1, gametree);
+    else
+      mcst.backpropagation(expandedchild, -1, gametree);
+
+    if (i < cutoff)
+      EXPECT_EQ(selectnode, 0);
+    else if (depth == cutoff) {
+      EXPECT_EQ(expandedchild, selectnode);
+      EXPECT_TRUE(
+          static_cast<int>(babywatsons.size() + opponents.size())
+              == board.getSizeOfVertices());
+    }
+  }
 }
+//test with the whole simulation code
 TEST_F(MinMaxTest,SimulationCombine) {
-  //test with 3x3 board
-  int numofhexgon = 3;
+  int numofhexgon = 5;
   HexBoard board(numofhexgon);
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   GameTree gametree(playera.getViewLabel());
-  MonteCarloTreeSearch mcst(&board, &playera, gametree);
+  MonteCarloTreeSearch mcst(&board, &playera);
+
+  int currentempty = board.getNumofemptyhexgons();
+  size_t numberoftrials = 3000;
 
   std::shared_ptr<bool> emptyglobal;
   vector<int> bwglobal, oppglobal;
   mcst.initGameState(emptyglobal, bwglobal, oppglobal);
 
-  int currentempty = board.getNumofemptyhexgons();
-  int proportionofempty = currentempty;
-  size_t numberoftrials = 1;
-
-  for (size_t i = 0; i < numberoftrials; i++) {
+  for (size_t i = 0; i < numberoftrials; ++i) {
+    //initialize the following containers to the current progress of playing board
+    int proportionofempty = currentempty;
     vector<int> babywatsons(bwglobal), opponents(oppglobal);
     std::shared_ptr<bool> emptyindicators = std::shared_ptr<bool>(
         new bool[board.getSizeOfVertices()], default_delete<bool[]>());
     copy(emptyglobal.get(), emptyglobal.get() + board.getSizeOfVertices(),
          emptyindicators.get());
-    int selectnode = mcst.selection(currentempty);
-    int expandedchild = mcst.expansion(selectnode, emptyglobal,
-                                       proportionofempty, babywatsons,
-                                       opponents);
 
-    //play-out
+    //in-tree phase
+    int selectnode = mcst.selection(currentempty, gametree);
+    int expandednode = mcst.expansion(selectnode, emptyindicators,
+                                      proportionofempty, babywatsons, opponents,
+                                      gametree);
+    //simulation phase
     int winner = mcst.playout(emptyindicators, proportionofempty, babywatsons,
                               opponents);
-
-    mcst.backpropagation(expandedchild, winner);
+    //back-propagate
+    mcst.backpropagation(expandednode, winner, gametree);
+    /*cout
+     << "[proportionofempty|currentempty|selectnode|expandchild|BW's move size|OP's move size|winner] "
+     << proportionofempty << "|" << currentempty << "|" << selectnode << "|"
+     << expandednode << "|" << babywatsons.size() << "|" << opponents.size() <<"|"
+     << winner << endl;*/
   }
+  int resultmove = mcst.getBestMove(gametree);
 
-  GameTree tree = mcst.getGametree();
-  cout << tree.printGameTree(0);
+  //find the move with the maximal successful simulated outcome
+  ASSERT_TRUE(resultmove != -1);
 
-  int resultmove = mcst.getBestMove();
-  cout << resultmove << endl;
-  cout << tree.printGameTree(0);
+  //adding more checking points
+  //1. check the visited count of root which should sum up as numberoftrials
+  //2. make sure the node with maximal winning count wins
+  size_t sum = 0;
+  float max = 0;
+  int indexofmax = -1;
+  for (int i = 1; i <= board.getSizeOfVertices(); ++i) {
+    ASSERT_EQ(gametree.getNodeDepth(i), 1);
+    sum += gametree.getNodeValueFeature(i, 0);
+    float value = static_cast<float>(gametree.getNodeValueFeature(i, 1))
+        / static_cast<float>(gametree.getNodeValueFeature(i, 0));
+    if(max < value){
+      max = value;
+      indexofmax = i;
+    }
+  }
+  EXPECT_EQ(sum, numberoftrials);
+  EXPECT_EQ(resultmove, gametree.getNodePosition(indexofmax));
+  //cout << gametree.printGameTree(0);
+}
+TEST_F(MinMaxTest,CheckHexFiveGame) {
+  int numofhexgon = 5;
+  HexBoard board(numofhexgon);
+  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  MonteCarloTreeSearch mcstred(&board, &playera);
+  MonteCarloTreeSearch mcstblue(&board, &playerb);
+  Game hexboardgame(board);
+  string winner = "UNKNOWN";
+  int round = 0;
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(mcstred);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+
+    hexboardgame.setMove(playera, redrow, redcol);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(mcstblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    cout << "simulation " << round << " : " << redmove << " " << bluemove
+         << endl;
+    round++;
+    ASSERT_NE(redmove, bluemove);
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << hexboardgame.showView(playera, playerb);
+  cout << "winner is " << winner << endl;
+}
+TEST_F(MinMaxTest,CompeteHexFiveGame) {
+  int numofhexgon = 5;
+  HexBoard board(numofhexgon);
+  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  Strategy naivered(&board, &playera);
+  MonteCarloTreeSearch mcstblue(&board, &playerb);
+  Game hexboardgame(board);
+  string winner = "UNKNOWN";
+  int round = 0;
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(naivered);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+
+    hexboardgame.setMove(playera, redrow, redcol);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(mcstblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    cout << "simulation " << round << " : " << redmove << " " << bluemove
+         << endl;
+    round++;
+    ASSERT_NE(redmove, bluemove);
+    //cout << hexboardgame.showView(playera, playerb);
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << "winner is " << winner << endl;
+}
+TEST_F(MinMaxTest,CheckHexELEVENGame) {
+  int numofhexgon = 11;
+  HexBoard board(numofhexgon);
+  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  MonteCarloTreeSearch mcstred(&board, &playera);
+  MonteCarloTreeSearch mcstblue(&board, &playerb);
+  Game hexboardgame(board);
+  string winner = "UNKNOWN";
+  int round = 0;
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(mcstred);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+
+    hexboardgame.setMove(playera, redrow, redcol);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(mcstblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    cout << "simulation " << round << " : " << redmove << " " << bluemove
+         << endl;
+    round++;
+    ASSERT_NE(redmove, bluemove);
+    //cout << hexboardgame.showView(playera, playerb);
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << "winner is " << winner << endl;
+}
+TEST_F(MinMaxTest,CompeteHexELEVENGame) {
+  int numofhexgon = 11;
+  HexBoard board(numofhexgon);
+  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  Strategy naivered(&board, &playera);
+  MonteCarloTreeSearch mcstblue(&board, &playerb);
+  Game hexboardgame(board);
+  string winner = "UNKNOWN";
+  int round = 0;
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(naivered);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+
+    hexboardgame.setMove(playera, redrow, redcol);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(mcstblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    cout << "simulation " << round << " : " << redmove << " " << bluemove
+         << endl;
+    round++;
+    ASSERT_NE(redmove, bluemove);
+    //cout << hexboardgame.showView(playera, playerb);
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << "winner is " << winner << endl;
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
