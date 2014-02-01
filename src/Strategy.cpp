@@ -106,7 +106,13 @@ int Strategy::simulation() {
     index[i] = (i + 1);
     queue.insert(index[i], -1 * result[i]);
   }
-
+#ifndef NDEBUG
+    DEBUGHEADER();
+    cerr <<"log the simulation statistics for final choice"<<endl;
+    for (unsigned i = 0; i != result.size(); ++i)
+      cerr << (i+1) << ":" << result[i] <<" ";
+    cerr << endl;
+#endif
   return queue.minPrioirty();
 }
 //initialize counter for neighbors

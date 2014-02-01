@@ -33,8 +33,8 @@ BOOST_INSTALL_PROPERTY(vertex, key);}
 //2. move out UTCPolicy and think about the possible design to adapt different policies
 class UTCPolicy {
  private:
-  double value; //this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
-  double balance; //this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
+  double value;  //this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
+  double balance;  //this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
   const double coefficient;
   std::size_t numoffeatures;
   std::vector<int> featureholder;
@@ -48,7 +48,7 @@ class UTCPolicy {
         balance(value),
         coefficient(2.0),
         numoffeatures(2),
-        featureholder(std::vector<int>(numoffeatures)){
+        featureholder(std::vector<int>(numoffeatures)) {
     std::fill(featureholder.begin(), featureholder.end(), 0);
   }
   ;
@@ -61,8 +61,9 @@ class UTCPolicy {
   }
   std::string print() {
     std::stringstream buffer;
-    buffer << " [" << value << "|" << balance <<"|"<< featureholder.at(wincount) << "|"
-           << featureholder.at(visitcount) << "] ";
+    buffer << " [" << value << "|" << balance << "|"
+           << featureholder.at(wincount) << "|" << featureholder.at(visitcount)
+           << "] ";
     return buffer.str();
   }
   double estimate() {
@@ -72,29 +73,30 @@ class UTCPolicy {
     return value;
   }
   ;
-  double calculate(UTCPolicy& parent, bool isgreedy = false){
-   //choose the maximal value for non-uct implementation (greedy mc) if isgreedy = true
+  double calculate(UTCPolicy& parent, bool isgreedy = false) {
+    //choose the maximal value for non-uct implementation (greedy mc) if isgreedy = true
     double value = estimate();
-    if(!isgreedy){
+    if (!isgreedy) {
       //calculate UCT value (Upper Confidence Bound applied to Tree)
       //equation is used from Chaslot G et al,
       double vcount = static_cast<double>(featureholder.at(visitcount));
       double vcountofparent = static_cast<double>(parent.feature(visitcount));
-      balance = (value + (std::sqrt(coefficient*std::log(vcountofparent)/vcount)));
-    }else
+      balance = (value
+          + (std::sqrt(coefficient * std::log(vcountofparent) / vcount)));
+    } else
       balance = value;
     return balance;
   }
   bool update(int indexofkind, int value, int increment = 0) {
     if (value == 0)  //simply incrementing original value
-      featureholder.at(indexofkind) =  featureholder.at(indexofkind) + increment;
+      featureholder.at(indexofkind) = featureholder.at(indexofkind) + increment;
     else
       featureholder.at(indexofkind) = value;
     return true;
   }
   ;
-  int feature(int indexofkind){
-    return  featureholder.at(indexofkind);
+  int feature(int indexofkind) {
+    return featureholder.at(indexofkind);
   }
   double getValue() const {
     return value;
@@ -111,7 +113,7 @@ class GameTree {
       vertex_value_prop> vertex_color_prop;
   typedef boost::property<boost::vertex_name_t, std::string, vertex_color_prop> vertex_name_prop;
   typedef boost::property<boost::vertex_position_t, std::size_t,
-        vertex_name_prop> vertex_final_prop;
+      vertex_name_prop> vertex_final_prop;
 
   //for graph and tree
   typedef boost::adjacency_list<boost::listS, boost::vecS,
@@ -147,6 +149,7 @@ class GameTree {
   vertex_t _root;
 
   vertex_t addNode(std::size_t positionofchild, char color);
+  vertex_t getParent(vertex_t node);
   bool addEdge(vertex_t source, vertex_t target);
   void removeChidren(std::string nameofsource);
   void updateNodeName(vertex_t node);
@@ -200,6 +203,7 @@ class GameTree {
   std::size_t getSizeofNodes();
   std::size_t getSizeofEdges();
   std::size_t getNodePosition(std::size_t indexofnode);
+  std::vector<std::size_t> getSiblings(std::size_t indexofnode);
   void setNodePosition(std::size_t indexofnode, std::size_t position);
 
   //print out the tree
@@ -219,7 +223,8 @@ class GameTree {
   void backpropagatefromSimulation(int indexofnode, int value, int level = -1);
   std::pair<int, double> getBestMovefromSimulation();
   int selectMaxBalanceNode(int currentempty);
-  void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons, std::vector<int>& opponents);
+  void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons,
+                             std::vector<int>& opponents);
   void prunebyPosition(std::size_t position, int level);
   int reRootbyPosition(size_t position);
 

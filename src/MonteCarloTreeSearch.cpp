@@ -42,23 +42,37 @@ int MonteCarloTreeSearch::simulation() {
         new bool[ptrtoboard->getSizeOfVertices()], default_delete<bool[]>());
     copy(emptyglobal.get(), emptyglobal.get() + ptrtoboard->getSizeOfVertices(),
          emptyindicators.get());
-
     int proportionofempty = currentempty;
 
     //in-tree phase
     int selectnode = selection(currentempty, gametree);
     int expandednode = expansion(selectnode, emptyindicators, proportionofempty,
                                  babywatsons, opponents, gametree);
+
+#ifdef NDEBUG
+    DEBUGHEADER();
+    cerr
+    << "[selectnode|expandednode|currentempty|proportionofempty|size of babywatsons|size of opponents] "
+    << selectnode << "|" << expandednode << "|" << currentempty << "|"
+    << proportionofempty << "|" << babywatsons.size() << "|"
+    << opponents.size() << endl;
+    cerr << "babywatsons: ";
+    for_each(babywatsons.begin(), babywatsons.end(),
+        [](int i) {cerr << i << " ";});
+    cerr << endl;
+    cerr << "opponents: ";
+    for_each(opponents.begin(), opponents.end(), [](int i) {cerr << i << " ";});
+    cerr << endl;
+#endif
+
     //simulation phase
     int winner = playout(emptyindicators, proportionofempty, babywatsons,
                          opponents);
-
-
+    assert(winner != 0);
     //back-propagate
     backpropagation(expandednode, winner, gametree);
   }
   int resultmove = getBestMove(gametree);
-
   //find the move with the maximal successful simulated outcome
   assert(resultmove != -1);
   return resultmove;
@@ -77,6 +91,7 @@ int MonteCarloTreeSearch::expansion(int selectnode,
                                     GameTree& gametree) {
 
   int indexofchild = selectnode;
+
   if (static_cast<int>(gametree.getNodeDepth(selectnode)) != portionofempty)  //the selected node is the end of game
     indexofchild = gametree.expandNode(selectnode, 0);
 
@@ -92,19 +107,40 @@ int MonteCarloTreeSearch::expansion(int selectnode,
       - (babywatsons.size() + opponents.size());
 
   if (indexofchild != selectnode) {  //expanding from the selected node
-    ++portionofempty;
-    int move = genNextRandom(emptyindicators, portionofempty);
+    unordered_set<int> remainingmoves;
+    for (int i = 0; i < ptrtoboard->getSizeOfVertices(); ++i) {
+      if (emptyindicators.get()[i])
+        remainingmoves.insert(i + 1);
+    }
+
+    vector<size_t> siblings = gametree.getSiblings(indexofchild);
+    for (auto iter = siblings.begin(); iter != siblings.end(); ++iter) {
+      size_t pos = gametree.getNodePosition(*iter);
+      if (emptyindicators.get()[pos - 1])
+        remainingmoves.erase(pos);
+
+    }
+    srand((unsigned long)clock());
+    size_t index = rand() % remainingmoves.size();
+    unordered_set<int>::iterator iter = remainingmoves.begin();
+    for (size_t i = 0; i < index; ++i)
+      ++iter;
+
+    int move = *iter;
+    assert(remainingmoves.count(move));
+
     auto iterofbw = find_if(babywatsons.begin(), babywatsons.end(),
-                        [](int i) {return i==0;});
+        [](int i) {return i==0;});
     if (iterofbw != babywatsons.end())
       *iterofbw = move;
     else {
       auto iterofop = find_if(opponents.begin(), opponents.end(),
-                     [](int i) {return i==0;});
+                              [](int i) {return i==0;});
       assert(iterofop != opponents.end());
       *iterofop = move;
     }
     gametree.setNodePosition(indexofchild, move);
+    emptyindicators.get()[move - 1] = false;
   }
   assert(count(babywatsons.begin(), babywatsons.end(), 0) == 0);
   assert(count(opponents.begin(), opponents.end(), 0) == 0);

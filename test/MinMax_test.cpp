@@ -193,6 +193,22 @@ TEST_F(MinMaxTest,MCSTExpansion) {
     int expandedchild = mcst.expansion(selectnode, emptyindicators,
                                        proportionofempty, babywatsons,
                                        opponents, gametree);
+
+    for(auto iter = babywatsons.begin(); iter != babywatsons.end(); ++iter)
+        ASSERT_FALSE(emptyindicators.get()[*iter-1]);
+
+    for(auto iter = opponents.begin(); iter != opponents.end(); ++iter)
+          ASSERT_FALSE(emptyindicators.get()[*iter-1]);
+
+    vector<size_t> siblings = gametree.getSiblings(expandedchild);
+    vector<size_t> positions;
+    positions.reserve(siblings.size());
+    for(auto iter = siblings.begin(); iter != siblings.end(); ++iter)
+        positions.push_back(gametree.getNodePosition(*iter));
+    sort(positions.begin(), positions.end());
+    for(unsigned i = 0; i < (positions.size()-1); ++i)
+      ASSERT_NE(positions[i], positions[i+1]);
+
     if (maxchild < 0)
       maxchild = expandedchild;
 
@@ -211,8 +227,6 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 
   //2. expand from a normal leaf, check the game state on the game tree is restored
   int cutoff = static_cast<int>(0.75 * board.getSizeOfVertices());
-  /*cout << "[current number of empty | cutoff] " << initempty << "|" << cutoff
-   << endl;*/
 
   //push the game forward towards 1/4 of the game
   while (initempty >= cutoff) {
@@ -268,16 +282,25 @@ TEST_F(MinMaxTest,MCSTExpansion) {
                                        proportionofempty, babywatsons,
                                        opponents, gametree);
 
+    for(auto iter = babywatsons.begin(); iter != babywatsons.end(); ++iter)
+        ASSERT_FALSE(emptyindicators.get()[*iter-1]);
+
+    for(auto iter = opponents.begin(); iter != opponents.end(); ++iter)
+          ASSERT_FALSE(emptyindicators.get()[*iter-1]);
+
+    vector<size_t> siblings = gametree.getSiblings(expandedchild);
+    vector<size_t> positions;
+    positions.reserve(siblings.size());
+    for(auto iter = siblings.begin(); iter != siblings.end(); ++iter)
+        positions.push_back(gametree.getNodePosition(*iter));
+    sort(positions.begin(), positions.end());
+    for(unsigned i = 0; i < (positions.size()-1); ++i)
+      ASSERT_NE(positions[i], positions[i+1]);
+
     prevtreestate = treestate;
     treestate = (babywatsons.size() + opponents.size());
     if (prevtreestate != treestate)
       maxchild = expandedchild;
-    /*cout
-     << "[treestate|prevtreestate|proportionofempty|currentempty|selectnode|maxchild|expandchild|BW's move size|OP's move size] "
-     << treestate << "|" << prevtreestate << "|" << proportionofempty << "|"
-     << currentempty << "|" << selectnode << "|" << maxchild << "|"
-     << expandedchild << "|" << babywatsons.size() << "|" << opponents.size()
-     << endl;*/
 
     int depth = gametree.getNodeDepth(expandedchild);
 
@@ -304,8 +327,6 @@ TEST_F(MinMaxTest,MCSTExpansion) {
   //3. expand from a leaf node whose state is the end of the game
   //push the game forward towards the end of the game
   cutoff = 3;
-  /*cout << "[current number of empty | cutoff] " << initempty << "|" << cutoff
-   << endl;*/
 
   //push the game forward towards end of the game
   while (initempty > cutoff) {
@@ -346,11 +367,21 @@ TEST_F(MinMaxTest,MCSTExpansion) {
     int expandedchild = mcst.expansion(selectnode, emptyindicators,
                                        proportionofempty, babywatsons,
                                        opponents, gametree);
-    /*cout
-     << "[proportionofempty|currentempty|depth|selectnode|expandchild|BW's move size|OP's move size] "
-     << proportionofempty << "|" << currentempty << "|" << depth << "|"
-     << selectnode << "|" << expandedchild << "|" << babywatsons.size()
-     << "|" << opponents.size() << endl;*/
+
+    for(auto iter = babywatsons.begin(); iter != babywatsons.end(); ++iter)
+        ASSERT_FALSE(emptyindicators.get()[*iter-1]);
+
+    for(auto iter = opponents.begin(); iter != opponents.end(); ++iter)
+          ASSERT_FALSE(emptyindicators.get()[*iter-1]);
+
+    vector<size_t> siblings = gametree.getSiblings(expandedchild);
+    vector<size_t> positions;
+    positions.reserve(siblings.size());
+    for(auto iter = siblings.begin(); iter != siblings.end(); ++iter)
+        positions.push_back(gametree.getNodePosition(*iter));
+    sort(positions.begin(), positions.end());
+    for(unsigned i = 0; i < (positions.size()-1); ++i)
+      ASSERT_NE(positions[i], positions[i+1]);
 
     if (predepth != depth)
       mcst.backpropagation(expandedchild, 1, gametree);
@@ -371,9 +402,9 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 TEST_F(MinMaxTest,SimulationCombine) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  GameTree gametree(playera.getViewLabel());
-  MonteCarloTreeSearch mcst(&board, &playera);
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  GameTree gametree(playerb.getViewLabel());
+  MonteCarloTreeSearch mcst(&board, &playerb);
 
   int currentempty = board.getNumofemptyhexgons();
   size_t numberoftrials = 3000;
@@ -382,6 +413,7 @@ TEST_F(MinMaxTest,SimulationCombine) {
   vector<int> bwglobal, oppglobal;
   mcst.initGameState(emptyglobal, bwglobal, oppglobal);
 
+  //checking from the beginning of the game
   for (size_t i = 0; i < numberoftrials; ++i) {
     //initialize the following containers to the current progress of playing board
     int proportionofempty = currentempty;
@@ -396,16 +428,21 @@ TEST_F(MinMaxTest,SimulationCombine) {
     int expandednode = mcst.expansion(selectnode, emptyindicators,
                                       proportionofempty, babywatsons, opponents,
                                       gametree);
+    //check the newly expanded node has duplicated position in board
+    vector<size_t> siblings = gametree.getSiblings(expandednode);
+    vector<size_t> positions;
+    positions.reserve(siblings.size());
+    for(auto iter = siblings.begin(); iter != siblings.end(); ++iter)
+        positions.push_back(gametree.getNodePosition(*iter));
+    sort(positions.begin(), positions.end());
+    for(unsigned i = 0; i < (positions.size()-1); ++i)
+      ASSERT_NE(positions[i], positions[i+1]);
+
     //simulation phase
     int winner = mcst.playout(emptyindicators, proportionofempty, babywatsons,
                               opponents);
     //back-propagate
     mcst.backpropagation(expandednode, winner, gametree);
-    /*cout
-     << "[proportionofempty|currentempty|selectnode|expandchild|BW's move size|OP's move size|winner] "
-     << proportionofempty << "|" << currentempty << "|" << selectnode << "|"
-     << expandednode << "|" << babywatsons.size() << "|" << opponents.size() <<"|"
-     << winner << endl;*/
   }
   int resultmove = mcst.getBestMove(gametree);
 
@@ -430,10 +467,9 @@ TEST_F(MinMaxTest,SimulationCombine) {
   }
   EXPECT_EQ(sum, numberoftrials);
   EXPECT_EQ(resultmove, gametree.getNodePosition(indexofmax));
-  //cout << gametree.printGameTree(0);
 }
 TEST_F(MinMaxTest,CheckHexFiveGame) {
-  int numofhexgon = 5;
+  int numofhexgon = 7;
   HexBoard board(numofhexgon);
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
@@ -460,11 +496,11 @@ TEST_F(MinMaxTest,CheckHexFiveGame) {
 
     cout << "simulation " << round << " : " << redmove << " " << bluemove
          << endl;
+    cout << hexboardgame.showView(playera, playerb);
     round++;
     ASSERT_NE(redmove, bluemove);
     winner = hexboardgame.getWinner(playera, playerb);
   }
-  cout << hexboardgame.showView(playera, playerb);
   cout << "winner is " << winner << endl;
 }
 TEST_F(MinMaxTest,CompeteHexFiveGame) {
@@ -497,7 +533,7 @@ TEST_F(MinMaxTest,CompeteHexFiveGame) {
          << endl;
     round++;
     ASSERT_NE(redmove, bluemove);
-    //cout << hexboardgame.showView(playera, playerb);
+    cout << hexboardgame.showView(playera, playerb);
     winner = hexboardgame.getWinner(playera, playerb);
   }
   cout << "winner is " << winner << endl;

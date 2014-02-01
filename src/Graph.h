@@ -220,31 +220,6 @@ class Graph {
   }
   ;
 
-  void TraverseBFS(int indexofcurrent, bool* visited, int indexofparent,
-                    std::vector<int>* subgraph) {
-     visited[indexofcurrent - 1] = true;
-     subgraph->push_back(indexofcurrent);
-     int numofneighbors = getNeighborsSize(indexofcurrent);
-
-     //discard the parental link
-     std::vector<int> neighwoparents;
-     if (numofneighbors != 0) {
-       std::vector<int> neighbors = getNeighbors(indexofcurrent);
-       for (std::vector<int>::iterator iter = neighbors.begin();
-           iter != neighbors.end(); ++iter)
-         if (*iter != indexofparent)
-           neighwoparents.push_back(*iter);
-       numofneighbors = neighwoparents.size();
-     }
-
-     if (numofneighbors > 0) {
-       for (unsigned i = 0; i < neighwoparents.size(); i++)
-         TraverseBFS(neighwoparents[i], visited, indexofcurrent, subgraph);
-     }
-     return;
-   }
-   ;
-
  public:
 //Default constructor, initialize graph with zero values
 //Takes no arguments

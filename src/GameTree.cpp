@@ -86,7 +86,7 @@ string GameTree::printGameTree(int index) {
 //if level = -1, then will do back-propagate up to the root, starting from current level = 0
 void GameTree::backpropagate(vertex_t leaf, int value, int level) {
   int curlevel = level;
-  vertex_t node = leaf, parent;
+  vertex_t node = leaf, parent = graph_traits<basegraph>::null_vertex();
   int curvalue = -1 * value;
   while (node != _root) {
     //check in-edges
@@ -180,7 +180,6 @@ void GameTree::backpropagatefromSimulation(int indexofnode, int value,
   backpropagate(node, value, level);  //to the root
 }
 int GameTree::expandNode(int indexofsource, int move, char color) {
-
   vertex_t source = vertex(indexofsource, thetree);
   int indexofchild = -1;
 
@@ -234,6 +233,15 @@ pair<int, double> GameTree::getBestMovefromSimulation() {
     vertex_t node = target(*viter, thetree);
     vertexchooser.insert(node, -vertexvalue[node].estimate());
   }
+#ifndef NDEBUG
+  DEBUGHEADER();
+  cerr << "log the simulation statistics for final choice" << endl;
+  for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
+      ++viter)
+    cerr << vertexposition[target(*viter, thetree)] << ":"
+         << vertexvalue[target(*viter, thetree)].getValue() << " ";
+  cerr << endl;
+#endif
   //2. choose the maximal value from all children nodes of root.
   int indexofbestmove = vertexchooser.minPrioirty();
   double maxvalue =
@@ -263,7 +271,7 @@ void GameTree::getMovesfromTreeState(int indexofnode, vector<int>& babywatsons,
 }
 int GameTree::reRootbyPosition(size_t position) {
   out_edge_iter viter, viterend;
-  vertex_t node;
+  vertex_t node = graph_traits<basegraph>::null_vertex();
   for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
       ++viter) {
     if (vertexposition[target(*viter, thetree)] == position) {
@@ -345,4 +353,27 @@ void GameTree::setNodePosition(size_t indexofnode, size_t position) {
   vertex_t node = vertex(indexofnode, thetree);
   updateNodePosition(node, position);
   updateNodeName(node);
+}
+vector<size_t> GameTree::getSiblings(size_t indexofnode) {
+  vertex_t node = vertex(indexofnode, thetree);
+  vertex_t parent = getParent(node);
+  vector<size_t> siblings;
+  siblings.reserve(out_degree(parent, thetree));
+  out_edge_iter viter, viterend;
+  for (tie(viter, viterend) = out_edges(parent, thetree); viter != viterend;
+      ++viter) {
+    vertex_t child = target(*viter, thetree);
+    siblings.push_back(vertexindex[child]);
+  }
+  return vector<size_t>(siblings);
+}
+GameTree::vertex_t GameTree::getParent(vertex_t node) {
+  in_edge_iter viter, viterend;
+  assert(in_degree(node, thetree) == 1);
+  vertex_t parent = graph_traits<basegraph>::null_vertex();
+  for (tie(viter, viterend) = in_edges(node, thetree); viter != viterend;
+      ++viter) {
+    parent = source(*viter, thetree);
+  }
+  return parent;
 }

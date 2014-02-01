@@ -1,4 +1,4 @@
-CXXFLAGS =	-O0 -g -pg -Wall -Wextra -Werror -fmessage-length=0
+CXXFLAGS =	-O3 -g -pg -Wall -Wextra -Werror -fmessage-length=0
 
 FLAGS =	-std=c++11 -DNDEBUG 
 
