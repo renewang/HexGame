@@ -193,3 +193,22 @@ bool PriorityQueue<N, Val>::const_iterator::operator!=(
     const self_type &other) const {
   return (*_ptr != *(other._ptr));
 }
+template<class N, class Val>
+const Val PriorityQueue<N, Val>::topPriority(){
+    NodePriority topnode = nodetracker.front();
+    return topnode.priority;
+}
+template<class N, class Val>
+bool PriorityQueue<N, Val>::containsPriority(Val priority) {
+  typename std::vector<NodePriority>::iterator iter = nodetracker.begin();
+  for (; iter != nodetracker.end(); ++iter) {
+    if ((*iter).priority == priority)
+      break;
+  }
+  return iter!=nodetracker.end();
+}
+template<class N, class Val>
+bool PriorityQueue<N, Val>::empty() {
+  return 0==nodetracker.size();
+}
+

@@ -6,6 +6,7 @@
  */
 
 #include <cmath>
+#include <chrono>
 #include <utility>
 #include <sstream>
 
@@ -199,11 +200,13 @@ int GameTree::expandNode(int indexofsource, int move, char color) {
   return indexofchild;
 }
 //called in MCST selection phase
-int GameTree::selectMaxBalanceNode(int currentempty) {
+int GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
   vertex_t parent = _root;
   out_edge_iter viter, viterend;
   size_t numofchildren = out_degree(parent, thetree);
   int level = 0;
+  default_random_engine generator(static_cast<unsigned>(chrono::system_clock::now().time_since_epoch().count()));
+  uniform_real_distribution<double> distribution(0.0, 1.0);
   while (numofchildren != 0) {  //reach leaf
     //test if the current examining node is fully expanded, if yes then return its child; otherwise, return the current node for expansion
     assert((currentempty - level) > 0);  //currentempty - level = 0 indicates the end of game
@@ -213,10 +216,17 @@ int GameTree::selectMaxBalanceNode(int currentempty) {
     for (tie(viter, viterend) = out_edges(parent, thetree); viter != viterend;
         ++viter) {
       vertex_t node = target(*viter, thetree);
-      vertexchooser.insert(node,
-                           -vertexvalue[node].calculate(vertexvalue[parent]));
+      double value = -vertexvalue[node].calculate(vertexvalue[parent]);
+      if (isbreaktie && vertexchooser.containsPriority(value)) {  // break the tie
+        double prob = distribution(generator);
+        if (prob < 0.5)
+          value -= prob / 100.0;
+        else
+          value += prob / 100.0;
+      }
+      vertexchooser.insert(node, value);
     }
-    parent = vertexchooser.minPrioirty();  //TODO randomly to break tie
+    parent = vertexchooser.minPrioirty();
     numofchildren = out_degree(parent, thetree);
     ++level;
   }

@@ -62,9 +62,7 @@ class PriorityQueue {
   //Find the corresponding element in tracker
   typename std::vector<NodePriority>::iterator findElement(
       NodePriority& qelement) {
-
     typename std::vector<NodePriority>::iterator iter = nodetracker.begin();
-
     for (; iter != nodetracker.end(); ++iter) {
       if ((*iter) == qelement)
         break;
@@ -167,6 +165,9 @@ class PriorityQueue {
   unsigned size();
   const_iterator begin() const;
   const_iterator end() const;
+  const Val topPriority();
+  bool containsPriority(Val priority);
+  bool empty();
 }
 ;
 

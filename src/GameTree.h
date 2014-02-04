@@ -222,7 +222,7 @@ class GameTree {
   int updateNodefromSimulation(int indexofnode, int winner);
   void backpropagatefromSimulation(int indexofnode, int value, int level = -1);
   std::pair<int, double> getBestMovefromSimulation();
-  int selectMaxBalanceNode(int currentempty);
+  int selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons,
                              std::vector<int>& opponents);
   void prunebyPosition(std::size_t position, int level);
