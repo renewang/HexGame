@@ -15,10 +15,11 @@
 #include "Player.h"
 #include "GameTree.h"
 #include "MonteCarloTreeSearch.h"
+#include "MultiMonteCarloTreeSearch.h"
 
 using namespace std;
 using namespace boost;
-
+boost::mutex m;
 class MinMaxTest : public ::testing::Test {
   virtual void SetUp() {
   }
@@ -92,16 +93,6 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
   EXPECT_EQ(
       "(((((((9@9:R [0|0|-2|2] )8@8:B [0|0|2|3] )7@7:R [0|0|-2|4] )5@5:B [0|0|2|5] )3@3:R [0|0|-2|6] )1@1:B [0|0|1|7] (4@4:R [0|0|0|1] ))0@0:R [0|0|-5|13] ((6@6:R [0|0|-4|5] )2@2:B [0|0|4|6] ))\n",
       tree.printGameTree(0));
-
-  //test with reroot by position
-  int indexofroot = tree.reRootbyPosition(1);
-  EXPECT_EQ(
-      "((((((9@9:R [0|0|-2|2] )8@8:B [0|0|2|3] )7@7:R [0|0|-2|4] )5@5:B [0|0|2|5] )3@3:R [0|0|-2|6] )1@1:B [0|0|1|7] (4@4:R [0|0|0|1] ))\n",
-      tree.printGameTree(indexofroot));
-
-  //test with prune by position
-  //tree.prunebyPosition(9, -1);
-  //cout << tree.printGameTree(0);
 }
 //test with selection
 TEST_F(MinMaxTest, MCSTSelection) {
@@ -126,7 +117,7 @@ TEST_F(MinMaxTest, MCSTSelection) {
     EXPECT_EQ(sum, tree.getNodeValueFeature(0, 0));
     EXPECT_EQ(0, node);
   }
-  node = tree.selectMaxBalanceNode(numofmoves,false);
+  node = tree.selectMaxBalanceNode(numofmoves, false);
   EXPECT_EQ(maxnode, node);
   unsigned numofmaxnodechildren = 0;
   int firstchild = -1;
@@ -153,11 +144,6 @@ TEST_F(MinMaxTest, MCSTSelection) {
 
   //3. test with the end of the game
   node = tree.selectMaxBalanceNode(2, false);
-  EXPECT_EQ(firstchild, node);
-
-  //4. select from the middle of the game
-  tree.reRootbyPosition(maxnode);
-  node = tree.selectMaxBalanceNode(numofmoves - 1, false);
   EXPECT_EQ(firstchild, node);
 
   //5. test with the tie
@@ -510,6 +496,9 @@ TEST_F(MinMaxTest,CheckHexFiveGame) {
   cout << "winner is " << winner << endl;
 }
 TEST_F(MinMaxTest,CompeteHexFiveGame) {
+  int test = 5;
+  short int num = static_cast<short int>(test);
+  cout << num;
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
@@ -598,6 +587,41 @@ TEST_F(MinMaxTest,CompeteHexELEVENGame) {
 
     hexboardgame.setMove(playera, redrow, redcol);
 
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(mcstblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    cout << "simulation " << round << " : " << redmove << " " << bluemove
+         << endl;
+    round++;
+    ASSERT_NE(redmove, bluemove);
+    //cout << hexboardgame.showView(playera, playerb);
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << "winner is " << winner << endl;
+}
+TEST_F(MinMaxTest,CompeteHexParallelGame) {
+  int numofhexgon = 5;
+  HexBoard board(numofhexgon);
+  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  MultiMonteCarloTreeSearch mcstred(&board, &playera, 1);
+  MultiMonteCarloTreeSearch mcstblue(&board, &playerb, 1);
+  Game hexboardgame(board);
+  string winner = "UNKNOWN";
+  int round = 0;
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(mcstred);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+
+    hexboardgame.setMove(playera, redrow, redcol);
+    break;
     //the virtual opponent moves
     int bluemove, bluerow, bluecol;
     bluemove = hexboardgame.genMove(mcstblue);
