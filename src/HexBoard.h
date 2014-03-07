@@ -6,7 +6,6 @@
 #ifndef HEXBOARD_H_
 #define HEXBOARD_H_
 
-#include <memory>
 #include "Graph.h"
 /*
  * hexgonValKind enum type
@@ -15,11 +14,19 @@
  * BLUE: the player marked as blue color
  * RED: the player marked as red color
  */
+#if __cplusplus > 199711L
 enum class hexgonValKind {
   EMPTY,
   BLUE,
   RED
 };
+#else
+enum hexgonValKind {
+  EMPTY,
+  BLUE,
+  RED
+};
+#endif
 //Overloading function for hexgonValKind to output the value
 std::ostream& operator<<(std::ostream& os, hexgonValKind hexgonkind);
 /*
@@ -64,7 +71,7 @@ class HexBoard : public Graph<hexgonValKind, int> {
 
   std::vector<int> redmoves;
   std::vector<int> bluemoves;
-  std::shared_ptr<bool> emptyhexindicators;
+  hexgame::shared_ptr<bool> emptyhexindicators;
   int numofemptyhexgons;
 
   //init emptyhexgons
@@ -95,7 +102,7 @@ class HexBoard : public Graph<hexgonValKind, int> {
     return bluemoves;
   }
 
-  inline const std::shared_ptr<bool>& getEmptyHexIndicators() const {
+  inline const hexgame::shared_ptr<bool>& getEmptyHexIndicators() const {
     return emptyhexindicators;
   }
 

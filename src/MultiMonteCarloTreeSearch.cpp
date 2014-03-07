@@ -5,7 +5,8 @@
  *      Author: renewang
  */
 
-#include "global.h"
+#include "Global.h"
+#include "LockableGameTree.h"
 #include "MultiMonteCarloTreeSearch.h"
 
 #include <algorithm>
@@ -21,12 +22,11 @@ MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
 }
 #else
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
-                                                     const Player* aiplayer)
-    : MonteCarloTreeSearch(board, aiplayer),
-      lockable_base_type(),
-      ptrtoboard(board),
-      ptrtoplayer(aiplayer),
-      numberoftrials(3000){
+    const Player* aiplayer)
+: MonteCarloTreeSearch(board, aiplayer),
+ptrtoboard(board),
+ptrtoplayer(aiplayer),
+numberoftrials(3000) {
   init();
 }
 #endif
@@ -34,20 +34,18 @@ MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
                                                      const Player* aiplayer,
                                                      size_t numberoftrials)
     : MonteCarloTreeSearch(board, aiplayer),
-      lockable_base_type(),
       ptrtoboard(board),
       ptrtoplayer(aiplayer),
       numberoftrials(numberoftrials) {
   init();
 }
 int MultiMonteCarloTreeSearch::simulation() {
-  boost::shared_ptr<bool> emptyglobal;
+  hexgame::shared_ptr<bool> emptyglobal;
   vector<int> bwglobal, oppglobal;
   initGameState(emptyglobal, bwglobal, oppglobal);
   int currentempty = ptrtoboard->getNumofemptyhexgons();
 
   GameTree gametree(ptrtoplayer->getViewLabel());  //shared and lockable
-  treelock locker(*this, gametree);
 
   thread_group threads;
   for (size_t i = 0; i < numberoftrials; ++i)
@@ -55,28 +53,28 @@ int MultiMonteCarloTreeSearch::simulation() {
         boost::bind(boost::mem_fn(&MultiMonteCarloTreeSearch::task),
                     boost::ref(*this), boost::cref(bwglobal),
                     boost::cref(oppglobal), boost::cref(emptyglobal),
-                    currentempty, boost::ref(locker)));
+                    currentempty, boost::ref(gametree)));
   threads.join_all();
   int resultmove = getBestMove(gametree);
   //find the move with the maximal successful simulated outcome
   assert(resultmove != -1);
 
 #ifndef NDEBUG
-  DEBUGHEADER();
-  cerr << gametree.printGameTree(0);
+   strict_lock<boost::recursive_mutex> _iolock(mutex_);
+   cerr << DEBUGHEADER() << gametree.printGameTree(0);
 #endif
 
   return resultmove;
 }
-void MultiMonteCarloTreeSearch::task(const vector<int>& bwglobal,
-                                     const vector<int>& oppglobal,
-                                     const boost::shared_ptr<bool>& emptyglobal,
-                                     int currentempty, treelock& locker) {
-
+void MultiMonteCarloTreeSearch::task(
+    const std::vector<int>& bwglobal, const std::vector<int>& oppglobal,
+    const hexgame::shared_ptr<bool>& emptyglobal, int currentempty,
+    GameTree& gametree) {
   //initialize the following containers to the current progress of playing board
   vector<int> babywatsons(bwglobal), opponents(oppglobal);
-  boost::shared_ptr<bool> emptyindicators = boost::shared_ptr<bool>(
-      new bool[ptrtoboard->getSizeOfVertices()], boost::default_delete<bool[]>());
+  hexgame::shared_ptr<bool> emptyindicators = hexgame::shared_ptr<bool>(
+      new bool[ptrtoboard->getSizeOfVertices()],
+      hexgame::default_delete<bool[]>());
 
   copy(emptyglobal.get(), emptyglobal.get() + ptrtoboard->getSizeOfVertices(),
        emptyindicators.get());
@@ -84,44 +82,35 @@ void MultiMonteCarloTreeSearch::task(const vector<int>& bwglobal,
   int proportionofempty = currentempty;
 
   //in-tree phase
-  int selectnode = selection(currentempty, locker);
+  int selectnode = selection(currentempty, gametree);
   int expandednode = expansion(selectnode, emptyindicators, proportionofempty,
-                               babywatsons, opponents, locker);
+                               babywatsons, opponents, gametree);
 
   //simulation phase
-  /*int winner = playout(emptyindicators, proportionofempty, babywatsons,
+  int winner = playout(emptyindicators, proportionofempty, babywatsons,
                        opponents);
   assert(winner != 0);
   //back-propagate
-  backpropagation(expandednode, winner, locker);*/
-  cout << expandednode << endl;
-
+  backpropagation(expandednode, winner, gametree);
 }
-int MultiMonteCarloTreeSearch::selection(int currentempty, treelock& locker) {
-  strict_lock<MultiMonteCarloTreeSearch> guard(*this);
-  int expectleaf = MonteCarloTreeSearch::selection(currentempty,
-                                                   locker.get(guard));
-  return expectleaf;
+int MultiMonteCarloTreeSearch::selection(
+    int currentempty, GameTree& gametree) {
+  return MonteCarloTreeSearch::selection(currentempty, gametree);
 }
-int MultiMonteCarloTreeSearch::expansion(int selectnode,
-                                         boost::shared_ptr<bool>& emptyindicators,
-                                         int& portionofempty,
-                                         vector<int>& babywatsons,
-                                         vector<int>& opponents,
-                                         treelock& locker) {
-  strict_lock<MultiMonteCarloTreeSearch> guard(*this);
+int MultiMonteCarloTreeSearch::expansion(
+    int selectnode, hexgame::shared_ptr<bool>& emptyindicators,
+    int& portionofempty, vector<int>& babywatsons, vector<int>& opponents,
+    GameTree& gametree) {
   return MonteCarloTreeSearch::expansion(selectnode, emptyindicators,
                                          portionofempty, babywatsons, opponents,
-                                         locker.get(guard));
+                                         gametree);
 }
-void MultiMonteCarloTreeSearch::backpropagation(int backupnode, int winner,
-                                                treelock& locker) {
-  strict_lock<MultiMonteCarloTreeSearch> guard(*this);
-  return MonteCarloTreeSearch::backpropagation(backupnode, winner,
-                                               locker.get(guard));
-
+void MultiMonteCarloTreeSearch::backpropagation(
+    int backupnode, int winner, GameTree& gametree) {
+  MonteCarloTreeSearch::backpropagation(backupnode, winner, gametree);
+  return;
 }
-void MultiMonteCarloTreeSearch::init(){
+void MultiMonteCarloTreeSearch::init() {
   numofhexgons = ptrtoboard->getNumofhexgons();
   babywatsoncolor = 'B', oppoenetcolor = 'R';
   if (babywatsoncolor != ptrtoplayer->getViewLabel()) {

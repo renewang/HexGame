@@ -50,6 +50,7 @@ void PriorityQueue<N, Val>::insert(const N& node, Val priority) {
 //node: the node needs to be inserted
 //priority:  the corresponding priority of the node
 //Output: NONE
+#if __cplusplus > 199711L
 template<class N, class Val>
 void PriorityQueue<N, Val>::insert(const N&& node, Val priority) {
   NodePriority qelement;
@@ -58,6 +59,7 @@ void PriorityQueue<N, Val>::insert(const N&& node, Val priority) {
   nodetracker.push_back(qelement);
   std::push_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
 }
+#endif
 //Returns the top element of the queue.
 //Input: NONE
 //Output:

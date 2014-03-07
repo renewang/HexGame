@@ -28,10 +28,17 @@
  */
 class Player {
  private:
+#if __cplusplus > 199711L
   enum class winConditions {
     WESTTOEAST,
     NORTHTOSOUTH
   };
+#else
+  enum winConditions {
+    WESTTOEAST,
+    NORTHTOSOUTH
+  };
+#endif
 
   HexBoard& board;  //global board
   HexBoard playersboard;  //private board, used for Minimal Spanning Tree calculation
@@ -54,6 +61,7 @@ class Player {
         playerkind(kind) {
     playersboard.setNumofhexgons(board.getNumofhexgons());
     //RED player always starts from North side to South side
+#if __cplusplus > 199711L
     if (kind == hexgonValKind::RED) {
       viewlabel = 'R';
       playername = "RED";
@@ -65,6 +73,21 @@ class Player {
       playername = "BLUE";
       condition = winConditions::WESTTOEAST;
     }
+#else
+    hexgonValKind redkind = RED, bludkind = BLUE;
+    winConditions nscond = NORTHTOSOUTH, wscond = WESTTOEAST;
+    if (kind == redkind) {
+      viewlabel = 'R';
+      playername = "RED";
+      condition = nscond;
+
+    } else if (kind == bludkind) {
+      //BLUE player always starts from West side to East side
+      viewlabel = 'B';
+      playername = "BLUE";
+      condition = wscond;
+    }
+#endif
   }
   ;
   //destructor
@@ -97,10 +120,20 @@ class Player {
   }
 
   inline bool getWestToEastCondition() const {
+#if __cplusplus > 199711L
     return this->condition == winConditions::WESTTOEAST ? true : false;
+#else
+    winConditions cond = WESTTOEAST;
+    return this->condition == cond ? true : false;
+#endif
   }
   inline bool getNorthToSouthCondition() const {
+#if __cplusplus > 199711L
     return this->condition == winConditions::NORTHTOSOUTH ? true : false;
+#else
+    winConditions cond = NORTHTOSOUTH;
+    return this->condition == cond ? true : false;
+#endif
   }
 };
 

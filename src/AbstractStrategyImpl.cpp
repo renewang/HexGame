@@ -4,7 +4,7 @@
  */
 
 #include <cstdlib>
-#include <memory>
+
 #include "AbstractStrategyImpl.h"
 
 using namespace std;
@@ -14,7 +14,10 @@ using namespace std;
 //OUTPUT:
 //the next move evaluated by simulation
 int AbstractStrategyImpl::genMove() {
-  return (simulation());
+  if(ptrtoboard->getNumofemptyhexgons() > 0)
+    return(simulation(ptrtoboard->getNumofemptyhexgons()));
+  else
+    return -1; //there's no empty moves
 }
 //check if the winner exists for this stage of simulation
 //INPUT:
@@ -95,11 +98,13 @@ bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
 //generate the random next move representing with index [1, number of hexgon per side]
 //INPUT: NONE
 //OUPUT: NONE
-int AbstractStrategyImpl::genNextRandom(shared_ptr<bool>& emptyindicators,
+int AbstractStrategyImpl::genNextRandom(hexgame::shared_ptr<bool>& emptyindicators,
                                         int& proportionofempty) {
   bool isoccupied = true;
   int index = -1;
+#ifdef NDEBUG
   srand((unsigned long)clock());
+#endif
 
   while (isoccupied && proportionofempty > 0) {
     index = rand() % (ptrtoboard->getSizeOfVertices()) + 1;
@@ -112,7 +117,7 @@ int AbstractStrategyImpl::genNextRandom(shared_ptr<bool>& emptyindicators,
   return index;
 }
 //initialize the following containers to the current progress of playing board
-void AbstractStrategyImpl::initGameState(shared_ptr<bool>& emptyglobal,vector<int>& bwglobal, vector<int>& oppglobal) {
+void AbstractStrategyImpl::initGameState(hexgame::shared_ptr<bool>& emptyglobal,vector<int>& bwglobal, vector<int>& oppglobal) {
   emptyglobal = ptrtoboard->getEmptyHexIndicators();
   if(ptrtoplayer->getViewLabel() == 'R'){
     bwglobal = ptrtoboard->getRedmoves();

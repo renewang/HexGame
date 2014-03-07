@@ -8,27 +8,19 @@
 #ifndef MULTIMONTECARLOTREESEARCH_H_
 #define MULTIMONTECARLOTREESEARCH_H_
 
+#include "Global.h"
 #include "Player.h"
 #include "HexBoard.h"
-#include "GameTree.h"
+#include "LockableGameTree.h"
 #include "MonteCarloTreeSearch.h"
 
-#include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/externally_locked.hpp>
-
 
 #ifndef NDEBUG
 #include "gtest/gtest_prod.h"
 #endif
 
-class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch, public boost::basic_lockable_adapter<boost::mutex> {
-
-  typedef basic_lockable_adapter<boost::mutex> lockable_base_type;
-  typedef boost::externally_locked<GameTree, MultiMonteCarloTreeSearch> treelock;
-
+class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch {
  private:
   int numofhexgons;
   //the actual playing board in the game. Need to  ensure it not to be modified during the simulation
@@ -40,13 +32,13 @@ class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch, public boost::bas
 
   void init();
   void task(const std::vector<int>& bwglobal, const std::vector<int>& oppglobal,
-            const boost::shared_ptr<bool>& emptyglobal, int currentempty,
-            treelock& lock);
-  int selection(int currentempty, treelock& locker);
-  int expansion(int selectnode, boost::shared_ptr<bool>& emptyindicators,
+            const hexgame::shared_ptr<bool>& emptyglobal, int currentempty,
+            GameTree& gametree);
+  int selection(int currentempty, GameTree& gametree);
+  int expansion(int selectnode, hexgame::shared_ptr<bool>& emptyindicators,
                 int& portionofempty, std::vector<int>& babywatsons,
-                std::vector<int>& opponents, treelock& locker);
-  void backpropagation(int backupnode, int winner, treelock& locker);
+                std::vector<int>& opponents, GameTree& gametree);
+  void backpropagation(int backupnode, int winner, GameTree& gametree);
 
 #ifndef NDEBUG
   //for google test framework

@@ -17,13 +17,13 @@ class AbstractStrategyImpl : public AbstractStrategy {
   int numofhexgons;
 
  protected:
-  //generate the random next move in terms of index of row and index of column [1, number of hexgon per side]
-  virtual int genNextRandom(std::shared_ptr<bool>& emptyindicators, int& proportionofempty);
+  virtual int genNextRandom(hexgame::shared_ptr<bool>& emptyindicators, int& proportionofempty); //generate the random next move in terms of index of row and index of column [1, number of hexgon per side]
+  virtual void initGameState(hexgame::shared_ptr<bool>& emptyglobal, std::vector<int>& bwglobal, std::vector<int>& oppglobal);
+
   //check if the winner exists for this stage of simulation
   virtual int checkWinnerExist(std::vector<int>&, std::vector<int>&);
   virtual bool isWinner(std::vector<int>& test, bool iswestoeast);
-  virtual void initGameState(std::shared_ptr<bool>& emptyglobal, vector<int>& bwglobal, vector<int>& oppglobal);
-  virtual int simulation() = 0;
+  virtual int simulation(int currentempty) = 0;
 
  public:
   AbstractStrategyImpl():ptrtoboard(nullptr), ptrtoplayer(nullptr),numofhexgons(0){};

@@ -6,43 +6,41 @@
  */
 
 #include <cmath>
-#include <chrono>
 #include <utility>
 #include <sstream>
 
-#include "Global.h"
+#if __cplusplus > 199711L
+#include <chrono>
+#endif
+
 #include "GameTree.h"
 #include "PriorityQueue.h"
 
 using namespace std;
 using namespace boost;
+#if __cplusplus > 199711L
 GameTree::GameTree()
     : GameTree('W', 0) {
 }
 GameTree::GameTree(char playerscolor)
     : GameTree(playerscolor, 0) {
 }
+#else
+GameTree::GameTree() {
+  initGameTree('W', 0);
+}
+GameTree::GameTree(char playerscolor) {
+  initGameTree(playerscolor, 0);
+}
+#endif
 GameTree::GameTree(char playerscolor, size_t indexofroot) {
-  vertexname = get(vertex_name, thetree);
-  vertexcolor = get(vertex_color, thetree);
-  vertexvalue = get(vertex_value, thetree);
-  vertexposition = get(vertex_position, thetree);
-  vertexindex = get(vertex_index, thetree);
-
-  //set the root's color label as opponent's color label
-  char rootscolor = 'W';
-  if (playerscolor == 'R')
-    rootscolor = 'B';
-  else if (playerscolor == 'B')
-    rootscolor = 'R';
-  vertex_t root = addNode(indexofroot, rootscolor);
-
-  _root = root;
+  initGameTree(playerscolor, indexofroot);
 }
 GameTree::vertex_t GameTree::addNode(std::size_t positionofchild, char color) {
   vertex_t target = add_vertex(thetree);
-  updateNodeColor(target, color);
+  //TODO re-factor
   updateNodePosition(target, positionofchild);
+  updateNodeColor(target, color);
   updateNodeValue(target);
   updateNodeName(target);
   return target;
@@ -52,25 +50,13 @@ bool GameTree::addEdge(vertex_t source, vertex_t target) {
   return result.second;
 }
 void GameTree::removeChidren(string nameofsource) {
+#if __cplusplus > 199711L
   size_t indexofsource = stoul(nameofsource);
+#else
+  size_t indexofsource = atoi(nameofsource.c_str());
+#endif
   vertex_t source = vertex(indexofsource, thetree);
   clear_out_edges(source, thetree);
-}
-//remove subtree of given vertex index
-void GameTree::prune(vertex_t node) {
-  remove_vertex(node, thetree);
-}
-//root doesn't have in-edges. Replace all in-edges with out-edges
-void GameTree::reRoot(vertex_t node, bool isprune) {
-  //iterate through in-edges
-  in_edge_iter viter, viterend;
-  if (!isprune) {
-    for (boost::tie(viter, viterend) = in_edges(node, thetree);
-        viter != viterend; ++viter)
-      add_edge(target(*viter, thetree), source(*viter, thetree), thetree);
-  }
-  clear_in_edges(node, thetree);
-  _root = node;
 }
 string GameTree::printGameTree(int index) {
   stringstream treebuffer;
@@ -96,19 +82,38 @@ void GameTree::backpropagate(vertex_t leaf, int value, int level) {
     for (tie(viter, viterend) = in_edges(node, thetree); viter != viterend;
         ++viter) {
       parent = source(*viter, thetree);
-      vertexvalue[parent].update(UTCPolicy::valuekind::wincount, 0, curvalue);  //increment winning count
-      vertexvalue[parent].update(UTCPolicy::valuekind::visitcount, 0, 1);  //increment visit count
-
-      if (vertexcolor[parent] == vertexcolor[_root] && (parent != _root))
+#if __cplusplus > 199711L
+      get(vertex_value, thetree, parent).updateAll(
+          UTCPolicy::valuekind::visitcount, 0, 1,
+          UTCPolicy::valuekind::wincount, 0, curvalue);
+      if (get(vertex_color, thetree, parent)
+          == get(vertex_color, thetree, _root) && (parent != _root))
         assert(
-            vertexvalue[parent].feature(UTCPolicy::valuekind::wincount) <= 0);  //make sure it's minimizing node
+            get(vertex_value, thetree, parent).feature(
+                UTCPolicy::valuekind::wincount) <= 0);  //make sure it's minimizing node
       else if (parent != _root)
         assert(
-            vertexvalue[parent].feature(UTCPolicy::valuekind::wincount) >= 0);  //make sure it's maximizing node
+            get(vertex_value, thetree, parent).feature(
+                UTCPolicy::valuekind::wincount) >= 0);  //make sure it's maximizing node
 
       assert(
-          abs(vertexvalue[parent].feature(UTCPolicy::valuekind::wincount))
-              <= vertexvalue[parent].feature(UTCPolicy::valuekind::visitcount));
+          abs(get(vertex_value, thetree, parent).feature(
+              UTCPolicy::valuekind::wincount))
+              <= get(vertex_value, thetree, parent).feature(
+                  UTCPolicy::valuekind::visitcount));
+#else
+      get(vertex_value, thetree, parent).updateAll(UTCPolicy::visitcount, 0, 1, UTCPolicy::wincount, 0, curvalue);
+      if (get(vertex_color, thetree, parent) == get(vertex_color, thetree, _root) && (parent != _root))
+      assert(
+          get(vertex_value, thetree, parent).feature(UTCPolicy::wincount) <= 0);  //make sure it's minimizing node
+      else if (parent != _root)
+      assert(
+          get(vertex_value, thetree, parent).feature(UTCPolicy::wincount) >= 0);//make sure it's maximizing node
+
+      assert(
+          abs(get(vertex_value, thetree, parent).feature(UTCPolicy::wincount))
+          <= get(vertex_value, thetree, parent).feature(UTCPolicy::visitcount));
+#endif
     }
     node = parent;
     curvalue = -1 * curvalue;
@@ -120,59 +125,77 @@ void GameTree::backpropagate(vertex_t leaf, int value, int level) {
 //update name
 void GameTree::updateNodeName(vertex_t node) {
   stringstream namebuffer;
-  namebuffer << vertexindex[node];
+  namebuffer << get(vertex_index, thetree, node);
   namebuffer << "@";
-  namebuffer << vertexposition[node];
+  namebuffer << get(vertex_position, thetree, node);
   namebuffer << ":";
-  if (vertexcolor[node] == black_color)
+  if (get(vertex_color, thetree, node) == black_color)
     namebuffer << 'B';
-  else if (vertexcolor[node] == red_color)
+  else if (get(vertex_color, thetree, node) == red_color)
     namebuffer << 'R';
   else
     namebuffer << 'W';
-  vertexname[node] = namebuffer.str();
-}
-//update value
-void GameTree::updateNodeValue(vertex_t node, UTCPolicy& policy) {
-  vertexvalue[node] = policy;
+  put(vertex_name, thetree, node, namebuffer.str());
 }
 //update value
 void GameTree::updateNodeValue(vertex_t node) {
-  vertexvalue[node] = UTCPolicy();
+  put(vertex_value, thetree, node, UTCPolicy());
 }
 //update color
 void GameTree::updateNodeColor(vertex_t node, char color) {
   switch (color) {
     case 'R':
-      vertexcolor[node] = red_color;
+      put(vertex_color, thetree, node, red_color);
       break;
     case 'B':
-      vertexcolor[node] = black_color;  //temporary
+      put(vertex_color, thetree, node, black_color);
       break;
     default:
-      vertexcolor[node] = white_color;
+      put(vertex_color, thetree, node, white_color);
   }
 }
 //update position
 void GameTree::updateNodePosition(vertex_t node, std::size_t position) {
-  vertexposition[node] = position;
+  put(vertex_position, thetree, node, position);
 }
 size_t GameTree::getNodePosition(size_t indexofnode) {
   vertex_t node = vertex(indexofnode, thetree);
-  return vertexposition[node];
+  return get(vertex_position, thetree, node);
 }
 int GameTree::updateNodefromSimulation(int indexofnode, int winner) {
   vertex_t node = vertex(indexofnode, thetree);
-  vertexvalue[node].update(UTCPolicy::valuekind::visitcount, 0, 1);
+#if __cplusplus > 199711L
   int value = 0;
   if (winner > 0) {
-    value = vertexvalue[node].feature(UTCPolicy::valuekind::wincount);
-    if (vertexcolor[node] == vertexcolor[_root])  //a minimizing node
-      vertexvalue[node].update(UTCPolicy::valuekind::wincount, 0, -1);
+    value = get(vertex_value, thetree, node).feature(
+        UTCPolicy::valuekind::wincount);
+    if (get(vertex_color, thetree, node) == get(vertex_color, thetree, _root))  //a minimizing node
+      get(vertex_value, thetree, node).updateAll(
+          UTCPolicy::valuekind::visitcount, 0, 1,
+          UTCPolicy::valuekind::wincount, 0, -1);
     else
-      vertexvalue[node].update(UTCPolicy::valuekind::wincount, 0, 1);
-    value = vertexvalue[node].feature(UTCPolicy::valuekind::wincount) - value;
-  }
+      get(vertex_value, thetree, node).updateAll(
+          UTCPolicy::valuekind::visitcount, 0, 1,
+          UTCPolicy::valuekind::wincount, 0, 1);
+    value = get(vertex_value, thetree, node).feature(
+        UTCPolicy::valuekind::wincount) - value;
+  } else
+    get(vertex_value, thetree, node).updateAll(UTCPolicy::valuekind::visitcount,
+                                               0, 1,
+                                               UTCPolicy::valuekind::wincount,
+                                               0, 0);
+#else
+  int value = 0;
+  if (winner > 0) {
+    value = get(vertex_value, thetree, node).feature(UTCPolicy::wincount);
+    if (get(vertex_color, thetree, node) == get(vertex_color, thetree, _root))  //a minimizing node
+    get(vertex_value, thetree, node).updateAll(UTCPolicy::visitcount, 0, 1, UTCPolicy::wincount, 0, -1);
+    else
+    get(vertex_value, thetree, node).updateAll(UTCPolicy::visitcount, 0, 1, UTCPolicy::wincount, 0, 1);
+    value = get(vertex_value, thetree, node).feature(UTCPolicy::wincount) - value;
+  } else
+  get(vertex_value, thetree, node).updateAll(UTCPolicy::visitcount, 0, 1, UTCPolicy::wincount, 0, 0);
+#endif
   return value;
 }
 void GameTree::backpropagatefromSimulation(int indexofnode, int value,
@@ -186,15 +209,15 @@ int GameTree::expandNode(int indexofsource, int move, char color) {
 
   //adding the different color from the parental node
   vertex_t target;
-  if (vertexcolor[source] == red_color)
+  if (get(vertex_color, thetree, source) == red_color)
     target = addNode(static_cast<size_t>(move), 'B');
-  else if (vertexcolor[source] == black_color)
+  else if (get(vertex_color, thetree, source) == black_color)
     target = addNode(static_cast<size_t>(move), 'R');
   else
     target = addNode(static_cast<size_t>(move), color);
 
   if (addEdge(source, target))
-    indexofchild = vertexindex[target];
+    indexofchild = get(vertex_index, thetree, target);
 
   assert(indexofchild > 0);
   return indexofchild;
@@ -204,21 +227,43 @@ int GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
   vertex_t parent = _root;
   out_edge_iter viter, viterend;
   size_t numofchildren = out_degree(parent, thetree);
+
+#ifndef NDEBUG
+  if (maptochildren.find(parent) == maptochildren.end())
+    maptochildren.insert(make_pair(parent, 0));
+  assert(maptochildren.at(parent) == numofchildren);
+#endif
+
   int level = 0;
-  default_random_engine generator(static_cast<unsigned>(chrono::system_clock::now().time_since_epoch().count()));
+
+#if __cplusplus > 199711L
+  default_random_engine generator(
+      static_cast<unsigned>(hexgame::chrono::system_clock::now()
+          .time_since_epoch().count()));
   uniform_real_distribution<double> distribution(0.0, 1.0);
+#else
+  srand(static_cast<unsigned>(clock()));
+#endif
   while (numofchildren != 0) {  //reach leaf
     //test if the current examining node is fully expanded, if yes then return its child; otherwise, return the current node for expansion
     assert((currentempty - level) > 0);  //currentempty - level = 0 indicates the end of game
     if (static_cast<int>(numofchildren) < currentempty - level)
       break;
+
     PriorityQueue<vertex_t, double> vertexchooser(numofchildren);
     for (tie(viter, viterend) = out_edges(parent, thetree); viter != viterend;
         ++viter) {
       vertex_t node = target(*viter, thetree);
-      double value = -vertexvalue[node].calculate(vertexvalue[parent]);
+      double value = -get(vertex_value, thetree, node).calculate(
+          get(vertex_value, thetree, parent));
       if (isbreaktie && vertexchooser.containsPriority(value)) {  // break the tie
+
+#if __cplusplus > 199711L
         double prob = distribution(generator);
+#else
+        double prob = (float) rand() / RAND_MAX;
+#endif
+
         if (prob < 0.5)
           value -= prob / 100.0;
         else
@@ -228,113 +273,94 @@ int GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
     }
     parent = vertexchooser.minPrioirty();
     numofchildren = out_degree(parent, thetree);
+
+#ifndef NDEBUG
+    if (maptochildren.find(parent) == maptochildren.end())
+      maptochildren.insert(make_pair(parent, 0));
+    assert(maptochildren.at(parent) == numofchildren);
+#endif
     ++level;
   }
-  int selectnode = vertexindex[parent];
-  return selectnode;
+#ifndef NDEBUG
+  if (maptochildren.find(parent) == maptochildren.end())
+    maptochildren.insert(make_pair(parent, 1));
+  else
+    ++maptochildren.at(parent);
+  if ((currentempty - level) == 0) {
+    --maptochildren.at(parent);
+    assert(maptochildren.at(parent) == out_degree(parent, thetree));
+  } else
+    assert(maptochildren.at(parent) == out_degree(parent, thetree) + 1);
+  assert(
+      static_cast<int>(getNodeDepth(get(vertex_index, thetree, parent)))
+          == level);
+#endif
+  return get(vertex_index, thetree, parent);
 }
 pair<int, double> GameTree::getBestMovefromSimulation() {
   //1. examine all children nodes below the root node
   size_t numofchildren = out_degree(_root, thetree);
+#ifndef NDEBUG
+  cerr << DEBUGHEADER() << printGameTree(get(vertex_index, thetree, _root))
+       << endl;
+#endif
+  assert(numofchildren != 0);
   PriorityQueue<vertex_t, double> vertexchooser(numofchildren);
   out_edge_iter viter, viterend;
   for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
       ++viter) {
     vertex_t node = target(*viter, thetree);
-    vertexchooser.insert(node, -vertexvalue[node].estimate());
+    vertexchooser.insert(node, -get(vertex_value, thetree, node).estimate());
   }
 #ifndef NDEBUG
-  DEBUGHEADER();
-  cerr << "log the simulation statistics for final choice" << endl;
+  cerr << DEBUGHEADER() << "log the simulation statistics for final choice"
+       << endl;
   for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
       ++viter)
-    cerr << vertexposition[target(*viter, thetree)] << ":"
-         << vertexvalue[target(*viter, thetree)].getValue() << " ";
+    cerr << get(vertex_position, thetree, target(*viter, thetree)) << ":"
+         << get(vertex_value, thetree, target(*viter, thetree)).getValue()
+         << " ";
   cerr << endl;
 #endif
   //2. choose the maximal value from all children nodes of root.
   int indexofbestmove = vertexchooser.minPrioirty();
-  double maxvalue =
-      vertexvalue[static_cast<vertex_t>(indexofbestmove)].getValue();
+  double maxvalue = get(vertex_value, thetree,
+                        get(vertex_index, thetree, indexofbestmove)).getValue();
   assert(indexofbestmove > 0);
   assert(maxvalue >= 0.0);
   return make_pair(indexofbestmove, maxvalue);
-}
-void GameTree::reRootfromSimulation(int indexofnode, bool isprune) {
-  vertex_t node = vertex(indexofnode, thetree);
-  reRoot(node, isprune);
 }
 void GameTree::getMovesfromTreeState(int indexofnode, vector<int>& babywatsons,
                                      vector<int>& opponents) {
   vertex_t node = vertex(indexofnode, thetree);
   in_edge_iter viter, viterend;
   while (node != _root) {
-    if (vertexcolor[node] != vertexcolor[_root])
-      babywatsons.push_back(vertexposition[node]);
+    if (get(vertex_color, thetree, node) != get(vertex_color, thetree, _root))
+      babywatsons.push_back(get(vertex_position, thetree, node));
     else
-      opponents.push_back(vertexposition[node]);
+      opponents.push_back(get(vertex_position, thetree, node));
     assert(in_degree(node, thetree) == 1);
     for (tie(viter, viterend) = in_edges(node, thetree); viter != viterend;
         ++viter)
       node = source(*viter, thetree);
   }
 }
-int GameTree::reRootbyPosition(size_t position) {
-  out_edge_iter viter, viterend;
-  vertex_t node = graph_traits<basegraph>::null_vertex();
-  for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
-      ++viter) {
-    if (vertexposition[target(*viter, thetree)] == position) {
-      node = target(*viter, thetree);
-      break;
-    }
-  }
-  reRoot(node, true);
-  return vertexindex[node];
-}
-void GameTree::prunebyPosition(size_t position, int level) {
-  int curlevel = level;
-  traversetoPruneBy(position, --curlevel, _root);
-}
-//TODO temporary, by hand right now. Figure out a way to fit in boost graph framework
-void GameTree::traversetoPruneBy(size_t position, int curlevel, vertex_t node) {
-  size_t numofchildren = out_degree(node, thetree);
-  if (numofchildren == 0 || curlevel == 0) {  //reach leaf
-    if (vertexposition[node] != position)
-      prune(node);
-    return;
-  } else if (curlevel == 0) {
-    out_edge_iter viter, viterend;
-    vector<vertex_t> nodestoprune;
-    for (tie(viter, viterend) = out_edges(node, thetree); viter != viterend;
-        ++viter) {
-      vertex_t child = target(*viter, thetree);
-      if (vertexposition[child] == position)
-        nodestoprune.push_back(child);
-    }
-    for (unsigned i = 0; i < nodestoprune.size(); ++i)
-      prune(nodestoprune[i]);
-
-    curlevel--;
-    for (tie(viter, viterend) = out_edges(node, thetree); viter != viterend;
-        ++viter)
-      traversetoPruneBy(position, curlevel, target(*viter, thetree));
-  }
-}
-int GameTree::getNodeValueFeature(int indexofnode, int indexofkind) {
+int GameTree::getNodeValueFeature(int indexofnode,
+                                  UTCPolicy::valuekind indexofkind) {
   vertex_t node = vertex(indexofnode, thetree);
-  return vertexvalue[node].feature(indexofkind);
+  return get(vertex_value, thetree, node).feature(indexofkind);
 }
 void GameTree::clearAll() {
   char rootscolor = 'W';
-  if (vertexcolor[_root] == red_color)
+  if (get(vertex_color, thetree, _root) == red_color)
     rootscolor = 'R';
-  else if (vertexcolor[_root] == black_color)
+  else if (get(vertex_color, thetree, _root) == black_color)
     rootscolor = 'B';
-  int indexofroot = vertexindex[_root];
+  int indexofroot = get(vertex_index, thetree, _root);
   thetree.clear();
   vertex_t root = addNode(indexofroot, rootscolor);
   _root = root;
+  maptochildren.clear();
 }
 size_t GameTree::getSizeofNodes() {
   return num_vertices(thetree);
@@ -373,7 +399,7 @@ vector<size_t> GameTree::getSiblings(size_t indexofnode) {
   for (tie(viter, viterend) = out_edges(parent, thetree); viter != viterend;
       ++viter) {
     vertex_t child = target(*viter, thetree);
-    siblings.push_back(vertexindex[child]);
+    siblings.push_back(get(vertex_index, thetree, child));
   }
   return vector<size_t>(siblings);
 }
@@ -386,4 +412,21 @@ GameTree::vertex_t GameTree::getParent(vertex_t node) {
     parent = source(*viter, thetree);
   }
   return parent;
+}
+void GameTree::initGameTree(char playerscolor, size_t indexofroot) {
+  //set the root's color label as opponent's color label
+  char rootscolor = 'W';
+  if (playerscolor == 'R')
+    rootscolor = 'B';
+  else if (playerscolor == 'B')
+    rootscolor = 'R';
+  vertex_t root = addNode(indexofroot, rootscolor);
+  _root = root;
+}
+size_t GameTree::getNumofTotalNodes() {
+  return num_vertices(thetree);
+}
+size_t GameTree::getNumofChildren(size_t indexofnode) {
+  vertex_t parent = vertex(indexofnode, thetree);
+  return (out_degree(parent, thetree));
 }

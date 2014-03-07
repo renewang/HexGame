@@ -17,22 +17,21 @@
 #define STRATEGY_H_
 
 #include <vector>
-#include <random>
 #include <algorithm>
-#include <unordered_set>
 
 #include "Player.h"
 #include "HexBoard.h"
 #include "PriorityQueue.h"
 #include "AbstractStrategyImpl.h"
+
 #ifndef NDEBUG
 #include "gtest/gtest_prod.h"
 #endif
 
 class Strategy : public AbstractStrategyImpl {
  private:
-  float threshold = 1.0;  //the threshold to indicate when to stop generating next move randomly and just simply fill up the board
-  float randomness = 1.0;
+  double threshold;  //the threshold to indicate when to stop generating next move randomly and just simply fill up the board
+  double randomness;
   int numofhexgons;
   //the actual playing board in the game. Need to ensure it not to be modified during the simulation
   const HexBoard* ptrtoboard;
@@ -40,35 +39,39 @@ class Strategy : public AbstractStrategyImpl {
   const Player* ptrtoplayer;
   const int numberoftrials;
   //fill up the board
-  int genNextFill(std::shared_ptr<bool>& emptyindicators, PriorityQueue<int, int>&queue, int& proportionofempty);
   //simulation body
-  int simulation();
+  int simulation(int currentempty);
   //count the number of neighbors for current game progress
-  void countNeighbors(std::shared_ptr<bool>, std::unordered_set<int>&,
+  void countNeighbors(hexgame::shared_ptr<bool>, hexgame::unordered_set<int>&,
                       std::vector<std::pair<int, int> >&);
+  int genNextFill(hexgame::shared_ptr<bool>& emptyindicators,
+                  PriorityQueue<int, int>&queue, int& proportionofempty);
   //assign random number to neighbors counter
   void assignRandomNeighbors(PriorityQueue<int, int>&,
                              std::vector<std::pair<int, int> >&, int);
 
 #ifndef NDEBUG
   //for google test framework
-  friend class StrategyTest;
-  FRIEND_TEST(StrategyTest,CheckWinnerTest);
-  FRIEND_TEST(StrategyTest,CheckWinnerTestTwo);
-  FRIEND_TEST(StrategyTest,CheckWinnerElevenTest);
-  FRIEND_TEST(StrategyTest,CheckGenMoveForPair);
-  FRIEND_TEST(StrategyTest,CheckGenNextFillBasic);
+  friend class StrategyTest;FRIEND_TEST(StrategyTest,CheckWinnerTest);FRIEND_TEST(StrategyTest,CheckWinnerTestTwo);FRIEND_TEST(StrategyTest,CheckWinnerElevenTest);FRIEND_TEST(StrategyTest,CheckGenMoveForPair);FRIEND_TEST(StrategyTest,CheckGenNextFillBasic);
 #endif
 
  public:
   //constructor
   Strategy(const HexBoard* board, const Player* aiplayer);
-  Strategy(const HexBoard* board, const Player* aiplayer, float threshold,
-           float randomness);
+  Strategy(const HexBoard* board, const Player* aiplayer,
+           size_t numberoftrials);
+  Strategy(const HexBoard* board, const Player* aiplayer, double threshold,
+           double randomness);
+  Strategy(const HexBoard* board, const Player* aiplayer, double threshold,
+           double randomness, size_t numberoftrials);
+
   virtual ~Strategy() {
   }
   ;
-  std::string name(){return string("NaiveMonteCarlo");};
+  std::string name() {
+    return std::string("NaiveMonteCarlo");
+  }
+  ;
 };
 
 #endif /* STRATEGY_H_ */

@@ -151,7 +151,9 @@ class PriorityQueue {
   //node: the node needs to be inserted
   //priority:  the corresponding priority of the node
   //Output: NONE
+#if __cplusplus > 199711L
   void insert(const N&& node, Val priority);
+#endif
   //Returns the top element of the queue.
   //Input: NONE
   //Output:

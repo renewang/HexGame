@@ -17,7 +17,10 @@ using namespace std;
 //OUTPUT:
 //a boolean variable to indicate if this move is successful or not
 bool Game::setMove(Player& player, int indexofrow, int indexofcol) {
-  return player.setMove(indexofrow, indexofcol);
+  if(board.getNumofemptyhexgons() == 0)//empty, return true
+    return true;
+  else
+    return player.setMove(indexofrow, indexofcol);
 }
 //Show current board view
 //INPUT: NONE
@@ -49,7 +52,11 @@ string Game::showView(Player& playera, Player& playerb) {
     for (int j = 0; j < side; j++) {
       int index = i * side + j + 1;
       strout << setw(step - 1);
+#if __cplusplus  > 199711L
       if (board.getNodeValue(index) == hexgonValKind::EMPTY)
+#else
+        if (board.getNodeValue(index) == EMPTY)
+#endif
         strout << '.';
       else if (board.getNodeValue(index) == playera.getPlayerlabel())
         strout << playera.getViewLabel();

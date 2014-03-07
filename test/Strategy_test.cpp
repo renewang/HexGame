@@ -33,8 +33,13 @@ bool myfunction(pair<int, int> i, pair<int, int> j) {
 TEST_F(StrategyTest,CheckWinnerTest) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);  //north to south
   Player playerb(board, hexgonValKind::BLUE);  //west to east
+#else
+  Player playera(board, RED);  //north to south
+  Player playerb(board, BLUE);  //west to east
+#endif
   Strategy strategyred(&board, &playera);
   Strategy strategyblue(&board, &playerb);
 
@@ -283,12 +288,19 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
 //purely random to compare the result of MST and approximate approach to find a winner for north to south
   for (unsigned i = 0; i < 3000; i++) {
     HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
+#else
+    Player playera(board, RED);  //north to south
+    Player playerb(board, BLUE);  //west to east
+#endif
     Strategy strategyred(&board, &playera);
     vector<int> test;
     bool winner = false;
-    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
+
     Game hexboardgame(board);
     while (!winner) {
       int portionofempty = board.getNumofemptyhexgons();
@@ -296,7 +308,7 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
       int col = (move - 1) % numofhexgon + 1;
-      hexboardgame.setMove(playera, row, col);
+      ASSERT_TRUE(hexboardgame.setMove(playera, row, col));
       winner = strategyred.isWinner(test, playera.getWestToEastCondition());
     }
     string winnerwho = hexboardgame.getWinner(playera, playerb);
@@ -313,19 +325,24 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
   for (unsigned i = 0; i < 3000; i++) {
     HexBoard board(numofhexgon);
     Game hexboardgame(board);
+#if __cplusplus > 199711L
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
+#else
+    Player playera(board, RED);  //north to south
+    Player playerb(board, BLUE);  //west to east
+#endif
     Strategy strategyblue(&board, &playerb);
     vector<int> test;
     bool winner = false;
-    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
       int portionofempty = board.getNumofemptyhexgons();
       int move = strategyblue.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
       int col = (move - 1) % numofhexgon + 1;
-      hexboardgame.setMove(playerb, row, col);
+      ASSERT_TRUE(hexboardgame.setMove(playerb, row, col));
       winner = strategyblue.isWinner(test, playerb.getWestToEastCondition());
     }
     string winnerwho = hexboardgame.getWinner(playera, playerb);
@@ -339,25 +356,34 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     EXPECT_EQ(winnerwho, playername);
   }
 }
+TEST_F(StrategyTest,CheckStrategyBasic) {
+  //1. test with assignRandomNeighbors (especially the codes with prior C++11)
+  //2. test with countNeighbors
+}
 TEST_F(StrategyTest,CheckWinnerElevenTest) {
   int numofhexgon = 11;
   for (unsigned i = 0; i < 3000; i++) {
     HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
+#else
+    Player playera(board, RED);  //north to south
+    Player playerb(board, BLUE);  //west to east
+#endif
     Strategy strategyred(&board, &playera);
     Strategy strategyblue(&board, &playerb);
     Game hexboardgame(board);
     vector<int> test;
     bool winner = false;
-    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
       int portionofempty = (unsigned) board.getNumofemptyhexgons();
       int move = strategyred.genNextRandom(emptyindicators, portionofempty);
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
       int col = (move - 1) % numofhexgon + 1;
-      hexboardgame.setMove(playera, row, col);
+      ASSERT_TRUE(hexboardgame.setMove(playera, row, col));
       winner = strategyred.isWinner(test, playera.getWestToEastCondition());
     }
     string winnerwho = hexboardgame.getWinner(playera, playerb);
@@ -372,13 +398,18 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
   }
   for (unsigned i = 0; i < 3000; i++) {
     HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
+#else
+    Player playera(board, RED);  //north to south
+    Player playerb(board, BLUE);  //west to east
+#endif
     Strategy strategyblue(&board, &playerb);
     Game hexboardgame(board);
     vector<int> test;
     bool winner = false;
-    shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
 
     while (!winner) {
       int portionofempty = (unsigned) board.getNumofemptyhexgons();
@@ -386,7 +417,7 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
       test.push_back(move);
       int row = (move - 1) / numofhexgon + 1;
       int col = (move - 1) % numofhexgon + 1;
-      hexboardgame.setMove(playerb, row, col);
+      ASSERT_TRUE(hexboardgame.setMove(playerb, row, col));
       winner = strategyblue.isWinner(test, playerb.getWestToEastCondition());
     }
     string winnerwho = hexboardgame.getWinner(playera, playerb);
@@ -403,25 +434,30 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
 TEST_F(StrategyTest,CheckGenNextFillBasic) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);   //north to south, babywatson, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+#else
+  Player playera(board, RED);  //north to south
+  Player playerb(board, BLUE);  //west to east
+#endif
   Strategy strategyred(&board, &playera, 1.0, 0.0);
   Game hexboardgame(board);
-  shared_ptr<bool>& emptyindicators = const_cast<shared_ptr<bool>&>(board.getEmptyHexIndicators());
+  hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
   vector<int>& babywatsons = const_cast<vector<int>&>(board.getRedmoves());
 
-  hexboardgame.setMove(playera, 1, 3);
-  hexboardgame.setMove(playera, 1, 4);
-  hexboardgame.setMove(playera, 2, 2);
-  hexboardgame.setMove(playera, 2, 4);
-  hexboardgame.setMove(playera, 2, 5);
-  hexboardgame.setMove(playera, 3, 2);
-  hexboardgame.setMove(playera, 3, 3);
-  hexboardgame.setMove(playera, 3, 4);
-  hexboardgame.setMove(playera, 3, 5);
-  hexboardgame.setMove(playera, 4, 1);
-  hexboardgame.setMove(playera, 5, 2);
-  hexboardgame.setMove(playera, 5, 4);
+  ASSERT_TRUE(hexboardgame.setMove(playera, 1, 3));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 1, 4));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 2, 2));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 2, 4));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 2, 5));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 3, 2));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 3, 3));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 3, 4));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 3, 5));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 4, 1));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 5, 2));
+  ASSERT_TRUE(hexboardgame.setMove(playera, 5, 4));
 
   //cout << hexboardgame.showView(playera, playerb);
 
@@ -430,7 +466,7 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
   PriorityQueue<int, int> queue(board.getSizeOfVertices());
   vector<pair<int, int> > counter(currentempty);
 
-  unordered_set<int> allmoves(babywatsons.begin(), babywatsons.end());
+  hexgame::unordered_set<int> allmoves(babywatsons.begin(), babywatsons.end());
 
   strategyred.countNeighbors(emptyindicators, allmoves, counter);
   strategyred.assignRandomNeighbors(queue, counter, currentempty);
@@ -459,8 +495,13 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
 TEST_F(StrategyTest, CheckSimulationTest) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+#else
+  Player playera(board, RED);  //north to south
+  Player playerb(board, BLUE);  //west to east
+#endif
   Strategy strategyred(&board, &playera);
   Strategy strategyblue(&board, &playerb);
   Game hexboardgame(board);
@@ -472,14 +513,14 @@ TEST_F(StrategyTest, CheckSimulationTest) {
     redmove = hexboardgame.genMove(strategyred);
     redrow = (redmove - 1) / numofhexgon + 1;
     redcol = (redmove - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playera, redrow, redcol);
+    ASSERT_TRUE(hexboardgame.setMove(playera, redrow, redcol));
 
     //the virtual opponent moves
     int bluemove, bluerow, bluecol;
     bluemove = hexboardgame.genMove(strategyblue);
     bluerow = (bluemove - 1) / numofhexgon + 1;
     bluecol = (bluemove - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playerb, bluerow, bluecol);
+    ASSERT_TRUE(hexboardgame.setMove(playerb, bluerow, bluecol));
 
     cout << "simulation " << round << " : " << redmove << " " << bluemove
          << endl;
@@ -491,8 +532,13 @@ TEST_F(StrategyTest, CheckSimulationTest) {
 TEST_F(StrategyTest, CheckSimulationELEVENTest) {
   int numofhexgon = 11;
   HexBoard board(numofhexgon);
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+#else
+  Player playera(board, RED);  //north to south
+  Player playerb(board, BLUE);  //west to east
+#endif
   Strategy strategyred(&board, &playera);
   Strategy strategyblue(&board, &playerb);
   Game hexboardgame(board);
@@ -504,14 +550,14 @@ TEST_F(StrategyTest, CheckSimulationELEVENTest) {
     redmove = hexboardgame.genMove(strategyred);
     redrow = (redmove - 1) / numofhexgon + 1;
     redcol = (redmove - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playera, redrow, redcol);
+    ASSERT_TRUE(hexboardgame.setMove(playera, redrow, redcol));
 
     //the virtual opponent moves
     int bluemove, bluerow, bluecol;
     bluemove = hexboardgame.genMove(strategyblue);
     bluerow = (bluemove - 1) / numofhexgon + 1;
     bluecol = (bluemove - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playerb, bluerow, bluecol);
+    ASSERT_TRUE(hexboardgame.setMove(playerb, bluerow, bluecol));
 
     cout << "simulation " << round << " : " << redmove << " " << bluemove
          << endl;

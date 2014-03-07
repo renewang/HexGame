@@ -14,6 +14,7 @@
 #include <utility>
 #include <iomanip>
 #include <sstream>
+#include <typeinfo>
 #include <iterator>
 #include <iostream>
 #include <algorithm>
@@ -22,7 +23,7 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "global.h"
+#include "Global.h"
 #include "AbstractParser.h"
 
 /*

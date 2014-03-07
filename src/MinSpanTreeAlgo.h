@@ -19,6 +19,7 @@
 #define MINSPANTREEALGO_H_
 
 #include <string>
+#include <limits>
 #include "Graph.h"
 #include "PriorityQueue.h"
 #include "AbstractAlgorithm.h"

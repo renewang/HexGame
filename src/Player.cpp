@@ -18,7 +18,13 @@ bool Player::setMove(int indexofrow, int indexofcol) {
   bool issuccess = false;
   int numofhexgon = board.getNumofhexgons();
   int index = (indexofrow - 1) * numofhexgon + (indexofcol - 1) + 1;
-  if (board.getNodeValue(index) == hexgonValKind::EMPTY) {
+  assert(index > 0);
+#if __cplusplus > 199711L
+  if (board.getNodeValue(index) == hexgonValKind::EMPTY)
+#else
+  if (board.getNodeValue(index) == EMPTY)
+#endif
+  {
     board.setNodeValue(index, this->playerkind);
     setPlayerBoard(index);
     issuccess = true;
@@ -34,8 +40,9 @@ bool Player::isArriveOpposite() {
   //calculate current MST, actually is a MSF (Minimal Spanning Forests)
   Graph<hexgonValKind, int> msttree = calMST();
   //to check if end-to-end path existing in MST
-  vector< vector<int> > subgraphs = msttree.getAllSubGraphs();
+  vector<vector<int> > subgraphs = msttree.getAllSubGraphs();
   int numofhexgons = board.getNumofhexgons();
+#if __cplusplus > 199711L
   for (auto vec : subgraphs) {
     isendfound = false;
     isotherendfound = false;
@@ -54,9 +61,35 @@ bool Player::isArriveOpposite() {
           isotherendfound = true;
       }
     }
-    if(isendfound && isotherendfound)
+    if (isendfound && isotherendfound)
       break;
   }
+#else
+  vector<vector<int> >::iterator iterofsubgraph = subgraphs.begin();
+  for (;iterofsubgraph!=subgraphs.end(); ++iterofsubgraph) {
+    isendfound = false;
+    isotherendfound = false;
+    vector<int>::iterator iterofelem = (*iterofsubgraph).begin();
+    for (;iterofelem!=(*iterofsubgraph).end(); ++iterofelem) {
+      int i = *(iterofelem);
+      int row = (i - 1) / numofhexgons;
+      int col = (i - 1) % numofhexgons;
+      if (this->condition == WESTTOEAST) {
+        if (col == 0)
+          isendfound = true;
+        else if (col == (numofhexgons - 1))
+          isotherendfound = true;
+      } else if (this->condition == NORTHTOSOUTH) {
+        if (row == 0)
+          isendfound = true;
+        else if (row == (numofhexgons - 1))
+          isotherendfound = true;
+      }
+    }
+    if (isendfound && isotherendfound)
+      break;
+  }
+#endif
   return (isendfound && isotherendfound);
 }
 //Call Minimal Spanning Tree calculation in order to calculate the connected path for every move the player has made
@@ -81,8 +114,15 @@ void Player::setPlayerBoard(int index) {
   playersboard.setNodeValue(index, playerkind);
   //remove the edges without the same label
   vector<int> neighbors = playersboard.getNeighbors(index);
+#if __cplusplus > 199711L
   for (auto i : neighbors) {
     if (playersboard.getNodeValue(i) != playerkind)
       playersboard.deleteEdge(index, i);
   }
+#else
+  for (vector<int>::iterator iter = neighbors.begin(); iter != neighbors.end(); ++iter) {
+    if (playersboard.getNodeValue(*iter) != playerkind)
+      playersboard.deleteEdge(index, *iter);
+  }
+#endif
 }

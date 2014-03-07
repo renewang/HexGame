@@ -148,12 +148,13 @@ void MinSpanTreeAlgo<Type, Val>::Prim::calculate() {
   while (close.size() < graphsize && emptygraph.getSizeOfEdges() < graphsize - 1) {
 
     //for each node in the close set, find the minimal out edge to the node in open set
+#if __cplusplus > 199711L
     for (auto node : close) {
-      std::vector<int> neighbors = algo.graph.getNeighbors(node);
-      std::vector<Val> edges = algo.graph.getNeighborsEdgeValues(node);
+      vector<int> neighbors = algo.graph.getNeighbors(node);
+      vector<Val> edges = algo.graph.getNeighborsEdgeValues(node);
 
-      std::vector<int>::iterator iterneigh = neighbors.begin();
-      typename std::vector<Val>::iterator iteredge = edges.begin();
+      vector<int>::iterator iterneigh = neighbors.begin();
+      typename vector<Val>::iterator iteredge = edges.begin();
 
       for (; iterneigh != neighbors.end(); ++iterneigh, ++iteredge)
         if (!visited[*iterneigh - 1]
@@ -163,6 +164,25 @@ void MinSpanTreeAlgo<Type, Val>::Prim::calculate() {
           assert(open.chgPrioirity(*iterneigh, *iteredge));
         }
     }
+#else
+    vector<int>::iterator iter = close.begin();
+    for (;iter!= close.end(); ++iter) {
+      int node = *iter;
+      vector<int> neighbors = algo.graph.getNeighbors(node);
+      vector<Val> edges = algo.graph.getNeighborsEdgeValues(node);
+
+      vector<int>::iterator iterneigh = neighbors.begin();
+      typename vector<Val>::iterator iteredge = edges.begin();
+
+      for (; iterneigh != neighbors.end(); ++iterneigh, ++iteredge)
+        if (!visited[*iterneigh - 1]
+            && *iteredge < distance[(*iterneigh) - 1]) {  //don't update those already in close set and replace with smaller edge
+          distance[(*iterneigh) - 1] = *iteredge;
+          prevnode[(*iterneigh) - 1] = node;
+          assert(open.chgPrioirity(*iterneigh, *iteredge));
+        }
+    }
+#endif
     int nexttonode = open.minPrioirty();
     int nextfromnode = prevnode[nexttonode - 1];
     Val nextminedge = algo.graph.getEdgeValue(nextfromnode, nexttonode);

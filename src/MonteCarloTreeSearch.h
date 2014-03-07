@@ -28,18 +28,20 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
   const std::size_t numberoftrials;
   char babywatsoncolor, oppoenetcolor;
 
+ protected:
   int getBestMove(GameTree& gametree);
-  int simulation();
+  int simulation(int currentempty);
   //Monte Carlo tree search steps
   //in-tree phase
   int selection(int currentempty, GameTree& gametree);
-  int expansion(int expandedleaf, std::shared_ptr<bool>& emptyindicators,
-                int& portionofempty, vector<int>& babywatsons,
-                vector<int>& opponents, GameTree& gametree);
+  int expansion(int selectnode, hexgame::shared_ptr<bool>& emptyindicators,
+                int& portionofempty, std::vector<int>& babywatsons,
+                std::vector<int>& opponents, GameTree& gametree);
   //play-out phase
-  int playout(std::shared_ptr<bool>& emptyindicators, int& portionofempty,
-              vector<int>& babywatsons, vector<int>& opponents);
+  int playout(hexgame::shared_ptr<bool>& emptyindicators, int& portionofempty,
+              std::vector<int>& babywatsons, std::vector<int>& opponents);
   void backpropagation(int backupnode, int winner, GameTree& gametree);
+  void init();
 
 #ifndef NDEBUG
   //for google test framework
@@ -51,14 +53,16 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
  public:
   //constructor
   MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer);
-  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer, size_t numberoftrials);
+  MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer,
+                       size_t numberoftrials);
   virtual ~MonteCarloTreeSearch() {
   }
   ;
-  std::string name(){return string("MonteCarloTreeSearch");};
+  std::string name() {
+    return std::string("MonteCarloTreeSearch");
+  }
+  ;
 
-//TODO, don't know why compiler issue the warning that I need to drop const on return type
-  //const std::size_t getNumberoftrials() const
   std::size_t getNumberoftrials() {
     return numberoftrials;
   }

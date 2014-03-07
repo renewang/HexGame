@@ -116,8 +116,13 @@ TEST_F(HexBoardTest,HexBoardInitialization) {
   EXPECT_EQ("EMPTY", strout.str());
 
   Game hexboardgame(board);
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::BLUE);
   Player playerb(board, hexgonValKind::RED);
+#else
+  Player playera(board, BLUE);
+  Player playerb(board, RED);
+#endif
   ASSERT_TRUE(hexboardgame.setMove(playera, 1, 3));
   stringstream strout2;
   strout2 << board.getNodeValue(3);
@@ -131,24 +136,33 @@ TEST_F(HexBoardTest,HexBoardSetMove) {
   //test 5x5 Hexboard
   HexBoard board(5);
   Game hexboardgame(board);
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);
+#else
+  Player playera(board, RED);
+#endif
 
   //test with private set setPlayerBoard method and corresponding MST tree
   ASSERT_TRUE(hexboardgame.setMove(playera, 1, 1));
   HexBoard playerasboard = playera.getPlayersboard();
   EXPECT_EQ(0, playerasboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 1);
   ASSERT_TRUE(hexboardgame.setMove(playera, 2, 1));
   playerasboard = playera.getPlayersboard();
   EXPECT_EQ(1, playerasboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 2);
   ASSERT_TRUE(hexboardgame.setMove(playera, 3, 1));
   playerasboard = playera.getPlayersboard();
   EXPECT_EQ(2, playerasboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 3);
   ASSERT_TRUE(hexboardgame.setMove(playera, 4, 1));
   playerasboard = playera.getPlayersboard();
   EXPECT_EQ(3, playerasboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 4);
   ASSERT_TRUE(hexboardgame.setMove(playera, 5, 1));
   playerasboard = playera.getPlayersboard();
   EXPECT_EQ(4, playerasboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 5);
 
   MinSpanTreeAlgo<hexgonValKind, int> mstalgo(playerasboard);
   MinSpanTreeAlgo<hexgonValKind, int>::UnionFind unionfind(mstalgo);
@@ -159,21 +173,31 @@ TEST_F(HexBoardTest,HexBoardSetMove) {
   vector<vector<int> > subgraphs = msttree.getAllSubGraphs();
   EXPECT_EQ(1, subgraphs.size());
 
+#if __cplusplus > 199711L
   Player playerb(board, hexgonValKind::BLUE);
+#else
+  Player playerb(board, BLUE);
+#endif
   ASSERT_TRUE(hexboardgame.setMove(playerb, 1, 2));
   HexBoard playerbsboard = playerb.getPlayersboard();
   EXPECT_EQ(0, playerbsboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 6);
   ASSERT_TRUE(hexboardgame.setMove(playerb, 2, 2));
   playerbsboard = playerb.getPlayersboard();
   EXPECT_EQ(1, playerbsboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 7);
   ASSERT_TRUE(hexboardgame.setMove(playerb, 3, 2));
   playerbsboard = playerb.getPlayersboard();
   EXPECT_EQ(2, playerbsboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 8);
   ASSERT_TRUE(hexboardgame.setMove(playerb, 4, 2));
   playerbsboard = playerb.getPlayersboard();
   EXPECT_EQ(3, playerbsboard.getSizeOfEdges());
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 9);
   ASSERT_TRUE(hexboardgame.setMove(playerb, 2, 5));
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 10);
   ASSERT_TRUE(hexboardgame.setMove(playerb, 3, 5));
+  EXPECT_EQ(board.getNumofemptyhexgons(), board.getSizeOfVertices() - 11);
   playerbsboard = playerb.getPlayersboard();
   EXPECT_EQ(4, playerbsboard.getSizeOfEdges());
 
@@ -185,13 +209,26 @@ TEST_F(HexBoardTest,HexBoardSetMove) {
   vector<vector<int> > subgraphsb = msttreeb.getAllSubGraphs();
   EXPECT_EQ(2, subgraphsb.size());
 }
+//TODO
+/*
+TEST_F(HexBoardTest,HexBoardBasicFuncs) {
+  //1. test setEdgeValue
+  //2. test setNodeValue
+  //3. test setNumofhexgons
+  EXPECT_FALSE(true);
+}*/
 TEST_F(HexBoardTest,HexBoardWinningTest) {
   //test 5x5 Hexboard
   HexBoard board(5);
   Game hexboardgame(board);
+
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);
   Player playerb(board, hexgonValKind::BLUE);
-
+#else
+  Player playera(board, RED);
+  Player playerb(board, BLUE);
+#endif
   //generate a sequence of paths
   ASSERT_TRUE(hexboardgame.setMove(playera, 1, 1));
   EXPECT_EQ("UNKNOWN", hexboardgame.getWinner(playera, playerb));
@@ -216,9 +253,14 @@ TEST_F(HexBoardTest,HexBoardWinningTest2) {
   //test 5x5 Hexboard
   HexBoard board(5);
   Game hexboardgame(board);
+
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);
   Player playerb(board, hexgonValKind::BLUE);
-
+#else
+  Player playera(board, RED);
+  Player playerb(board, BLUE);
+#endif
   //generate a sequence of paths
   ASSERT_TRUE(hexboardgame.setMove(playera, 1, 1));
   EXPECT_EQ("UNKNOWN", hexboardgame.getWinner(playera, playerb));
@@ -247,9 +289,14 @@ TEST_F(HexBoardTest,HexBoardWinningTest3) {
   //test 5x5 Hexboard
   HexBoard board(5);
   Game hexboardgame(board);
+
+#if __cplusplus > 199711L
   Player playera(board, hexgonValKind::RED);
   Player playerb(board, hexgonValKind::BLUE);
-
+#else
+  Player playera(board, RED);
+  Player playerb(board, BLUE);
+#endif
   //generate a sequence of paths
   ASSERT_TRUE(hexboardgame.setMove(playera, 1, 1));
   EXPECT_EQ("UNKNOWN", hexboardgame.getWinner(playera, playerb));

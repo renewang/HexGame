@@ -1,7 +1,21 @@
 #include "Graph.h"
 
 using namespace std;
-
+#if __cplusplus <= 199711L
+template<class Val>
+struct f {
+  Val operator()(const string str) {
+    Val value = static_cast<Val>(0);
+    if (typeid(Val) == typeid(int)) {
+      value = static_cast<Val>(atoi(str.c_str()));
+    } else if (typeid(Val) == typeid(double)
+        || typeid(Val) == typeid(float)) {
+      value = static_cast<Val>(atof(str.c_str()));
+    }
+    return value;
+  }
+};
+#endif
 template<class Type, class Val>
 vector<vector<int> > Graph<Type, Val>::getAllSubGraphs() {
   bool* visited = new bool[this->numofvertices];
@@ -105,9 +119,15 @@ std::map<int, Val> Graph<Type, Val>::getAllEdgesValues() const {
 //a vector which stores the indices of nodes
 template<class Type, class Val>
 vector<int> Graph<Type, Val>::getAllNodes() const {
-  std::vector<int> nodes;
+  vector<int> nodes;
+#if __cplusplus > 199711L
   for (auto n : this->repgraph)
     nodes.push_back(n.vertexindex);
+#else
+  typename vector<Node>::iterator iter = this->repgraph.begin();
+  for (;iter != this->repgraph.end(); ++iter)
+  nodes.push_back(*iter.vertexindex);
+#endif
   return vector<int>(nodes);
 }
 //Implementation of Monte Carlo simulation to generate undirected graph.
@@ -119,7 +139,7 @@ void Graph<Type, Val>::randomGraphGenerator() {
     return;
   }
   //initialize random seed with current time
-  srand(clock());
+  srand(static_cast<unsigned int>(clock()));
 
   for (typename std::vector<Node>::iterator iterself = repgraph.begin();
       iterself != repgraph.end(); ++iterself) {  // for each vertex
@@ -394,6 +414,7 @@ Graph<Type, Val>::Graph(AbstractParser& parser) {
   for (unsigned i = 1; i < graphfromtext.size(); i++) {
     std::vector<Val> vecTrans(graphfromtext[i].size());
     // the conversion from string to numeric primitives when parsing the graph from text file.
+#if __cplusplus > 199711L
     transform(graphfromtext[i].begin(), graphfromtext[i].end(),
               vecTrans.begin(), [](const string str)->Val {
                 Val value = static_cast<Val>(0);
@@ -404,8 +425,12 @@ Graph<Type, Val>::Graph(AbstractParser& parser) {
                   value = static_cast<Val>(atof(str.c_str()));
                 }
                 return value;});
+#else
+    f<Val> func;
+    transform(graphfromtext[i].begin(), graphfromtext[i].end(), vecTrans.begin(), func);
+#endif
     assert(graphfromtext[i].size() == 3);
-    repmatrix[(int)vecTrans[0]][(int)vecTrans[1]] = vecTrans[2];
+    repmatrix[(int) vecTrans[0]][(int) vecTrans[1]] = vecTrans[2];
   }
   toListGraphRep();
 }
