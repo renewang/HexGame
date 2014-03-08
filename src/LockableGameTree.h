@@ -38,6 +38,7 @@ class LockableUTCPolicy : public lockable_base_type {
   std::size_t numoffeatures;
   std::vector<int> featureholder;
   hexgame::atomic<int> countforexpand;  //vertex property, semaphore for local lock.
+  hexgame::atomic<bool> isupdated;
   int sizeoffuturechildren;
   boost::condition_variable_any holdforupdate;
  public:
@@ -53,6 +54,7 @@ class LockableUTCPolicy : public lockable_base_type {
         numoffeatures(2),
         featureholder(std::vector<int>(numoffeatures)),
         countforexpand(0),
+        isupdated(false),
         sizeoffuturechildren(0) {
     std::fill(featureholder.begin(), featureholder.end(), 0);
   }
@@ -133,6 +135,12 @@ class LockableUTCPolicy : public lockable_base_type {
     else
       sizeoffuturechildren = numofchildren;
   }
+  bool getIsupdated() const {
+    return isupdated.load();
+  }
+  void setIsupdated(bool isupdated) {
+    this->isupdated.store(isupdated);
+  }
 };
 
   class LockableGameTree : public lockable_base_type {
@@ -186,44 +194,31 @@ class LockableUTCPolicy : public lockable_base_type {
     hexgame::atomic<int> countforexpand;
     hexgame::atomic<bool> isblockingforexpand;
 
-    //external lock version
-    void updateNodeName(boost::unique_lock<LockableGameTree>&, vertex_t node);
-    //update the value of a given node
-    void updateNodeValue(boost::unique_lock<LockableGameTree>&, vertex_t node);
-    //update the color of a given node
-    void updateNodeColor(boost::unique_lock<LockableGameTree>&, vertex_t node,
-                         char color);
-    //update the board position of a given node
-    void updateNodePosition(boost::unique_lock<LockableGameTree>&,
-                            vertex_t node, std::size_t position);bool addEdge(
-        boost::unique_lock<LockableGameTree>&, vertex_t source,
-        vertex_t target);
+    //implement with global lock, external
     vertex_t addNode(boost::unique_lock<LockableGameTree>&,
                      std::size_t positionofchild, char color);
     std::size_t getNodeDepth(boost::unique_lock<LockableGameTree>&,
                              int indexofnode);
-    vertex_t getParent(boost::unique_lock<LockableGameTree>&, vertex_t node);
     void backpropagate(boost::unique_lock<LockableGameTree>&, vertex_t leaf,
-                       int value, int level);bool notifyAllUpdateDone(
-        boost::unique_lock<LockableGameTree>&, vertex_t leaf, int level);
+                       int value, int level);
+    bool notifyAllUpdateDone(boost::unique_lock<LockableGameTree>&, vertex_t leaf, int level);
+    void updateNodeValue(boost::unique_lock<LockableGameTree>&, vertex_t node); //update the color of a given node
 
-    //internal lock version
-    void initGameTree(char playerscolor, size_t indexofroot);
-    //TODO remove internal lock version
+    //implement with global lock, internal
     vertex_t addNode(std::size_t positionofchild, char color);
-    void updateNodeName(vertex_t node);  //TODO modify this, enforce to update node color and position before update node name
-    //update the value of a given node
-    void updateNodeValue(vertex_t node, LockableUTCPolicy& policy);
-    void updateNodeValue(vertex_t node);
-    //update the color of a given node
-    void updateNodeColor(vertex_t node, char color);
-    //update the board position of a given node
-    void updateNodePosition(vertex_t node, std::size_t position);bool addEdge(
-        vertex_t source, vertex_t target);
     std::size_t getNodeDepth(int indexofnode);
+    void backpropagate(vertex_t leaf, int value, int level);
+    bool notifyAllUpdateDone(vertex_t leaf, int level);
+    void initGameTree(char playerscolor, size_t indexofroot);
+
+    //implement with local lock, external
+    void updateNodeName(boost::unique_lock<LockableUTCPolicy>&, vertex_t node); //update the value of a given node
+    void updateNodeColor(boost::unique_lock<LockableUTCPolicy>&, vertex_t node, char color); //update the board position of a given node
+    void updateNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node, std::size_t position);
+
+    //implement with local lock, internal
+    bool addEdge(vertex_t source, vertex_t target);
     vertex_t getParent(vertex_t node);
-    void backpropagate(vertex_t leaf, int value, int level);bool notifyAllUpdateDone(
-        vertex_t leaf, int level);
 
     //for print
     class TreePrinter {
@@ -250,16 +245,20 @@ class LockableUTCPolicy : public lockable_base_type {
     };
 
 #ifndef NDEBUG
-    friend class ParallelTest;FRIEND_TEST(ParallelTest, ThreadGameTreeNode);FRIEND_TEST(ParallelTest, ThreadEndofGameValue);
+    friend class ParallelTest;FRIEND_TEST(ParallelTest, ThreadGameTreeNode);
+    FRIEND_TEST(ParallelTest, ThreadEndofGameValue);
     friend void CreateTreeTask(int currentempty, LockableGameTree& gametree,
                                HexBoard& board);
+    friend void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
+                        HexBoard& board, hexgame::shared_ptr< set<int> >& ptrtochosenkids);
 #endif
 
    public:
     LockableGameTree();
     LockableGameTree(char playerslabel);
     LockableGameTree(char playerslabel, std::size_t indexofroot);
-    //external lock version
+
+    //implement with global lock, external
     int selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
                              int currentempty, bool isbreaktie = true);
     void getMovesfromTreeState(boost::unique_lock<LockableGameTree>&,
@@ -267,42 +266,39 @@ class LockableUTCPolicy : public lockable_base_type {
                                std::vector<int>& opponents);
     int expandNode(boost::unique_lock<LockableGameTree>&, int indexofsource,
                    int move, char color = 'W');
-    void setNodePosition(boost::unique_lock<LockableGameTree>&,
-                         std::size_t indexofnode, std::size_t position);
     int updateNodefromSimulation(boost::unique_lock<LockableGameTree>&,
                                  int indexofnode, int winner);
     void backpropagatefromSimulation(boost::unique_lock<LockableGameTree>&,
                                      int indexofnode, int value,
                                      int level = -1);
-    std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&,
-                                         std::size_t indexofnode);
-    std::size_t getNodePosition(boost::unique_lock<LockableGameTree>&,
-                                std::size_t indexofnode);
-    std::size_t getNumofChildren(boost::unique_lock<LockableGameTree>&,
-                                 std::size_t indexofnode);  //TODO, add GameTree too
-    int getParent(boost::unique_lock<LockableGameTree>&, int indexofnode);
-    string printGameTree(boost::unique_lock<LockableGameTree>&, int index);
+    string printGameTree(boost::unique_lock<LockableGameTree>&, int index); //print out the tree
     std::size_t getNumofTotalNodes(boost::unique_lock<LockableGameTree>&);
+    void setIsupdatedBackpropagation(boost::unique_lock<LockableGameTree>&, vertex_t leaf);
 
-    //internal lock version
-    //print out the tree
-    std::string printGameTree(int key);
+    //implement with global lock, internal
     int selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
     void getMovesfromTreeState(int indexofchild, std::vector<int>& babywatsons,
-                               std::vector<int>& opponents);
+                                   std::vector<int>& opponents);
     int expandNode(int indexofsource, int move, char color = 'W');
-    void setNodePosition(std::size_t indexofnode, std::size_t position);
     int updateNodefromSimulation(int indexofnode, int winner);
     void backpropagatefromSimulation(int indexofnode, int value,
                                      int level = -1);
-    std::vector<std::size_t> getSiblings(std::size_t indexofnode);
-    std::size_t getNodePosition(std::size_t indexofnode);
-    std::size_t getNumofChildren(std::size_t indexofnode);
-    int getParent(int indexofnode);
+    std::string printGameTree(int key); //print out the tree
     std::size_t getNumofTotalNodes();
     std::string name() {
       return std::string("LockableGameTree");
     }
     ;
+
+    //implement with local lock, internal
+    void setNodePosition(std::size_t indexofnode, std::size_t position);
+    std::vector<std::size_t> getLeaves();
+    std::vector<std::size_t> getSiblings(std::size_t indexofnode);
+    std::size_t getNodePosition(std::size_t indexofnode);
+    std::size_t getNumofChildren(std::size_t indexofnode);
+    std::size_t getParent(std::size_t indexofchild, bool);
+    bool getIsupdated(int indexofnode);
+    bool getIsupdatedBackpropagation(int indexofleaf);
+
   };
 #endif /* LOCKABLEGAMETREE_H_ */
