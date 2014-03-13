@@ -8,10 +8,12 @@
 #include <map>
 #include <sstream>
 #include <iostream>
+
 #include "gtest/gtest.h"
+
 #include "Graph.h"
-#include "ShortestPathAlgo.h"
 #include "PriorityQueue.h"
+#include "ShortestPathAlgo.h"
 
 using namespace std;
 template<typename T>

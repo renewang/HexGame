@@ -11,7 +11,6 @@
 #include "Global.h"
 #include "Player.h"
 #include "HexBoard.h"
-#include "LockableGameTree.h"
 #include "MonteCarloTreeSearch.h"
 
 #include <boost/thread/thread.hpp>
@@ -33,12 +32,7 @@ class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch {
   void init();
   void task(const std::vector<int>& bwglobal, const std::vector<int>& oppglobal,
             const hexgame::shared_ptr<bool>& emptyglobal, int currentempty,
-            GameTree& gametree);
-  int selection(int currentempty, GameTree& gametree);
-  int expansion(int selectnode, hexgame::shared_ptr<bool>& emptyindicators,
-                int& portionofempty, std::vector<int>& babywatsons,
-                std::vector<int>& opponents, GameTree& gametree);
-  void backpropagation(int backupnode, int winner, GameTree& gametree);
+            AbstractGameTree& gametree);
 
 #ifndef NDEBUG
   //for google test framework
@@ -58,7 +52,7 @@ class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch {
     return string("MultiMonteCarloTreeSearch");
   }
   ;
-  int simulation();
+  int simulation(int currentempty);
 };
 
 #endif /* MULTIMONTECARLOTREESEARCH_H_ */

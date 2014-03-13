@@ -147,7 +147,10 @@ int Strategy::simulation(int currentempty) {
     queue.insert(index[i], -1 * result[i]);
   }
 #ifndef NDEBUG
-  cerr << DEBUGHEADER() << "log the simulation statistics for final choice"<< endl;
+#undef DEBUG_OSTREAM
+#define DEBUG_OSTREAM std::cerr
+  DEBUGHEADER();
+  cerr << "log the simulation statistics for final choice"<< endl;
   for (unsigned i = 0; i != result.size(); ++i)
     cerr << (i + 1) << ":" << result[i] << " ";
   cerr << endl;

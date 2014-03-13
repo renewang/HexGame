@@ -28,7 +28,7 @@ namespace hexgame = std;
 
 #else //prior C++11, using boost
 #undef GTEST_LANG_CXX11
-#ifdef  BOOST_HAS_TR1_TUPLE
+#ifdef  BOOST_HAS_TR1_TUPLE //need to define BOOST_HAS_TR1_TUPLE in compiler flag
 #define GTEST_HAS_TR1_TUPLE 1
 #endif
 #include <boost/atomic.hpp>
@@ -59,30 +59,43 @@ namespace hexgame
 #endif
 
 //for turning off warnings in boost.
+
 #ifndef BOOST_SYSTEM_NO_DEPRECATED
 #define BOOST_SYSTEM_NO_DEPRECATED 1
 #endif
 
+
 #ifndef BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
-#define BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED 1
+#define BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED 0
 #endif
 
-#define DEBUGHEADER() (std::clog<< "[DEBUG] "<< __FILE__ << ":" << __LINE__ <<" "<< __func__<<" [" << __DATE__<<" "<<__TIME__ <<"] ")
 
-/*inline const char* DEBUGMSG() {
- std::stringstream buffer;
- hexgame::chrono::system_clock::time_point timestamp =
- hexgame::chrono::system_clock::now();
- std::time_t tt = hexgame::chrono::system_clock::to_time_t(timestamp);
- std::string format(ctime(&tt));
- buffer << "[";
- buffer << format.substr(0, (format.size() - 1));
- buffer << "] ";
- return buffer.str().c_str();
- }*/
+#ifndef NDEBUG
+#define BOOST_ENABLE_ASSERT_HANDLER
+#include <boost/assert.hpp>
 
-/*extern boost::recursive_mutex _recursive_mutex;
- extern boost::externally_locked_stream<std::ostream> safecerr(std::cerr, _recursive_mutex);
- extern boost::externally_locked_stream<std::ostream> safecout(std::cout, _recursive_mutex);*/
+//define output stream for boost assert
+#ifndef BOOST_ASSERT_MSG_OSTREAM
+#define BOOST_ASSERT_MSG_OSTREAM std::cerr
+#endif
+#endif
+
+//for multi-threading
+#include <iostream>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/externally_locked_stream.hpp>
+
+typedef boost::externally_locked_stream<std::ostream> safeostream;
+extern boost::recursive_mutex _recursive_mutex;
+extern safeostream safecerr;
+extern safeostream safecout;
+extern safeostream safeclog;
+
+void debugmsg(char const* file, unsigned long line, char const * function, char const * date, char const * time);
+
+#define DEBUG_OSTREAM std::clog
+#define DEBUGHEADER() (void)(debugmsg(__FILE__, __LINE__, __func__, __DATE__, __TIME__))
 
 #endif /* GLOBAL_H_ */

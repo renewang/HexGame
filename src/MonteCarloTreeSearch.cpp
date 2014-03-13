@@ -4,6 +4,7 @@
  */
 
 #include "Global.h"
+#include "GameTree.h"
 #include "MonteCarloTreeSearch.h"
 
 #include <algorithm>
@@ -70,14 +71,16 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
     int expandednode = expansion(selectnode, emptyindicators, proportionofempty,
                                  babywatsons, opponents, gametree);
 
-#ifdef NDEBUG //temporary turn off
-//#ifndef NDEBUG
+#ifndef NDEBUG
+#undef DEBUG_OSTREAM
+#define DEBUG_OSTREAM std::cerr
     DEBUGHEADER();
-    cerr
+    std::cerr
     << "[selectnode|expandednode|currentempty|proportionofempty|size of babywatsons|size of opponents] "
     << selectnode << "|" << expandednode << "|" << currentempty << "|"
     << proportionofempty << "|" << babywatsons.size() << "|"
     << opponents.size() << endl;
+#if __cplusplus > 199711L
     cerr << "babywatsons: ";
     for_each(babywatsons.begin(), babywatsons.end(),
         [](int i) {cerr << i << " ";});
@@ -85,6 +88,8 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
     cerr << "opponents: ";
     for_each(opponents.begin(), opponents.end(), [](int i) {cerr << i << " ";});
     cerr << endl;
+#else
+#endif
 #endif
 
     //simulation phase
@@ -93,10 +98,12 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
     assert(winner != 0);
     //back-propagate
     backpropagation(expandednode, winner, gametree);
-#ifdef NDEBUG //temporary turn off
-//#ifndef NDEBUG
+#ifndef NDEBUG //temporary turn off
+#undef DEBUG_OSTREAM
+#define DEBUG_OSTREAM std::cerr
     DEBUGHEADER();
-    cerr << gametree.printGameTree(0);
+    cerr << gametree.name() << " current tree size = " << gametree.getNumofTotalNodes() << endl;
+    //cerr << gametree.printGameTree(0);
 #endif
   }
   int resultmove = getBestMove(gametree);
@@ -105,22 +112,28 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
   return resultmove;
 }
 //in-tree phase
-int MonteCarloTreeSearch::selection(int currentempty, GameTree& gametree) {
+int MonteCarloTreeSearch::selection(int currentempty, AbstractGameTree& gametree) {
   //when the board is not empty, return the node with the highest expected value
-  return gametree.selectMaxBalanceNode(currentempty);
+  return gametree.selectMaxBalanceNode(currentempty, true);
 }
 int MonteCarloTreeSearch::expansion(int selectnode,
                                     hexgame::shared_ptr<bool>& emptyindicators,
                                     int& portionofempty,
                                     vector<int>& babywatsons,
                                     vector<int>& opponents,
-                                    GameTree& gametree) {
+                                    AbstractGameTree& gametree) {
   int indexofchild = selectnode;
 
   if (static_cast<int>(gametree.getNodeDepth(selectnode)) != portionofempty)  //the selected node is the end of game which might be root (not empty cell for move) or any leaf which cannot be expanded no more
-      indexofchild = gametree.expandNode(selectnode, 0);
+      indexofchild = gametree.expandNode(selectnode, 0, 'W');
 
-  gametree.getMovesfromTreeState(indexofchild, babywatsons, opponents);
+  hexgame::unordered_set<int> remainingmoves;
+  for (int i = 0; i < ptrtoboard->getSizeOfVertices(); ++i) {
+    if (emptyindicators.get()[i])
+      remainingmoves.insert(i + 1);
+  }
+  assert(static_cast<int>(remainingmoves.size()) == portionofempty);
+  gametree.getMovesfromTreeState(indexofchild, babywatsons, opponents, remainingmoves);
 
   //align empty indicators with state of game tree node
 #if __cplusplus > 199711L
@@ -136,64 +149,6 @@ int MonteCarloTreeSearch::expansion(int selectnode,
 
   portionofempty = ptrtoboard->getSizeOfVertices()
       - (babywatsons.size() + opponents.size());
-
-  if (indexofchild != selectnode) {  //expanding from the selected node
-    hexgame::unordered_set<int> remainingmoves;
-    for (int i = 0; i < ptrtoboard->getSizeOfVertices(); ++i) {
-      if (emptyindicators.get()[i])
-        remainingmoves.insert(i + 1);
-    }
-
-    vector<size_t> siblings = gametree.getSiblings(indexofchild);
-#if __cplusplus > 199711L
-    for (auto iter = siblings.begin(); iter != siblings.end(); ++iter) {
-      size_t pos = gametree.getNodePosition(*iter);
-      if (emptyindicators.get()[pos - 1])
-        remainingmoves.erase(pos);
-
-    }
-#else
-    for (vector<size_t>::iterator iter = siblings.begin(); iter != siblings.end(); ++iter) {
-      size_t pos = gametree.getNodePosition(*iter);
-      if (emptyindicators.get()[pos - 1])
-      remainingmoves.erase(pos);
-    }
-#endif
-#ifdef NDEBUG
-    srand((unsigned long)clock());
-#endif
-    size_t index = rand() % remainingmoves.size();
-    hexgame::unordered_set<int>::iterator iter = remainingmoves.begin();
-    for (size_t i = 0; i < index; ++i)
-      ++iter;
-
-    int move = *iter;
-    assert(remainingmoves.count(move));
-#if __cplusplus > 199711L
-    auto iterofbw = find_if(babywatsons.begin(), babywatsons.end(),
-                            [](int i) {return i==0;});
-    if (iterofbw != babywatsons.end())
-      *iterofbw = move;
-    else {
-      auto iterofop = find_if(opponents.begin(), opponents.end(),
-                              [](int i) {return i==0;});
-      assert(iterofop != opponents.end());
-      *iterofop = move;
-    }
-#else
-    Indicator functor;
-    vector<int>::iterator iterofbw = find_if(babywatsons.begin(), babywatsons.end(),functor);
-    if (iterofbw != babywatsons.end())
-    *iterofbw = move;
-    else {
-      vector<int>::iterator iterofop = find_if(opponents.begin(), opponents.end(),functor);
-      assert(iterofop != opponents.end());
-      *iterofop = move;
-    }
-#endif
-    gametree.setNodePosition(indexofchild, move);
-    emptyindicators.get()[move - 1] = false;
-  }
 
   assert(count(babywatsons.begin(), babywatsons.end(), 0) == 0);
   assert(count(opponents.begin(), opponents.end(), 0) == 0);
@@ -224,16 +179,16 @@ int MonteCarloTreeSearch::playout(hexgame::shared_ptr<bool>& emptyindicators,
 
   return winner;
 }
-int MonteCarloTreeSearch::getBestMove(GameTree& gametree) {
+int MonteCarloTreeSearch::getBestMove(AbstractGameTree& gametree) {
   pair<int, double> result = gametree.getBestMovefromSimulation();
   int bestmove = gametree.getNodePosition(result.first);
   assert(bestmove != -1);
   return bestmove;
 }
-void MonteCarloTreeSearch::backpropagation(int backupnode, int winner,
-                                           GameTree& gametree) {
-  int value = gametree.updateNodefromSimulation(backupnode, winner);
-  gametree.backpropagatefromSimulation(backupnode, value);
+int MonteCarloTreeSearch::backpropagation(int backupnode, int winner,
+                                           AbstractGameTree& gametree) {
+  int value = gametree.updateNodefromSimulation(backupnode, winner, -1);
+  return value;
 }
 void MonteCarloTreeSearch::init() {
   numofhexgons = ptrtoboard->getNumofhexgons();

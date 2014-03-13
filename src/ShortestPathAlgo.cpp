@@ -18,7 +18,7 @@ using namespace std;
 template<class Type, class Val>
 list<int> ShortestPathAlgo<Type, Val>::path(int indexofsource,
                                                  int indexofdest) {
-  if (shortestpath.size() == 0)
+  if (shortestpath.empty())
     dijkstraImpl(indexofsource, indexofdest);
   list<int> pathVec(shortestpath);
   shortestpath.clear();

@@ -125,7 +125,7 @@ typename PriorityQueue<N, Val>::const_iterator::const_pointer PriorityQueue<N,
 //prefix increment
 template<class N, class Val>
 typename PriorityQueue<N, Val>::const_iterator::self_type& PriorityQueue<N, Val>::const_iterator::operator++() {
-  _realiter++;
+  ++_realiter;
   _ptr = &(*_realiter);
   _pos++;
   return *this;
@@ -141,7 +141,7 @@ typename PriorityQueue<N, Val>::const_iterator::self_type PriorityQueue<N, Val>:
 //prefix decrement
 template<class N, class Val>
 typename PriorityQueue<N, Val>::const_iterator::self_type& PriorityQueue<N, Val>::const_iterator::operator--() {
-  _realiter--;
+  --_realiter;
   _ptr = &(*_realiter);
   _pos--;
   return *this;

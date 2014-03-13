@@ -4,7 +4,7 @@ using namespace std;
 #if __cplusplus <= 199711L
 template<class Val>
 struct f {
-  Val operator()(const string str) {
+  Val operator()(const string& str) {
     Val value = static_cast<Val>(0);
     if (typeid(Val) == typeid(int)) {
       value = static_cast<Val>(atoi(str.c_str()));
@@ -145,7 +145,7 @@ void Graph<Type, Val>::randomGraphGenerator() {
       iterself != repgraph.end(); ++iterself) {  // for each vertex
     Node* nodefrom = &(*iterself);
     typename std::vector<Node>::iterator iterneigh = iterself;
-    iterneigh++;
+    ++iterneigh;
 
     for (; iterneigh != repgraph.end(); ++iterneigh) {  // determine if this edge should be generated according to the density
       float prob = (float) rand() / RAND_MAX;
@@ -497,7 +497,7 @@ void Graph<Type, Val>::toListGraphRep() {
       iterself != repgraph.end(); ++iterself) {
     Node* node = &(*iterself);
     typename std::vector<Node>::iterator iterneigh = iterself;
-    iterneigh++;
+    ++iterneigh;
     for (unsigned j = node->vertexindex; j < numofvertices; j++) {
       Node* neigh = &(*iterneigh);
       if (repmatrix[node->vertexindex - 1][j] > 0) {
@@ -519,7 +519,7 @@ void Graph<Type, Val>::toListGraphRep() {
         }
         this->numofedges++;
       }
-      iterneigh++;
+      ++iterneigh;
     }
     node->numofneighbors = (node->neighbors).size();
   }

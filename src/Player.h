@@ -75,17 +75,16 @@ class Player {
     }
 #else
     hexgonValKind redkind = RED, bludkind = BLUE;
-    winConditions nscond = NORTHTOSOUTH, wscond = WESTTOEAST;
     if (kind == redkind) {
       viewlabel = 'R';
       playername = "RED";
-      condition = nscond;
+      condition = NORTHTOSOUTH;
 
     } else if (kind == bludkind) {
       //BLUE player always starts from West side to East side
       viewlabel = 'B';
       playername = "BLUE";
-      condition = wscond;
+      condition = WESTTOEAST;
     }
 #endif
   }

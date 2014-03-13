@@ -43,7 +43,7 @@ void PlainParser::parse() {
     }
   } catch (ifstream::failure& e) {
     cerr << "[FATAL]: Error while parsing " << filename << " at line " << count << endl;
-    throw e;
+    throw ifstream::failure(e);
   }
 }
 void PlainParser::open() {
@@ -56,7 +56,7 @@ void PlainParser::open() {
   } catch (ifstream::failure& e) {
     //TODO replace with log4cxx
     cerr << "[FATAL]: Error while opening " << filename << " " << e.what() << endl;
-    throw e;
+    throw ifstream::failure(e);
   }
 }
 void PlainParser::close() {
@@ -65,7 +65,7 @@ void PlainParser::close() {
   } catch (ifstream::failure& e) {
     //TODO replace with log4cxx
     cerr << "[FATAL]: Error while closing " << filename << endl;
-    throw e;
+    throw ifstream::failure(e);
   }
 }
 void PlainParser::split(string line, vector<string>& vecforline) {

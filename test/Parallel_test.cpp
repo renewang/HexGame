@@ -9,9 +9,11 @@
 #include "gmock/gmock.h"
 
 #include "Game.h"
+#include "Player.h"
 #include "HexBoard.h"
 #include "LockableGameTree.h"
 #include "MockLockableUTCPolicy.h"
+#include "MultiMonteCarloTreeSearch.h"
 
 #include <set>
 #include <vector>
@@ -59,7 +61,7 @@ struct Indicator {
 void CreateVecTask(vector<MockLockableUTCPolicy>& sharedvec) {
   srand(static_cast<unsigned>(clock()));
   {
-    strict_lock<recursive_mutex> lock(mutex_);
+    strict_lock<recursive_mutex> lock(_recursive_mutex);
     sharedvec.resize(sharedvec.size() + 1);  //Expect call updateAll once will fail due to vector resize and reconstruct objects.
     sharedvec.at(sharedvec.size() - 1) = MockLockableUTCPolicy();
     EXPECT_CALL(sharedvec.back(), OnConstruct()).Times(::testing::AtMost(1));
@@ -76,18 +78,20 @@ void CreateVecTask(vector<MockLockableUTCPolicy>& sharedvec) {
       {
         int secondtosleep = rand() % 60;
         boost::this_thread::sleep_for(boost::chrono::seconds(secondtosleep));
-        strict_lock<recursive_mutex> lock(mutex_);
-        cerr << DEBUGHEADER() << boost::this_thread::get_id()
-             << " has slept for " << secondtosleep << " seconds" << endl;
+        strict_lock<recursive_mutex> lock(_recursive_mutex);
+        DEBUGHEADER();
+        cerr << boost::this_thread::get_id() << " has slept for "
+             << secondtosleep << " seconds" << endl;
       }
     }
   }
 
   int secondtosleep = rand() % 60;
   boost::this_thread::sleep_for(boost::chrono::seconds(secondtosleep));
-  strict_lock<recursive_mutex> lock(mutex_);
-  cerr << DEBUGHEADER() << boost::this_thread::get_id() << " has slept for "
-       << secondtosleep << endl;
+  strict_lock<recursive_mutex> lock(_recursive_mutex);
+  DEBUGHEADER();
+  cerr << boost::this_thread::get_id() << " has slept for " << secondtosleep
+       << endl;
   for (unsigned i = 0; i < sharedvec.size(); ++i) {
     sharedvec.at(i).updateAll(MockLockableUTCPolicy::visitcount, 0, 1,
                               MockLockableUTCPolicy::wincount, 0, 1);
@@ -99,7 +103,7 @@ void CreateSharedVecTask(
   srand(static_cast<unsigned>(clock()));
 
   {
-    strict_lock<recursive_mutex> lock(mutex_);
+    strict_lock<recursive_mutex> lock(_recursive_mutex);
     sharedvec.resize(sharedvec.size() + 1);
     sharedvec.at(sharedvec.size() - 1) = hexgame::shared_ptr<
         MockLockableUTCPolicy>(new MockLockableUTCPolicy());
@@ -121,9 +125,10 @@ void CreateSharedVecTask(
       {
         int secondtosleep = rand() % 60;
         boost::this_thread::sleep_for(boost::chrono::seconds(secondtosleep));
-        strict_lock<recursive_mutex> lock(mutex_);
-        cerr << DEBUGHEADER() << boost::this_thread::get_id()
-             << " has slept for " << secondtosleep << "seconds" << endl;
+        strict_lock<recursive_mutex> lock(_recursive_mutex);
+        DEBUGHEADER();
+        cerr << boost::this_thread::get_id() << " has slept for "
+             << secondtosleep << "seconds" << endl;
       }
     }
   }
@@ -135,27 +140,31 @@ void CreateSharedVecTask(
 }
 void CreateTreeTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board) {
-  int indexofchild = gametree.selectMaxBalanceNode(currentempty, false);
+  int selectnode = gametree.selectMaxBalanceNode(currentempty, false);
+  int indexofchild = selectnode;
+  int level = gametree.getNodeDepth(selectnode);
+  if (level != currentempty)
+    indexofchild = gametree.expandNode(selectnode, 0);
   int totalsize = gametree.getNumofTotalNodes();
   int indexofparent = gametree.getParent(indexofchild);
   int numofchildren = gametree.getNumofChildren(indexofparent);
-  int level = gametree.getNodeDepth(indexofparent);
   {
-    strict_lock<recursive_mutex> lock(mutex_);
-    cout << DEBUGHEADER() << boost::this_thread::get_id() << " "
-         << indexofparent << ";has a new child;" << indexofchild
-         << ";currently has;" << numofchildren << ";should have;"
-         << (currentempty - level) << ";total size of tree;" << totalsize
-         << endl;
+    strict_lock<recursive_mutex> lock(_recursive_mutex);
+    DEBUGHEADER();
+    cout << boost::this_thread::get_id() << " " << indexofparent
+         << ";has a new child;" << indexofchild << ";currently has;"
+         << numofchildren << ";should have;" << (currentempty - level)
+         << ";total size of tree;" << totalsize << endl;
     EXPECT_TRUE(numofchildren != 0);
   }
   int move = rand() % (board.getSizeOfVertices());
   gametree.setNodePosition(indexofchild, move);
   int winner = rand() % 2;
-  gametree.updateNodefromSimulation(indexofchild, -1);
+  gametree.updateNodefromSimulation(indexofchild, winner);
 }
 void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
-                    HexBoard& board, hexgame::shared_ptr< set<int> >& ptrtochosenkids) {
+                    HexBoard& board,
+                    hexgame::shared_ptr<set<int> >& ptrtochosenkids) {
   int indexofchild = gametree.selectMaxBalanceNode(currentempty, false);
   int totalsize = gametree.getNumofTotalNodes();
   int indexofparent = gametree.getParent(indexofchild);
@@ -163,24 +172,24 @@ void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
   int level = gametree.getNodeDepth(indexofparent);
   ptrtochosenkids.get()->insert(indexofchild);
   {
-    strict_lock<recursive_mutex> lock(mutex_);
-    cout << DEBUGHEADER() << boost::this_thread::get_id() << " "
-         << indexofparent << ";has a new child;" << indexofchild
-         << ";currently has;" << numofchildren << ";should have;"
-         << (currentempty - level) << ";total size of tree;" << totalsize
-         << endl;
+    strict_lock<recursive_mutex> lock(_recursive_mutex);
+    DEBUGHEADER();
+    cout << boost::this_thread::get_id() << " " << indexofparent
+         << ";has a new child;" << indexofchild << ";currently has;"
+         << numofchildren << ";should have;" << (currentempty - level)
+         << ";total size of tree;" << totalsize << endl;
     EXPECT_TRUE(numofchildren != 0);
   }
   vector<size_t> leaves = gametree.getLeaves();
   for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
       ++iter) {
     int parentnode = gametree.getParent(*iter);
-    cout << DEBUGHEADER() << boost::this_thread::get_id() << " "
-         << parentnode << ";node;" << *iter
-         << ";selected parent;" << indexofparent << ";selected child;"
+    DEBUGHEADER();
+    cout << boost::this_thread::get_id() << " " << parentnode << ";node;"
+         << *iter << ";selected parent;" << indexofparent << ";selected child;"
          << indexofchild << endl;
     EXPECT_EQ(gametree.getNumofChildren(*iter), 0);
-    if (ptrtochosenkids.get()->count(*iter)!=0) {
+    if (ptrtochosenkids.get()->count(*iter) != 0) {
       EXPECT_FALSE(gametree.getIsupdated(*iter));
       EXPECT_FALSE(gametree.getIsupdatedBackpropagation(*iter));
     } else {
@@ -196,6 +205,52 @@ void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
   int winner = rand() % 2;
   gametree.updateNodefromSimulation(indexofchild, winner);
   ptrtochosenkids.get()->erase(indexofchild);
+}
+void SimulationTask(int currentempty, LockableGameTree& gametree,
+                    HexBoard& board, hexgame::shared_ptr<bool>& emptyglobal) {
+
+  int selectnode = gametree.selectMaxBalanceNode(currentempty, false);
+  int indexofchild = selectnode;
+  int level = gametree.getNodeDepth(selectnode);
+  if (level != currentempty)
+    indexofchild = gametree.expandNode(selectnode, 0);
+
+  vector<int> babywatsons, opponents;
+  hexgame::shared_ptr<bool> emptyindicators = hexgame::shared_ptr<bool>(
+      new bool[board.getSizeOfVertices()], hexgame::default_delete<bool[]>());
+  copy(emptyglobal.get(), emptyglobal.get() + board.getSizeOfVertices(),
+       emptyindicators.get());
+  {
+    strict_lock<recursive_mutex> lock(_recursive_mutex);
+    for (int i = 0; i < board.getSizeOfVertices(); ++i)
+      EXPECT_TRUE(emptyindicators.get()[i]);
+  }
+  hexgame::unordered_set<int> remainingmoves;
+  for (int i = 0; i < board.getSizeOfVertices(); ++i) {
+    if (emptyindicators.get()[i])
+      remainingmoves.insert(i + 1);
+  }
+  assert(static_cast<int>(remainingmoves.size()) == currentempty);
+  gametree.getMovesfromTreeState(indexofchild, babywatsons, opponents,
+                                 remainingmoves);
+
+  //align empty indicators with state of game tree node
+#if __cplusplus > 199711L
+  for_each(babywatsons.begin(), babywatsons.end(),
+           [&](int i) {if(i!=0) emptyindicators.get()[i-1] = false;});
+  for_each(opponents.begin(), opponents.end(),
+           [&](int i) {if(i!=0) emptyindicators.get()[i-1] = false;});
+#else
+  Util functor(emptyindicators);
+  for_each(babywatsons.begin(), babywatsons.end(), functor);
+  for_each(opponents.begin(), opponents.end(), functor);
+#endif
+
+  assert(count(babywatsons.begin(), babywatsons.end(), 0) == 0);
+  assert(count(opponents.begin(), opponents.end(), 0) == 0);
+
+  int winner = rand() % 2;
+  gametree.updateNodefromSimulation(indexofchild, winner);
 }
 //create value-parameterized tests, test with numberoftrials (equivalently number of threads)
 class ParallelTest : public ::testing::TestWithParam<hexgame::tuple<int, int> > {
@@ -252,7 +307,7 @@ TEST_F(ParallelTest, ThreadPropResize) {
   threads.join_all();
 }
 TEST_F(ParallelTest, ThreadGameTreeNode) {
-  int numofhexgon = 3;
+  int numofhexgon = 5;
   HexBoard board(numofhexgon);
   LockableGameTree gametree('B');
 
@@ -278,24 +333,27 @@ TEST_P(ParallelTest, ThreadEndofGameValue) {
   int numofhexgon = 3;
   HexBoard board(numofhexgon);
   LockableGameTree gametree('B');
-
   Game hexboardgame(board);
-  hexgame::shared_ptr< set<int> > ptrtochosenkids(new set<int>);
+  hexgame::shared_ptr<set<int> > ptrtochosenkids(new set<int>);
+  hexgame::shared_ptr<bool> emptyglobal = board.getEmptyHexIndicators();
+
   cout << "current size of available moves:" << currentempty << endl;
   cout << "current size of thread numbers:" << numberofthreads << endl;
+
   thread_group threads;
   for (size_t i = 0; i < numberofthreads; ++i)
     threads.create_thread(
-            boost::bind(&CreateTreeTask, currentempty, boost::ref(gametree),
-                        boost::ref(board)));
-    /*threads.create_thread(
-        boost::bind(&UpdateTreeTask, currentempty, boost::ref(gametree),
-                    boost::ref(board), boost::ref(ptrtochosenkids)));*/
+        boost::bind(&SimulationTask, currentempty, boost::ref(gametree),
+                    boost::ref(board), boost::ref(emptyglobal)));
+  /*threads.create_thread(
+   boost::bind(&UpdateTreeTask, currentempty, boost::ref(gametree),
+   boost::ref(board), boost::ref(ptrtochosenkids)));*/
   threads.join_all();
 
   //check children
   cout << "current size of tree:" << gametree.getNumofTotalNodes() << endl;
   cout << gametree.printGameTree(0);
+  //check number of children per node
   for (size_t i = 0; i < gametree.getNumofTotalNodes(); ++i) {
     int numofchildren = gametree.getNumofChildren(i);
     int level = gametree.getNodeDepth(i);
@@ -303,6 +361,7 @@ TEST_P(ParallelTest, ThreadEndofGameValue) {
          << numofchildren << endl;
     EXPECT_TRUE(numofchildren <= (currentempty - level));
   }
+  //need to be all updated
   vector<size_t> leaves = gametree.getLeaves();
   EXPECT_TRUE(leaves.size() <= numberofthreads);
   for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
@@ -310,6 +369,53 @@ TEST_P(ParallelTest, ThreadEndofGameValue) {
     EXPECT_EQ(gametree.getNumofChildren(*iter), 0);
     EXPECT_TRUE(gametree.getIsupdated(*iter));
     EXPECT_TRUE(gametree.getIsupdatedBackpropagation(*iter));
+  }
+  //check all positions at the same level cannot be repeating
+  map<int, vector<int> > trackmovesatlevel;
+  for (size_t i = 1; i < gametree.getNumofTotalNodes(); ++i) {
+    int pos = gametree.getNodePosition(i);
+    int parent = gametree.getParent(i);
+    if (trackmovesatlevel.count(parent) == 0) {
+      vector<int> posholder;
+      trackmovesatlevel.insert(make_pair(parent, posholder));
+    }
+    trackmovesatlevel[parent].push_back(pos);
+  }
+  //check redundancy for siblings
+  for (map<int, vector<int> >::iterator iter = trackmovesatlevel.begin();
+      iter != trackmovesatlevel.end(); ++iter) {
+    cout << "Parent:" << iter->first << ":";
+    vector<int> posholder = iter->second;
+    for (vector<int>::iterator it = posholder.begin(); it != posholder.end();
+        ++it)
+      cout << *it << " ";
+    cout << endl;
+    sort(posholder.begin(), posholder.end());
+    for (unsigned i = 0; i < (posholder.size() - 1); ++i)
+      EXPECT_NE(posholder[i], posholder[i + 1]);
+  }
+  //check redundancy for ancestral-child
+  for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
+      ++iter) {
+    int level = gametree.getNodeDepth(*iter);
+    int indexofparent = *iter;
+    vector<int> posholder;
+    while (indexofparent != 0) {
+      size_t pos = gametree.getNodePosition(indexofparent);
+      posholder.push_back(pos);
+      indexofparent = gametree.getParent(indexofparent);
+    }
+    EXPECT_EQ(posholder.size(), level);
+    if (!posholder.empty()) {
+      cout << "Leaf:" << *iter << ":";
+      for (vector<int>::iterator it = posholder.begin(); it != posholder.end();
+          ++it)
+        cout << *it << " ";
+      cout << endl;
+      sort(posholder.begin(), posholder.end());
+      for (unsigned j = 0; j < (posholder.size() - 1); ++j)
+        EXPECT_NE(posholder[j], posholder[j + 1]);
+    }
   }
 }
 INSTANTIATE_TEST_CASE_P(OnTheFlySetThreadNumbertoH, ParallelTest,

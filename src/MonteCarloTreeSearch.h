@@ -10,7 +10,7 @@
 
 #include "Player.h"
 #include "HexBoard.h"
-#include "GameTree.h"
+#include "AbstractGameTree.h"
 #include "AbstractStrategyImpl.h"
 #include "MonteCarloTreeSearch.h"
 
@@ -29,18 +29,18 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
   char babywatsoncolor, oppoenetcolor;
 
  protected:
-  int getBestMove(GameTree& gametree);
-  int simulation(int currentempty);
+  int getBestMove(AbstractGameTree& gametree);
+  virtual int simulation(int currentempty);
   //Monte Carlo tree search steps
   //in-tree phase
-  int selection(int currentempty, GameTree& gametree);
+  int selection(int currentempty, AbstractGameTree& gametree);
   int expansion(int selectnode, hexgame::shared_ptr<bool>& emptyindicators,
                 int& portionofempty, std::vector<int>& babywatsons,
-                std::vector<int>& opponents, GameTree& gametree);
+                std::vector<int>& opponents, AbstractGameTree& gametree);
   //play-out phase
   int playout(hexgame::shared_ptr<bool>& emptyindicators, int& portionofempty,
               std::vector<int>& babywatsons, std::vector<int>& opponents);
-  void backpropagation(int backupnode, int winner, GameTree& gametree);
+  int backpropagation(int backupnode, int winner, AbstractGameTree& gametree);
   void init();
 
 #ifndef NDEBUG
