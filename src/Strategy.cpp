@@ -14,11 +14,11 @@ using namespace std;
 
 #if __cplusplus > 199711L
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer)
-    : Strategy(board, aiplayer, 0.1, 0.1, 3000) {
+    : Strategy(board, aiplayer, 0.1, 0.1, 2048) {
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
                    double threshold, double randomness)
-    : Strategy(board, aiplayer, threshold, randomness, 3000) {
+    : Strategy(board, aiplayer, threshold, randomness, 2048) {
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
                    size_t numberoftrials)
@@ -31,7 +31,7 @@ threshold(0.1),
 randomness(0.1),
 ptrtoboard(board),
 ptrtoplayer(aiplayer),
-numberoftrials(3000) {
+numberoftrials(2048) {
   numofhexgons = ptrtoboard->getNumofhexgons();
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
@@ -41,7 +41,7 @@ threshold(threshold),
 randomness(randomness),
 ptrtoboard(board),
 ptrtoplayer(aiplayer),
-numberoftrials(3000) {
+numberoftrials(2048) {
   numofhexgons = ptrtoboard->getNumofhexgons();
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
@@ -146,15 +146,6 @@ int Strategy::simulation(int currentempty) {
     index[i] = (i + 1);
     queue.insert(index[i], -1 * result[i]);
   }
-#ifndef NDEBUG
-#undef DEBUG_OSTREAM
-#define DEBUG_OSTREAM std::cerr
-  DEBUGHEADER();
-  cerr << "log the simulation statistics for final choice"<< endl;
-  for (unsigned i = 0; i != result.size(); ++i)
-    cerr << (i + 1) << ":" << result[i] << " ";
-  cerr << endl;
-#endif
   return queue.minPrioirty();
 }
 //initialize counter for neighbors

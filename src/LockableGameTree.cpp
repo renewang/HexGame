@@ -202,15 +202,6 @@ void LockableGameTree::updateNodePosition(unique_lock<LockableUTCPolicy>&,
 int LockableGameTree::expandNode(unique_lock<LockableGameTree>& guard,
                                  int indexofsource, int move, char color) {
   vertex_t source = vertex(indexofsource, thetree);
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " acquires the lock " << this
-         << " to expand a new node from " << indexofsource << " " << boolalpha
-         << get(vertex_value, thetree, source).get()->getIsupdated() << endl;
-  }
-#endif
   int indexofchild = -1;
 
   assert(get(vertex_value, thetree, source).get()->getCountforexpand() >= 0);
@@ -239,14 +230,6 @@ int LockableGameTree::expandNode(unique_lock<LockableGameTree>& guard,
   }
   assert(indexofchild > 0);
   setIsupdatedBackpropagation(guard, target);
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " releases the lock " << this
-         << " already expanded a new node to " << indexofchild << endl;
-  }
-#endif
   return indexofchild;
 }
 int LockableGameTree::expandNode(int indexofsource, int move, char color) {
@@ -264,13 +247,6 @@ bool LockableGameTree::addEdge(vertex_t source, vertex_t target) {
 }
 int LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
                                            int currentempty, bool isbreaktie) {
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " acquires the lock " << this << endl;
-  }
-#endif
   vertex_t parent = _root;
   out_edge_iter viter, viterend;
   assert(getNumofChildren(parent) <= static_cast<unsigned>(currentempty));
@@ -317,28 +293,13 @@ int LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
         ++viter) {
       vertex_t node = target(*viter, thetree);
       assert(get(vertex_index, thetree, node) < num_vertices(thetree));
-      /*while (get(vertex_value, thetree, node).get()->feature(
-       LockableUTCPolicy::visitcount) == 0)*/
       //1) check point 1: if the visit count is zero, then isupdated = false;
 #ifndef NDEBUG
       if (get(vertex_value, thetree, node).get()->feature(
           LockableUTCPolicy::visitcount) == 0)
         assert(!get(vertex_value, thetree, node).get()->getIsupdated());
-      //2) check point 2: if the node is chosen in the last round, then all isupdated of its parents including itself = false; (verify in test case)
-      //3) check point 3: if the node is not chosen in the last round and it doesn't share the same parent with the chosen node, then all isupdated of its parents including itself = true; (verify in test case)
-      //4) check point 4: if the node is not chosen in the last round and it shares the same parent with the chosen node, then all isupdated of its parents = false but itself = true (???); (verify in test case)
 #endif
       while (!get(vertex_value, thetree, node).get()->getIsupdated()) {
-#ifndef NDEBUG
-        {
-          strict_lock<recursive_mutex> lock(_recursive_mutex);
-          DEBUGHEADER();
-          clog << this_thread::get_id() << " check on node " << node
-               << " can be updated " << boolalpha
-               << get(vertex_value, thetree, node).get()->getIsupdated()
-               << endl;
-        }
-#endif
         holdforupdate.wait(guard);
       }
       assert(countonwait.load() >= 0);
@@ -359,16 +320,6 @@ int LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
     }
     assert(!vertexchooser.empty());
     parent = vertexchooser.minPrioirty();
-    //get(vertex_value, thetree, parent).get()->setIsupdated(false);  //TODO, temprary
-#ifndef NDEBUG
-    {
-      strict_lock<recursive_mutex> lock(_recursive_mutex);
-      DEBUGHEADER();
-      clog << this_thread::get_id() << " check on node " << parent
-           << " can be updated " << boolalpha
-           << get(vertex_value, thetree, parent).get()->getIsupdated() << endl;
-    }
-#endif
     countonwait.fetch_sub(1);
     ++level;
   }
@@ -384,14 +335,6 @@ int LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
   else
     //end of the game
     assert(countofchildren == 0);
-
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " releases the lock " << this << endl;
-  }
-#endif
   return get(vertex_index, thetree, parent);
 }
 int LockableGameTree::selectMaxBalanceNode(int currentempty,
@@ -436,13 +379,6 @@ void LockableGameTree::getMovesfromTreeState(
     unique_lock<LockableGameTree>& guard, int indexofnode,
     vector<int>& babywatsons, vector<int>& opponents,
     hexgame::unordered_set<int>& remainingmoves) {
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " acquires the lock " << this << endl;
-  }
-#endif
 
   vertex_t node = vertex(indexofnode, thetree), chosenleaf = node;
   in_edge_iter viter, viterend;
@@ -473,25 +409,8 @@ void LockableGameTree::getMovesfromTreeState(
 #endif
         {
       size_t pos = getNodePosition(*iter);
-#ifndef NDEBUG
-      {
-        strict_lock<recursive_mutex> lock(_recursive_mutex);
-        DEBUGHEADER();
-        clog << this_thread::get_id() << " " << this << " " << chosenleaf
-             << ";siblings are;" << *iter << " " << pos << endl;
-      }
-#endif
       //assert(remainingmoves.count(pos) != 0);
       if (remainingmoves.count(pos) != 0) {
-#ifndef NDEBUG
-        {
-          strict_lock<recursive_mutex> lock(_recursive_mutex);
-          DEBUGHEADER();
-          clog << this_thread::get_id() << " " << &remainingmoves << " "
-               << chosenleaf << ";effective removed;" << *iter << " " << pos
-               << endl;
-        }
-#endif
         remainingmoves.erase(pos);
       }
     }
@@ -512,13 +431,6 @@ void LockableGameTree::getMovesfromTreeState(
     babywatsons.push_back(get(vertex_position, thetree, chosenleaf));
   else
     opponents.push_back(get(vertex_position, thetree, chosenleaf));
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " releases the lock " << this << endl;
-  }
-#endif
 }
 void LockableGameTree::getMovesfromTreeState(
     int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
@@ -533,13 +445,6 @@ vector<size_t> LockableGameTree::getSiblings(size_t indexofnode) {
 }
 vector<size_t> LockableGameTree::getSiblings(unique_lock<LockableGameTree>&,
                                              size_t indexofnode) {
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " acquires the lock " << this << endl;
-  }
-#endif
   vertex_t node = vertex(indexofnode, thetree), chosenleaf = node;
   vertex_t parent = getParent(node);
   vector<size_t> siblings;
@@ -551,14 +456,6 @@ vector<size_t> LockableGameTree::getSiblings(unique_lock<LockableGameTree>&,
     if (child != chosenleaf)
       siblings.push_back(get(vertex_index, thetree, child));
   }
-  return vector<size_t>(siblings);
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    clog << this_thread::get_id() << " releases the lock " << this << endl;
-  }
-#endif
   return vector<size_t>(siblings);
 }
 void LockableGameTree::setNodePosition(size_t indexofnode, size_t position) {
@@ -576,15 +473,6 @@ int LockableGameTree::updateNodefromSimulation(
     unique_lock<LockableGameTree>& guard, int indexofnode, int winner,
     int level) {
   vertex_t node = vertex(indexofnode, thetree);
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    cerr << boost::this_thread::get_id() << " acquires the lock " << this
-         << " complete updating node " << indexofnode << " " << boolalpha
-         << get(vertex_value, thetree, node).get()->getIsupdated() << endl;
-  }
-#endif
 #if __cplusplus > 199711L
   int value = 0;
   if (winner > 0) {
@@ -616,15 +504,6 @@ int LockableGameTree::updateNodefromSimulation(
   get(vertex_value, thetree, node).get()->updateAll(LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0, 0);
 #endif
   backpropagate(guard, indexofnode, value, level);
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    cerr << boost::this_thread::get_id() << " releases the lock " << this
-         << " complete updating node " << indexofnode << " " << boolalpha
-         << get(vertex_value, thetree, node).get()->getIsupdated() << endl;
-  }
-#endif
   return value;
 }
 int LockableGameTree::updateNodefromSimulation(int indexofnode, int winner,
@@ -634,14 +513,6 @@ int LockableGameTree::updateNodefromSimulation(int indexofnode, int winner,
 }
 void LockableGameTree::backpropagate(unique_lock<LockableGameTree>&,
                                      vertex_t leaf, int value, int level) {
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    cerr << boost::this_thread::get_id() << " acquires the lock " << this
-         << endl;
-  }
-#endif
   int curlevel = level;
   vertex_t node = leaf, parent = graph_traits<basegraph>::null_vertex();
   int curvalue = -1 * value;
@@ -693,14 +564,6 @@ void LockableGameTree::backpropagate(unique_lock<LockableGameTree>&,
   }
   //assert(notifyAllUpdateDone(guard, leaf, level));
   holdforupdate.notify_all();
-#ifndef NDEBUG
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    cerr << boost::this_thread::get_id() << " releases the lock " << this
-         << endl;
-  }
-#endif
 }
 void LockableGameTree::backpropagate(vertex_t leaf, int value, int level) {
   unique_lock<LockableGameTree> guard(*this);
@@ -746,8 +609,7 @@ bool LockableGameTree::getIsupdated(int indexofnode) {
   unique_lock<LockableUTCPolicy> guard(*get(vertex_value, thetree, node));
   return (get(vertex_value, thetree, node).get()->getIsupdated());
 }
-bool LockableGameTree::getIsupdatedBackpropagation(int indexofleaf) {
-  unique_lock<LockableGameTree> guard(*this);
+bool LockableGameTree::getIsupdatedBackpropagation(unique_lock<LockableGameTree>&, int indexofleaf){
   vertex_t node = vertex(indexofleaf, thetree), parent =
       graph_traits<basegraph>::null_vertex();
   bool result = get(vertex_value, thetree, node).get()->getIsupdated();
@@ -764,8 +626,11 @@ bool LockableGameTree::getIsupdatedBackpropagation(int indexofleaf) {
   }
   return result;
 }
-vector<size_t> LockableGameTree::getLeaves() {
+bool LockableGameTree::getIsupdatedBackpropagation(int indexofleaf) {
   unique_lock<LockableGameTree> guard(*this);
+  return getIsupdatedBackpropagation(guard, indexofleaf);
+}
+vector<size_t> LockableGameTree::getLeaves(boost::unique_lock<LockableGameTree>&){
   vertex_t node = graph_traits<basegraph>::null_vertex();
   vector<size_t> leaves;
   stack<vertex_t> nodeholder;
@@ -781,6 +646,10 @@ vector<size_t> LockableGameTree::getLeaves() {
       nodeholder.push(target(*viter, thetree));
   }
   return (vector<size_t>(leaves));
+}
+vector<size_t> LockableGameTree::getLeaves() {
+  unique_lock<LockableGameTree> guard(*this);
+  return (getLeaves(guard));
 }
 void LockableGameTree::setIsupdatedBackpropagation(
     boost::unique_lock<LockableGameTree>&, vertex_t indexofleaf) {
@@ -811,18 +680,6 @@ pair<int, double> LockableGameTree::getBestMovefromSimulation() {
     vertexchooser.insert(node,
                          -get(vertex_value, thetree, node).get()->estimate());
   }
-#ifndef NDEBUG
-  strict_lock<recursive_mutex> lock(_recursive_mutex);
-  DEBUGHEADER();
-  cerr << "log the simulation statistics for final choice" << endl;
-  for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
-      ++viter)
-    cerr
-        << get(vertex_position, thetree, target(*viter, thetree)) << ":"
-        << get(vertex_value, thetree, target(*viter, thetree)).get()->getValue()
-        << " ";
-  cerr << endl;
-#endif
   //2. choose the maximal value from all children nodes of root.
   int indexofbestmove = vertexchooser.minPrioirty();
   double maxvalue = get(vertex_value, thetree,

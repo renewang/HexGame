@@ -9,13 +9,6 @@
 #include <utility>
 #include <sstream>
 
-#ifndef NDEBUG
-#ifdef DEBUG_OSTREAM
-#undef DEBUG_OSTREAM
-#define DEBUG_OSTREAM std::cerr
-#endif
-#endif
-
 #if __cplusplus > 199711L
 #include <chrono>
 #endif
@@ -303,10 +296,6 @@ int GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
 pair<int, double> GameTree::getBestMovefromSimulation() {
   //1. examine all children nodes below the root node
   size_t numofchildren = out_degree(_root, thetree);
-#ifndef NDEBUG
-  DEBUGHEADER();
-  cerr << printGameTree(get(vertex_index, thetree, _root)) << endl;
-#endif
   assert(numofchildren != 0);
   PriorityQueue<vertex_t, double> vertexchooser(numofchildren);
   out_edge_iter viter, viterend;
@@ -316,17 +305,6 @@ pair<int, double> GameTree::getBestMovefromSimulation() {
     vertexchooser.insert(node,
                          -get(vertex_value, thetree, node).get()->estimate());
   }
-#ifndef NDEBUG
-  DEBUGHEADER();
-  cerr << "log the simulation statistics for final choice" << endl;
-  for (tie(viter, viterend) = out_edges(_root, thetree); viter != viterend;
-      ++viter)
-    cerr
-        << get(vertex_position, thetree, target(*viter, thetree)) << ":"
-        << get(vertex_value, thetree, target(*viter, thetree)).get()->getValue()
-        << " ";
-  cerr << endl;
-#endif
   //2. choose the maximal value from all children nodes of root.
   int indexofbestmove = vertexchooser.minPrioirty();
   double maxvalue = get(vertex_value, thetree,

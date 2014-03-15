@@ -43,6 +43,8 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
   int backpropagation(int backupnode, int winner, AbstractGameTree& gametree);
   void init();
 
+  friend class MultiMonteCarloTreeSearch;
+
 #ifndef NDEBUG
   //for google test framework
   friend class MinMaxTest;

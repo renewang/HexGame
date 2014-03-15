@@ -15,7 +15,7 @@ using namespace boost;
 #if __cplusplus > 199711L
 MonteCarloTreeSearch::MonteCarloTreeSearch(const HexBoard* board,
                                            const Player* aiplayer)
-    : MonteCarloTreeSearch(board, aiplayer, 3000) {
+    : MonteCarloTreeSearch(board, aiplayer, 2048) {
 }
 #else
 class Util {
@@ -38,7 +38,7 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(const HexBoard* board,
 : AbstractStrategyImpl(board, aiplayer),
 ptrtoboard(board),
 ptrtoplayer(aiplayer),
-numberoftrials(3000) {
+numberoftrials(2048) {
   init();
 }
 #endif
@@ -70,41 +70,12 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
     int selectnode = selection(currentempty, gametree);
     int expandednode = expansion(selectnode, emptyindicators, proportionofempty,
                                  babywatsons, opponents, gametree);
-
-#ifndef NDEBUG
-#undef DEBUG_OSTREAM
-#define DEBUG_OSTREAM std::cerr
-    DEBUGHEADER();
-    std::cerr
-    << "[selectnode|expandednode|currentempty|proportionofempty|size of babywatsons|size of opponents] "
-    << selectnode << "|" << expandednode << "|" << currentempty << "|"
-    << proportionofempty << "|" << babywatsons.size() << "|"
-    << opponents.size() << endl;
-#if __cplusplus > 199711L
-    cerr << "babywatsons: ";
-    for_each(babywatsons.begin(), babywatsons.end(),
-        [](int i) {cerr << i << " ";});
-    cerr << endl;
-    cerr << "opponents: ";
-    for_each(opponents.begin(), opponents.end(), [](int i) {cerr << i << " ";});
-    cerr << endl;
-#else
-#endif
-#endif
-
     //simulation phase
     int winner = playout(emptyindicators, proportionofempty, babywatsons,
                          opponents);
     assert(winner != 0);
     //back-propagate
     backpropagation(expandednode, winner, gametree);
-#ifndef NDEBUG //temporary turn off
-#undef DEBUG_OSTREAM
-#define DEBUG_OSTREAM std::cerr
-    DEBUGHEADER();
-    cerr << gametree.name() << " current tree size = " << gametree.getNumofTotalNodes() << endl;
-    //cerr << gametree.printGameTree(0);
-#endif
   }
   int resultmove = getBestMove(gametree);
   //find the move with the maximal successful simulated outcome

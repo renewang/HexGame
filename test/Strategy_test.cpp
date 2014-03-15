@@ -14,7 +14,6 @@
 #include "Strategy.h"
 #include "PriorityQueue.h"
 
-
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -37,8 +36,8 @@ TEST_F(StrategyTest,CheckWinnerTest) {
   Player playera(board, hexgonValKind::RED);  //north to south
   Player playerb(board, hexgonValKind::BLUE);  //west to east
 #else
-  Player playera(board, RED);  //north to south
-  Player playerb(board, BLUE);  //west to east
+                 Player playera(board, RED);  //north to south
+      Player playerb(board, BLUE);//west to east
 #endif
   Strategy strategyred(&board, &playera);
   Strategy strategyblue(&board, &playerb);
@@ -292,14 +291,15 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
 #else
-    Player playera(board, RED);  //north to south
-    Player playerb(board, BLUE);  //west to east
+                   Player playera(board, RED);  //north to south
+        Player playerb(board, BLUE);//west to east
 #endif
     Strategy strategyred(&board, &playera);
     vector<int> test;
     bool winner = false;
 
-    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<
+        bool>&>(board.getEmptyHexIndicators());
 
     Game hexboardgame(board);
     while (!winner) {
@@ -329,13 +329,14 @@ TEST_F(StrategyTest,CheckWinnerTestTwo) {
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
 #else
-    Player playera(board, RED);  //north to south
-    Player playerb(board, BLUE);  //west to east
+                   Player playera(board, RED);  //north to south
+        Player playerb(board, BLUE);//west to east
 #endif
     Strategy strategyblue(&board, &playerb);
     vector<int> test;
     bool winner = false;
-    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<
+        bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
       int portionofempty = board.getNumofemptyhexgons();
       int move = strategyblue.genNextRandom(emptyindicators, portionofempty);
@@ -368,15 +369,16 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
 #else
-    Player playera(board, RED);  //north to south
-    Player playerb(board, BLUE);  //west to east
+                   Player playera(board, RED);  //north to south
+        Player playerb(board, BLUE);//west to east
 #endif
     Strategy strategyred(&board, &playera);
     Strategy strategyblue(&board, &playerb);
     Game hexboardgame(board);
     vector<int> test;
     bool winner = false;
-    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<
+        bool>&>(board.getEmptyHexIndicators());
     while (!winner) {
       int portionofempty = (unsigned) board.getNumofemptyhexgons();
       int move = strategyred.genNextRandom(emptyindicators, portionofempty);
@@ -402,14 +404,15 @@ TEST_F(StrategyTest,CheckWinnerElevenTest) {
     Player playera(board, hexgonValKind::RED);  //north to south
     Player playerb(board, hexgonValKind::BLUE);  //west to east
 #else
-    Player playera(board, RED);  //north to south
-    Player playerb(board, BLUE);  //west to east
+                   Player playera(board, RED);  //north to south
+        Player playerb(board, BLUE);//west to east
 #endif
     Strategy strategyblue(&board, &playerb);
     Game hexboardgame(board);
     vector<int> test;
     bool winner = false;
-    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
+    hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<
+        bool>&>(board.getEmptyHexIndicators());
 
     while (!winner) {
       int portionofempty = (unsigned) board.getNumofemptyhexgons();
@@ -438,12 +441,13 @@ TEST_F(StrategyTest,CheckGenNextFillBasic) {
   Player playera(board, hexgonValKind::RED);   //north to south, babywatson, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-  Player playera(board, RED);  //north to south
-  Player playerb(board, BLUE);  //west to east
+                 Player playera(board, RED);  //north to south
+      Player playerb(board, BLUE);//west to east
 #endif
   Strategy strategyred(&board, &playera, 1.0, 0.0);
   Game hexboardgame(board);
-  hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<bool>&>(board.getEmptyHexIndicators());
+  hexgame::shared_ptr<bool>& emptyindicators = const_cast<hexgame::shared_ptr<
+      bool>&>(board.getEmptyHexIndicators());
   vector<int>& babywatsons = const_cast<vector<int>&>(board.getRedmoves());
 
   ASSERT_TRUE(hexboardgame.setMove(playera, 1, 3));
@@ -500,10 +504,10 @@ TEST_F(StrategyTest, CheckSimulationTest) {
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
   Player playera(board, RED);  //north to south
-  Player playerb(board, BLUE);  //west to east
+  Player playerb(board, BLUE);//west to east
 #endif
-  Strategy strategyred(&board, &playera);
-  Strategy strategyblue(&board, &playerb);
+  Strategy strategyred(&board, &playera, 2000);
+  Strategy strategyblue(&board, &playerb, 2000);
   Game hexboardgame(board);
   string winner = "UNKNOWN";
   int round = 0;
@@ -522,12 +526,14 @@ TEST_F(StrategyTest, CheckSimulationTest) {
     bluecol = (bluemove - 1) % numofhexgon + 1;
     ASSERT_TRUE(hexboardgame.setMove(playerb, bluerow, bluecol));
 
-    cout << "simulation " << round << " : " << redmove << " " << bluemove
-         << endl;
+    cout << "simulation " << round << " : " << strategyred.name() << " "
+        << redmove << " " << strategyblue.name() << " " << bluemove << endl;
+    cout << hexboardgame.showView(playera, playerb);
     round++;
     ASSERT_NE(redmove, bluemove);
     winner = hexboardgame.getWinner(playera, playerb);
   }
+  cout << "winner is " << winner << endl;
 }
 TEST_F(StrategyTest, CheckSimulationELEVENTest) {
   int numofhexgon = 11;
@@ -536,8 +542,8 @@ TEST_F(StrategyTest, CheckSimulationELEVENTest) {
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-  Player playera(board, RED);  //north to south
-  Player playerb(board, BLUE);  //west to east
+                 Player playera(board, RED);  //north to south
+      Player playerb(board, BLUE);//west to east
 #endif
   Strategy strategyred(&board, &playera);
   Strategy strategyblue(&board, &playerb);
@@ -561,10 +567,12 @@ TEST_F(StrategyTest, CheckSimulationELEVENTest) {
 
     cout << "simulation " << round << " : " << redmove << " " << bluemove
          << endl;
+    cout << hexboardgame.showView(playera, playerb);
     round++;
     ASSERT_NE(redmove, bluemove);
     winner = hexboardgame.getWinner(playera, playerb);
   }
+  cout << "winner is " << winner << endl;
 }
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -19,13 +19,15 @@
 #include "gtest/gtest_prod.h"
 #endif
 
-class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch {
+class MultiMonteCarloTreeSearch : public AbstractStrategyImpl {
  private:
   int numofhexgons;
+  MonteCarloTreeSearch mcstimpl;
   //the actual playing board in the game. Need to  ensure it not to be modified during the simulation
   const HexBoard* const ptrtoboard;
   //the actual player computer plays. Need to ensure it not to be modified during the simulation
   const Player* const ptrtoplayer;
+  const std::size_t numberofthreads;
   const std::size_t numberoftrials;
   char babywatsoncolor, oppoenetcolor;
 
@@ -44,7 +46,8 @@ class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch {
   //constructor
   MultiMonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer);
   MultiMonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer,
-                            size_t numberoftrials);
+                            size_t numberofthreads);
+  MultiMonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer, size_t numberofthreads, size_t numberoftrials);
   virtual ~MultiMonteCarloTreeSearch() {
   }
   ;
@@ -53,6 +56,14 @@ class MultiMonteCarloTreeSearch : public MonteCarloTreeSearch {
   }
   ;
   int simulation(int currentempty);
+
+  std::size_t getNumberofthreads(){
+    return numberofthreads;
+  }
+
+  std::size_t getNumberoftrials(){
+    return numberoftrials;
+  }
 };
 
 #endif /* MULTIMONTECARLOTREESEARCH_H_ */

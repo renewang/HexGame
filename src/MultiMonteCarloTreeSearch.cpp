@@ -18,24 +18,44 @@ using namespace boost;
 #if __cplusplus > 199711L
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
                                                      const Player* aiplayer)
-    : MultiMonteCarloTreeSearch(board, aiplayer, 3000) {
+    : MultiMonteCarloTreeSearch(board, aiplayer, 4, 2048) {
+}
+MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
+                                                     const Player* aiplayer,
+                                                     size_t numberofthreads)
+    : MultiMonteCarloTreeSearch(board, aiplayer, numberofthreads, 2048) {
 }
 #else
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
     const Player* aiplayer)
-: MonteCarloTreeSearch(board, aiplayer),
+: AbstractStrategyImpl(board, aiplayer),
+mcstimpl(MonteCarloTreeSearch(board, aiplayer)),
 ptrtoboard(board),
 ptrtoplayer(aiplayer),
-numberoftrials(3000) {
+numberofthreads(4),
+numberoftrials(2048) {
   init();
 }
+MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
+    const Player* aiplayer,
+    size_t numberofthreads):AbstractStrategyImpl(board, aiplayer),
+mcstimpl(MonteCarloTreeSearch(board, aiplayer)),
+ptrtoboard(board),
+ptrtoplayer(aiplayer),
+numberofthreads(numberofthreads),
+numberoftrials(2048) {
+  init();
+  }
 #endif
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
                                                      const Player* aiplayer,
+                                                     size_t numberofthreads,
                                                      size_t numberoftrials)
-    : MonteCarloTreeSearch(board, aiplayer),
+    : AbstractStrategyImpl(board, aiplayer),
+      mcstimpl(MonteCarloTreeSearch(board, aiplayer)),
       ptrtoboard(board),
       ptrtoplayer(aiplayer),
+      numberofthreads(numberofthreads),
       numberoftrials(numberoftrials) {
   init();
 }
@@ -44,25 +64,21 @@ int MultiMonteCarloTreeSearch::simulation(int currentempty) {
   vector<int> bwglobal, oppglobal;
   initGameState(emptyglobal, bwglobal, oppglobal);
   LockableGameTree gametree(ptrtoplayer->getViewLabel());  //shared and lockable
-  thread_group threads;
-  for (size_t i = 0; i < numberoftrials; ++i)
-    threads.create_thread(
-        boost::bind(boost::mem_fn(&MultiMonteCarloTreeSearch::task),
-                    boost::ref(*this), boost::cref(bwglobal),
-                    boost::cref(oppglobal), boost::cref(emptyglobal),
-                    currentempty, boost::ref(gametree)));
-  threads.join_all();
-  int resultmove = getBestMove(gametree);
+
+  for (size_t i = 0; i < (numberoftrials/numberofthreads); ++i){
+    thread_group threads;
+    for (size_t j = 0; j < numberofthreads; ++j)
+      threads.create_thread(
+          boost::bind(boost::mem_fn(&MultiMonteCarloTreeSearch::task),
+                      boost::ref(*this), boost::cref(bwglobal),
+                      boost::cref(oppglobal), boost::cref(emptyglobal),
+                      currentempty, boost::ref(gametree)));
+      assert(threads.size() == numberofthreads);
+      threads.join_all();
+  }
+  int resultmove = mcstimpl.getBestMove(gametree);
   //find the move with the maximal successful simulated outcome
   assert(resultmove != -1);
-
-#ifndef NDEBUG
-  {
-   DEBUGHEADER();
-   cerr << gametree.name() << " current tree size = " << gametree.getNumofTotalNodes() << endl;
-  }
-#endif
-
   return resultmove;
 }
 void MultiMonteCarloTreeSearch::task(
@@ -81,16 +97,17 @@ void MultiMonteCarloTreeSearch::task(
   int proportionofempty = currentempty;
 
   //in-tree phase
-  int selectnode = selection(currentempty, gametree);
-  int expandednode = expansion(selectnode, emptyindicators, proportionofempty,
-                               babywatsons, opponents, gametree);
+  int selectnode = mcstimpl.selection(currentempty, gametree);
+  int expandednode = mcstimpl.expansion(selectnode, emptyindicators,
+                                        proportionofempty, babywatsons,
+                                        opponents, gametree);
 
   //simulation phase
-  int winner = playout(emptyindicators, proportionofempty, babywatsons,
-                       opponents);
+  int winner = mcstimpl.playout(emptyindicators, proportionofempty, babywatsons,
+                                opponents);
   assert(winner != 0);
   //back-propagate
-  backpropagation(expandednode, winner, gametree);
+  mcstimpl.backpropagation(expandednode, winner, gametree);
 }
 void MultiMonteCarloTreeSearch::init() {
   numofhexgons = ptrtoboard->getNumofhexgons();

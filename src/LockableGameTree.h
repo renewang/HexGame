@@ -237,12 +237,15 @@ class LockableGameTree : public lockable_base_type, public AbstractGameTree {
 #ifndef NDEBUG
   friend class ParallelTest;
   FRIEND_TEST(ParallelTest, ThreadGameTreeNode);
-  FRIEND_TEST(ParallelTest, ThreadEndofGameValue);
+  FRIEND_TEST(ParallelTest, DISABLED_ThreadGameTreeUpdate);
+  FRIEND_TEST(ParallelTest, ThreadIterativeGame);
+  FRIEND_TEST(ParallelTestValue, ThreadEndofGameValue);
   friend void CreateTreeTask(int currentempty, LockableGameTree& gametree,
                              HexBoard& board);
   friend void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
-                             HexBoard& board,
-                             hexgame::shared_ptr<set<int> >& ptrtochosenkids);
+                      HexBoard& board,
+                      hexgame::shared_ptr<set<int> >& ptrtochosenkids,
+                      hexgame::shared_ptr<set<int> >& ptrtochosenparents);
   friend void SimulationTask(int currentempty, LockableGameTree& gametree,
                              HexBoard& board, hexgame::shared_ptr<bool>& emptyglobal);
 #endif
@@ -272,6 +275,8 @@ class LockableGameTree : public lockable_base_type, public AbstractGameTree {
   std::size_t getNumofTotalNodes(boost::unique_lock<LockableGameTree>&);
   void setIsupdatedBackpropagation(boost::unique_lock<LockableGameTree>&,
                                    vertex_t leaf);
+  bool getIsupdatedBackpropagation(boost::unique_lock<LockableGameTree>&, int indexofleaf);
+  vector<size_t> getLeaves(boost::unique_lock<LockableGameTree>&);
 
   //implement with global lock, internal
   std::size_t getSizeofEdges();
