@@ -414,10 +414,17 @@ void LockableGameTree::getMovesfromTreeState(
         remainingmoves.erase(pos);
       }
     }
-#ifdef NDEBUG
+#if __cplusplus > 199711L
+    default_random_engine generator(
+        static_cast<unsigned>(hexgame::chrono::system_clock::now()
+            .time_since_epoch().count()));
+    uniform_int_distribution<int> distribution(0, remainingmoves.size() - 1);
+    size_t index = distribution(generator);  // generates number in the range 1..6
+    assert(index < remainingmoves.size());
+#else
     srand((unsigned long)clock());
-#endif
     size_t index = rand() % remainingmoves.size();
+#endif
     hexgame::unordered_set<int>::iterator iter = remainingmoves.begin();
     for (size_t i = 0; i < index; ++i)
       ++iter;
@@ -609,7 +616,8 @@ bool LockableGameTree::getIsupdated(int indexofnode) {
   unique_lock<LockableUTCPolicy> guard(*get(vertex_value, thetree, node));
   return (get(vertex_value, thetree, node).get()->getIsupdated());
 }
-bool LockableGameTree::getIsupdatedBackpropagation(unique_lock<LockableGameTree>&, int indexofleaf){
+bool LockableGameTree::getIsupdatedBackpropagation(
+    unique_lock<LockableGameTree>&, int indexofleaf) {
   vertex_t node = vertex(indexofleaf, thetree), parent =
       graph_traits<basegraph>::null_vertex();
   bool result = get(vertex_value, thetree, node).get()->getIsupdated();
@@ -630,7 +638,8 @@ bool LockableGameTree::getIsupdatedBackpropagation(int indexofleaf) {
   unique_lock<LockableGameTree> guard(*this);
   return getIsupdatedBackpropagation(guard, indexofleaf);
 }
-vector<size_t> LockableGameTree::getLeaves(boost::unique_lock<LockableGameTree>&){
+vector<size_t> LockableGameTree::getLeaves(
+    boost::unique_lock<LockableGameTree>&) {
   vertex_t node = graph_traits<basegraph>::null_vertex();
   vector<size_t> leaves;
   stack<vertex_t> nodeholder;

@@ -344,21 +344,27 @@ void GameTree::getMovesfromTreeState(
     for (auto iter = siblings.begin(); iter != siblings.end();
         ++iter)
 #else
-        for (vector<size_t>::iterator iter = siblings.begin(); iter != siblings.end(); ++iter)
+    for (vector<size_t>::iterator iter = siblings.begin(); iter != siblings.end(); ++iter)
 #endif
-        {
+    {
       size_t pos = getNodePosition(*iter);
       assert(remainingmoves.count(pos) != 0);
       remainingmoves.erase(pos);
     }
-#ifdef NDEBUG
+#if __cplusplus > 199711L
+    default_random_engine generator(
+          static_cast<unsigned>(hexgame::chrono::system_clock::now()
+              .time_since_epoch().count()));
+    uniform_int_distribution<int> distribution(0, remainingmoves.size()-1);
+    size_t index = distribution(generator);  // generates number in the range 1..6
+    assert(index < remainingmoves.size());
+#else
     srand((unsigned long)clock());
-#endif
     size_t index = rand() % remainingmoves.size();
+#endif
     hexgame::unordered_set<int>::iterator iter = remainingmoves.begin();
     for (size_t i = 0; i < index; ++i)
       ++iter;
-
     int move = *iter;
     assert(remainingmoves.count(move));
     setNodePosition(chosenleaf, move);

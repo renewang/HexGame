@@ -487,7 +487,7 @@ TEST_F(MinMaxTest,SimulationCombine) {
 #if __cplusplus > 199711L
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-                 Player playerb(board, BLUE);  //west to east, 'X'
+  Player playerb(board, BLUE);  //west to east, 'X'
 #endif
   GameTree gametree(playerb.getViewLabel());
   MonteCarloTreeSearch mcst(&board, &playerb);
@@ -571,8 +571,8 @@ TEST_F(MinMaxTest,CheckEndofGame) {
     Player playera(board, hexgonValKind::RED);  //north to south, 'O'
     Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-                   Player playera(board, RED);  //north to south, 'O'
-        Player playerb(board, BLUE);//west to east, 'X'
+    Player playera(board, RED);  //north to south, 'O'
+    Player playerb(board, BLUE);//west to east, 'X'
 #endif
 
     MonteCarloTreeSearch mcstred(&board, &playera, 1);
@@ -642,8 +642,8 @@ TEST_F(MinMaxTest,CheckHexFiveGame) {
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
+  Player playera(board, RED);  //north to south, 'O'
+  Player playerb(board, BLUE);//west to east, 'X'
 #endif
   MonteCarloTreeSearch mcstred(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
@@ -682,8 +682,8 @@ TEST_F(MinMaxTest,CompeteHexFiveGame) {
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
+  Player playera(board, RED);  //north to south, 'O'
+  Player playerb(board, BLUE);//west to east, 'X'
 #endif
   Strategy naivered(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
@@ -895,8 +895,8 @@ TEST_F(MinMaxTest,CompeteHexMCParallelGame) {
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
+  Player playera(board, RED);  //north to south, 'O'
+  Player playerb(board, BLUE);//west to east, 'X'
 #endif
 
   MonteCarloTreeSearch mcstred(&board, &playera);
@@ -940,8 +940,8 @@ TEST_P(TimeTestValue,CheckSingleGameTime) {
   Player playera(board, hexgonValKind::RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
 #else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
+  Player playera(board, RED);  //north to south, 'O'
+  Player playerb(board, BLUE);//west to east, 'X'
 #endif
   MonteCarloTreeSearch mcstred(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
@@ -1026,7 +1026,7 @@ TEST_P(TimeTestValue,CheckParallelGameTime) {
 INSTANTIATE_TEST_CASE_P(
     OnTheFlySetVariable,
     TimeTestValue,
-    ::testing::Combine(::testing::Values(2, 4, 8, 16, 32, 64),
+    ::testing::Combine(::testing::Values(2, 4, 8, 12, 16, 32, 64),
                        ::testing::Values(3, 5, 7, 9, 11)));
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

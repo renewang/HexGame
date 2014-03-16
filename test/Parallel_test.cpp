@@ -300,6 +300,7 @@ TEST_F(ParallelTest, DISABLED_ThreadPropResizeFailed) {
 }
 TEST_F(ParallelTest, ThreadPropResize) {
   vector<hexgame::shared_ptr<MockLockableUTCPolicy> > sharedvec;
+  numberofthreads = 10;
   for (size_t i = 0; i < numberofthreads; ++i) {
     sharedvec.push_back(
         hexgame::shared_ptr<MockLockableUTCPolicy>(
@@ -544,16 +545,16 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
 }
 INSTANTIATE_TEST_CASE_P(
     OnTheFlySetThreadNumbertoH, ParallelTestValue,
-    ::testing::Combine(Range(1, 104, 17), Range(2, 122, 7), Values(3, 5, 11)));
+    ::testing::Combine(Values(1, 2, 4, 8, 10, 12, 14, 16, 32, 64), Range(2, 122, 7), Values(3, 5, 11)));
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetThreadNumbertoT,
+    OnTheFlySetThreadNumbertoH2,
     ParallelTestValue,
-    ::testing::Combine(Range(100, 3600, 500), Range(2, 122, 7),
+    ::testing::Combine(Range(1, 104, 17), Range(2, 122, 7),
                        Values(3, 5, 11)));
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetThreadNumbertoT2,
+    OnTheFlySetThreadNumbertoH3,
     ParallelTestValue,
-    ::testing::Combine(Range(100, 3600, 500), Values(9, 25, 121),
+    ::testing::Combine(Values(1, 2, 4, 8, 10, 12, 14, 16, 32, 64), Values(9, 25, 121),
                        Values(3, 5, 11)));
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
