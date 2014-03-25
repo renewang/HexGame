@@ -245,11 +245,6 @@ int LockableGameTree::expandNode(int indexofsource, int move, char color) {
   return expandNode(guard, indexofsource, move, color);
 }
 bool LockableGameTree::addEdge(vertex_t source, vertex_t target) {
-/*  boost::unique_lock<LockableUTCPolicy> fromLock(
-   *get(vertex_value, thetree, source), boost::defer_lock);
-   boost::unique_lock<LockableUTCPolicy> toLock(
-   *get(vertex_value, thetree, target), boost::defer_lock);
-   boost::lock(fromLock, toLock);*/
   pair<edge_t, bool> result = add_edge(source, target, thetree);
   return result.second;
 }
@@ -731,7 +726,7 @@ size_t LockableGameTree::getSizeofNodes(shared_lock<LockableGameTree>&) {
   return num_vertices(thetree);
 }
 size_t LockableGameTree::getSizeofNodes() {
-  unique_lock<LockableGameTree> guard(*this);
+  shared_lock<LockableGameTree> guard(*this);
   return num_vertices(thetree);
 }
 size_t LockableGameTree::getSizeofEdges() {

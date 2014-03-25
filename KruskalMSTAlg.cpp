@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include "Graph.h"
+#include "Global.h"
 #include "PlainParser.h"
 #include "PriorityQueue.h"
 #include "MinSpanTreeAlgo.h"
@@ -56,7 +57,7 @@ int main(int argc, char **argv) {
       edgesqueue.insert((*iter).first, (*iter).second);
 
     MinSpanTreeAlgo<string, int> mstalgo(graph);
-    unique_ptr<AbstractAlgorithm> ptrtoalgo(nullptr);
+    hexgame::unique_ptr<AbstractAlgorithm, hexgame::default_delete<AbstractAlgorithm> > ptrtoalgo(nullptr);
     switch (algochoice) {
       case 2:
         ptrtoalgo.reset(new MinSpanTreeAlgo<string, int>::Kruskals(mstalgo));

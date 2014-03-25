@@ -10,25 +10,6 @@
 #include "MultiMonteCarloTreeSearch.h"
 
 using namespace boost::python;
-#if __cplusplus > 199711L
-enum class AIStrategyKind {
-  NAIVE,
-  MCST,
-  PMCST
-};
-#define AIStrategyKind_NAIVE AIStrategyKind::NAIVE
-#define AIStrategyKind_MCST AIStrategyKind::MCST
-#define AIStrategyKind_PMCST AIStrategyKind::PMCST
-#else
-enum AIStrategyKind {
-  NAIVE,
-  MCST,
-  PMCST
-};
-#define AIStrategyKind_NAIVE NAIVE
-#define AIStrategyKind_MCST MCST
-#define AIStrategyKind_PMCST PMCST
-#endif
 class HexGamePyEngine {
  public:
 #if __cplusplus > 199711L
@@ -104,7 +85,7 @@ class HexGamePyEngine {
   Player blueplayer;  //west to east, 'X'
   Game hexboardgame;
   hexgame::unordered_map<char, hexgame::shared_ptr<AbstractStrategy> > aistrategy;
-
+//TODO, duplicate code
   void selectStrategy(AIStrategyKind strategykind, Player& player) {
     switch (strategykind) {
       case AIStrategyKind_NAIVE:
@@ -113,11 +94,11 @@ class HexGamePyEngine {
       break;
       case AIStrategyKind_PMCST:
       std::cout <<"\n"<< player.getPlayername()<<" uses PMCST strategy" << endl;
-      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new MonteCarloTreeSearch(&board, &player))));
+      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new MultiMonteCarloTreeSearch(&board, &player))));
       break;
       default:
       std::cout <<"\n"<< player.getPlayername()<< " uses MCST strategy" << endl;
-      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new MultiMonteCarloTreeSearch(&board, &player))));
+      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new MonteCarloTreeSearch(&board, &player))));
       break;
     }
   }

@@ -7,6 +7,25 @@
 #include "Player.h"
 #include "HexBoard.h"
 
+#if __cplusplus > 199711L
+enum class AIStrategyKind {
+  NAIVE = 1,
+  MCST,
+  PMCST
+};
+#define AIStrategyKind_NAIVE AIStrategyKind::NAIVE
+#define AIStrategyKind_MCST AIStrategyKind::MCST
+#define AIStrategyKind_PMCST AIStrategyKind::PMCST
+#else
+enum AIStrategyKind {
+  NAIVE,
+  MCST,
+  PMCST
+};
+#define AIStrategyKind_NAIVE NAIVE
+#define AIStrategyKind_MCST MCST
+#define AIStrategyKind_PMCST PMCST
+#endif
 class AbstractStrategy {
 
  protected:

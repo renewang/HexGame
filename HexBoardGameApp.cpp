@@ -19,13 +19,19 @@
 #include "HexBoard.h"
 #include "Strategy.h"
 #include "MonteCarloTreeSearch.h"
+#include "MultiMonteCarloTreeSearch.h"
 
 using namespace std;
 
 string printHeader();
 void parserMove(string movestring, int& row, int& col);
 int queryHumanMove(int& userrow, int& usercol);
-void simulations(unique_ptr<AbstractStrategy>& strategyred, unique_ptr<AbstractStrategy>& strategyblue, float threshold, float randomness);
+void simulations(hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
+                 hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue, float threshold,
+                 float randomness);
+void selectStrategy(AIStrategyKind strategykind,
+                    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
+                    Player& player, HexBoard& board);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
 int numofhexgon = 11;
@@ -38,12 +44,12 @@ int main(int argc, char **argv) {
   if (argc >= 3) {
     threshold = atof(argv[1]);
     randomness = atof(argv[2]);
-    if(argc == 4)
-	    numofhexgon = atoi(argv[3]);
+    if (argc == 4)
+      numofhexgon = atoi(argv[3]);
 
     cout << "Doing Simulation for two virtual players" << endl;
-    unique_ptr<AbstractStrategy> ptrtostrategyforred(nullptr);
-    unique_ptr<AbstractStrategy> ptrtostrategyforblue(nullptr);
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > ptrtostrategyforred(nullptr);
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > ptrtostrategyforblue(nullptr);
 
     simulations(ptrtostrategyforred, ptrtostrategyforblue, threshold, randomness);
     return 0;
@@ -58,8 +64,8 @@ int main(int argc, char **argv) {
     Game hexboardgame(board);
 
     Player* human, *babywatson;
-    Player playerfirst(board, hexgonValKind::BLUE);
-    Player playersecond(board, hexgonValKind::RED);
+    Player playerfirst(board, hexgonValKind_BLUE);
+    Player playersecond(board, hexgonValKind_RED);
     cout << hexboardgame.showView(playerfirst, playersecond) << endl;
 
     string userchoice;
@@ -83,9 +89,22 @@ int main(int argc, char **argv) {
         cout << "Invalid input. Please Try again!" << endl;
     }
 
-    //TODO: add "choose your opponenet"
-    Strategy watsonstrategy(&board, babywatson, threshold, randomness);
-
+    //let user decide to play against which AI oppoenent with different strategies
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > watsonstrategy(nullptr);
+    int aistrategykind = 2;
+    while (true) {
+      cout
+          << "Please enter your choice of AI oppoenent? (1:NAIVE|2:MCST|3:Parallel MCST)"
+          << endl;
+      cin >> aistrategykind;
+      if (aistrategykind < 1 || aistrategykind > 3)
+        cout << "Invalid input. Please Try again!" << endl;
+      else {
+        selectStrategy(static_cast<AIStrategyKind>(aistrategykind - 1),
+                       watsonstrategy, *babywatson, board);
+        break;
+      }
+    }
     //continue moving until one of the players wins
     while (true) {
 
@@ -103,14 +122,15 @@ int main(int argc, char **argv) {
       ishumanfirst = true;
       //computer aka baby watson moves
       int watsonmove, watsonrow, watsoncol;
-      watsonmove = hexboardgame.genMove(watsonstrategy);
+      watsonmove = hexboardgame.genMove(*watsonstrategy);
       watsonrow = (watsonmove - 1) / numofhexgon + 1;
       watsoncol = (watsonmove - 1) % numofhexgon + 1;
-      hexboardgame.setMove(*babywatson, watsonrow, watsoncol);
-      cout << "Baby Watson sets foot at (" << watsonrow << ',' << watsoncol
-           << ')' << endl;
-      cout << hexboardgame.showView(*human, *babywatson) << endl;
-
+      bool isbwmove = hexboardgame.setMove(*babywatson, watsonrow, watsoncol);
+      if (isbwmove) {
+        cout << "Baby Watson sets foot at (" << watsonrow << ',' << watsoncol
+             << ')' << endl;
+        cout << hexboardgame.showView(*human, *babywatson) << endl;
+      }
       string winner = hexboardgame.getWinner(*human, *babywatson);
       if (winner == human->getPlayername()) {
         cout << "Human, you beats Baby Watson!" << endl;
@@ -131,11 +151,13 @@ int main(int argc, char **argv) {
   }
   return 0;
 }
-void simulations(unique_ptr<AbstractStrategy>& strategyred, unique_ptr<AbstractStrategy>& strategyblue, float threshold, float randomness) {
+void simulations(hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
+                 hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue, float threshold,
+                 float randomness) {
   HexBoard board(numofhexgon);
 
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
 
   Game hexboardgame(board);
   strategyred.reset(new Strategy(&board, &playera, threshold, randomness));
@@ -162,7 +184,8 @@ void simulations(unique_ptr<AbstractStrategy>& strategyred, unique_ptr<AbstractS
     round++;
     winner = hexboardgame.getWinner(playera, playerb);
   }
-  cout <<  strategyred->name() <<" (RED) plays against "<< strategyblue->name() <<" (BLUE)"<< endl;
+  cout << strategyred->name() << " (RED) plays against " << strategyblue->name()
+       << " (BLUE)" << endl;
   cout << "simulation: " << round << endl;
   cout << "simulation: the winner is " << winner << endl;
 }
@@ -186,6 +209,25 @@ void parserMove(string movestring, int& row, int& col) {
     col = atoi(movestring.substr(posofcomma + 1).c_str());
   } else
     row = col = 0;
+}
+//function to select AI opponents
+void selectStrategy(AIStrategyKind strategykind,
+                    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
+                    Player& player, HexBoard& board) {
+  switch (strategykind) {
+    case AIStrategyKind_NAIVE:
+    std::cout <<"\n"<< player.getPlayername()<<" uses naive strategy" << endl;
+    watsonstrategy.reset(new Strategy(&board, &player));
+    break;
+    case AIStrategyKind_PMCST:
+    std::cout <<"\n"<< player.getPlayername()<<" uses PMCST strategy" << endl;
+    watsonstrategy.reset(new MultiMonteCarloTreeSearch(&board, &player));
+    break;
+    default:
+    std::cout <<"\n"<< player.getPlayername()<< " uses MCST strategy" << endl;
+    watsonstrategy.reset(new MonteCarloTreeSearch(&board, &player));
+    break;
+  }
 }
 //function to print out the header
 string printHeader() {

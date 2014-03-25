@@ -39,6 +39,7 @@ namespace hexgame = std;
 #include <boost/tr1/unordered_set.hpp>
 #include <boost/tr1/unordered_map.hpp>
 #include <boost/thread/detail/memory.hpp>
+#include <boost/interprocess/smart_ptr/unique_ptr.hpp>
 
 namespace hexgame
 {
@@ -47,6 +48,7 @@ namespace hexgame
     using namespace boost::chrono;
   }
     using boost::atomic;
+    using boost::unique_ptr;
     using boost::default_delete;
     using boost::random::uniform_real_distribution;
     using boost::memory_order_release;
