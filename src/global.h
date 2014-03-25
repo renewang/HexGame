@@ -81,6 +81,7 @@ namespace hexgame
 #endif
 
 //for multi-threading
+#ifndef NDEBUG
 #include <iostream>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
@@ -97,5 +98,5 @@ void debugmsg(char const* file, unsigned long line, char const * function, char 
 
 #define DEBUG_OSTREAM std::clog
 #define DEBUGHEADER() (void)(debugmsg(__FILE__, __LINE__, __func__, __DATE__, __TIME__))
-
+#endif
 #endif /* GLOBAL_H_ */

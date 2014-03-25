@@ -48,7 +48,10 @@ public:
 	bool setMove(Player& player, int indexofrow, int indexofcol);
 	//get the winner
 	std::string getWinner(Player& playera, Player& playerb);
+	//automatically generate move by AI strategy
 	int genMove(AbstractStrategy& aistrategy);
+	//reset the game to the initial state
+	void resetGame(Player& playera, Player& playerb);
 };
 
 #endif /* GAME_H_ */

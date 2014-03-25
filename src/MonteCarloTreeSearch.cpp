@@ -67,8 +67,8 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
     int proportionofempty = currentempty;
 
     //in-tree phase
-    int selectnode = selection(currentempty, gametree);
-    int expandednode = expansion(selectnode, emptyindicators, proportionofempty,
+    pair<int,int> selecresult = selection(currentempty, gametree);
+    int expandednode = expansion(selecresult, emptyindicators, proportionofempty,
                                  babywatsons, opponents, gametree);
     //simulation phase
     int winner = playout(emptyindicators, proportionofempty, babywatsons,
@@ -83,20 +83,20 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
   return resultmove;
 }
 //in-tree phase
-int MonteCarloTreeSearch::selection(int currentempty, AbstractGameTree& gametree) {
+pair<int,int> MonteCarloTreeSearch::selection(int currentempty, AbstractGameTree& gametree) {
   //when the board is not empty, return the node with the highest expected value
   return gametree.selectMaxBalanceNode(currentempty, true);
 }
-int MonteCarloTreeSearch::expansion(int selectnode,
+int MonteCarloTreeSearch::expansion(pair<int,int> selectresult,
                                     hexgame::shared_ptr<bool>& emptyindicators,
                                     int& portionofempty,
                                     vector<int>& babywatsons,
                                     vector<int>& opponents,
                                     AbstractGameTree& gametree) {
-  int indexofchild = selectnode;
+  int indexofchild = selectresult.first;
 
-  if (static_cast<int>(gametree.getNodeDepth(selectnode)) != portionofempty)  //the selected node is the end of game which might be root (not empty cell for move) or any leaf which cannot be expanded no more
-      indexofchild = gametree.expandNode(selectnode, 0, 'W');
+  if (selectresult.second != portionofempty)  //the selected node is the end of game which might be root (not empty cell for move) or any leaf which cannot be expanded no more
+      indexofchild = gametree.expandNode(selectresult.first, 0, 'W');
 
   hexgame::unordered_set<int> remainingmoves;
   for (int i = 0; i < ptrtoboard->getSizeOfVertices(); ++i) {

@@ -68,13 +68,6 @@
 //TODO add directed graph support and correct edge calculations
 template<class Type, class Val>
 class Graph {
- private:
-  float density;  //density of connected edges to generate the random Graph
-  float distance;  //maximal distance to generate random Graph
-  Val mindistance;  //hold the minimal distance which should equal to 1
-
-  //Implementation of Monte Carlo simulation to generate undirected graph.
-  void randomGraphGenerator();
  protected:
   /* Edge structure is used to hold the edge information which contains:
    * indexoffromnode: vertexindex of the source node
@@ -112,35 +105,51 @@ class Graph {
     //The type of edges are user defined but recommend to restrict to numeric type such as double, float and integer
     std::list<Edge> neighbors;
   };
-  unsigned numofvertices;  //size of Nodes or Vertex in Graph
-  unsigned numofedges;  //size of Edges in Graph
-  std::vector<Node> repgraph;  //adjacent list implementation of Graph representation
-  std::vector<std::vector<Val> > repmatrix;  //adjacent matrix implementation of Graph representation
-  bool isundirected;  //indicator for a undirected graph
 
+  void setRepgraph(const std::vector<Node>& repgraph) {
+    this->repgraph = repgraph;
+  }
+  inline std::vector<Node>& getRepgraph(){
+    return repgraph;
+  }
+  inline void setSizeOfEdges(unsigned numofedges) {
+    this->numofedges = numofedges;
+  }
+  inline void setSizeOfVertices(unsigned numofvertices) {
+    this->numofvertices = numofvertices;
+  }
+  //Provide the functionality to retrieve node's pointer given the index of source node
+  virtual inline const Node* findNodeByIndex(int index) const {
+    assert(index >= 1 && index <= static_cast<int>(numofvertices));
+    return &(repgraph[index - 1]);
+  }
+  //non-const this version
+  virtual inline Node* findNodeByIndex(int index){
+    assert(index >= 1 && index <= static_cast<int>(numofvertices));
+    return &(repgraph[index - 1]);
+  }
   //Private function to initialize the Node in constructors
   virtual void initNode(Node& node, int index) {
     node.vertexindex = (index + 1);
     node.numofneighbors = 0;
   }
   ;
+ private:
+  float density;  //density of connected edges to generate the random Graph
+  float distance;  //maximal distance to generate random Graph
+  Val mindistance;  //hold the minimal distance which should equal to 1
+  std::vector<Node> repgraph;  //adjacent list implementation of Graph representation
+  std::vector<std::vector<Val> > repmatrix;  //adjacent matrix implementation of Graph representation
+  bool isundirected;  //indicator for a undirected graph
+  unsigned numofvertices;  //size of Nodes or Vertex in Graph
+  unsigned numofedges;  //size of Edges in Graph
+
   //Private function to initialize the members of Graph in constructors
   virtual void initGraph();
   //Transform underlying representation of the graph from adjacent matrix to linked list
   void toArrayGraphRep();
   //Transform underlying representation of the graph from adjacent linked list to matrix
   void toListGraphRep();
-  //Provide the functionality to retrieve node's pointer given the index of source node
-  const Node* findNodeByIndex(int index) const {
-    assert(index >= 1 && index <= static_cast<int>(numofvertices));
-    return &(repgraph[index - 1]);
-  }
-  //non-const this version
-  Node* findNodeByIndex(int index){
-    assert(index >= 1 && index <= static_cast<int>(numofvertices));
-    return &(repgraph[index - 1]);
-  }
-
   //Provide the functionality to retrieve the Node pointer of a connected node given the source node object
   //and the index of connected node
   int findNeighborByIndex(const Node* node, int index) const;
@@ -220,7 +229,8 @@ class Graph {
     return;
   }
   ;
-
+  //Implementation of Monte Carlo simulation to generate undirected graph.
+  void randomGraphGenerator();
  public:
 //Default constructor, initialize graph with zero values
 //Takes no arguments
@@ -233,9 +243,9 @@ class Graph {
 //Constructor to generate a graph according to the matrix provided by client
   Graph(Val** clientgraph, int numofvertices);
 //Constructor to generate a graph according to the input file
-  Graph(AbstractParser& parser);
+  explicit Graph(AbstractParser& parser);
 //Create a empty graph
-  Graph(unsigned numofvertices);
+  explicit Graph(unsigned numofvertices);
 //destructor
   virtual ~Graph() {
   }
@@ -246,7 +256,7 @@ class Graph {
   }
   ;
 //Get the size of edges
-  inline int getSizeOfEdges() const {
+  virtual inline int getSizeOfEdges() const {
     return numofedges;
   }
   ;
@@ -323,7 +333,7 @@ class Graph {
 //indexofnodeto: the vertexindex of the destination node
 //value: the weight of edge
 //Output: NONE
-  void setEdgeValue(int indexofnodefrom, int indexofnodeto, Val value);
+  virtual void setEdgeValue(int indexofnodefrom, int indexofnodeto, Val value);
 //Print the underlying adjacent matrix representation
 //Input: NONE
 //Output:

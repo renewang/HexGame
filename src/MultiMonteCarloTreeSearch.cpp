@@ -97,8 +97,8 @@ void MultiMonteCarloTreeSearch::task(
   int proportionofempty = currentempty;
 
   //in-tree phase
-  int selectnode = mcstimpl.selection(currentempty, gametree);
-  int expandednode = mcstimpl.expansion(selectnode, emptyindicators,
+  pair<int,int> selectresult = mcstimpl.selection(currentempty, gametree);
+  int expandednode = mcstimpl.expansion(selectresult, emptyindicators,
                                         proportionofempty, babywatsons,
                                         opponents, gametree);
 

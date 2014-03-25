@@ -24,9 +24,11 @@
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/externally_locked.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <boost/thread/pthread/shared_mutex.hpp>
 
 typedef boost::lockable_adapter<boost::mutex> lockable_base_type;
-class LockableUTCPolicy : public lockable_base_type, public AbstractUTCPolicy {
+typedef boost::shared_lockable_adapter<boost::shared_mutex> lockable_share_type;
+class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
  private:
   double value;  //this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
   double balance;  //this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
@@ -39,7 +41,7 @@ class LockableUTCPolicy : public lockable_base_type, public AbstractUTCPolicy {
   boost::condition_variable_any holdforupdate;
  public:
   LockableUTCPolicy()
-      : lockable_base_type(),
+      : lockable_share_type(),
         value(0.0),
         balance(value),
         coefficient(2.0),
@@ -61,7 +63,7 @@ class LockableUTCPolicy : public lockable_base_type, public AbstractUTCPolicy {
     return buffer.str();
   }
   LockableUTCPolicy(const LockableUTCPolicy& policy)
-      : lockable_base_type(),
+      : lockable_share_type(),
         coefficient(2.0) {
     this->value = policy.value;
     this->balance = policy.balance;
@@ -85,8 +87,7 @@ class LockableUTCPolicy : public lockable_base_type, public AbstractUTCPolicy {
   double estimate();
   double calculate(AbstractUTCPolicy& parent);
   virtual void notifyupdatedone();
-  bool update(valuekind indexofkind, int value,
-                                              int increment = 0);
+  bool update(valuekind indexofkind, int value, int increment = 0);
   bool updateAll(
       valuekind visitkind, int valueofvisit, int increaseofvisit,
       valuekind winkind, int valueofwin, int increaseofwin);
@@ -102,27 +103,21 @@ class LockableUTCPolicy : public lockable_base_type, public AbstractUTCPolicy {
   }
 
   int getCountforexpand() {
-    boost::unique_lock<LockableUTCPolicy> lock(*this);
-    return countforexpand;
+    return countforexpand.load();
   }
   void setCountforexpand(int value) {
-    boost::unique_lock<LockableUTCPolicy> lock(*this);
     this->countforexpand.store(value);
   }
   void addCountforexpand(int increment) {
-    boost::unique_lock<LockableUTCPolicy> lock(*this);
     countforexpand.fetch_add(increment);
   }
   void subCountforexpand(int decrement) {
-    boost::unique_lock<LockableUTCPolicy> lock(*this);
     countforexpand.fetch_sub(decrement);
   }
   int getNumofFutureChildren() {
-    boost::unique_lock<LockableUTCPolicy> lock(*this);
     return sizeoffuturechildren;
   }
   void setNumofFutureChildren(int numofchildren, int increment) {
-    boost::unique_lock<LockableUTCPolicy> lock(*this);
     if (numofchildren == 0)
       sizeoffuturechildren += increment;
     else
@@ -136,7 +131,7 @@ class LockableUTCPolicy : public lockable_base_type, public AbstractUTCPolicy {
   }
 };
 
-class LockableGameTree : public lockable_base_type, public AbstractGameTree {
+class LockableGameTree : public lockable_share_type, public AbstractGameTree {
  private:
   //for property
   typedef boost::property<boost::vertex_value_t,
@@ -184,7 +179,7 @@ class LockableGameTree : public lockable_base_type, public AbstractGameTree {
   //implement with global lock, external
   vertex_t addNode(boost::unique_lock<LockableGameTree>&,
                    std::size_t positionofchild, char color);
-  std::size_t getNodeDepth(boost::unique_lock<LockableGameTree>&,
+  std::size_t getNodeDepth(boost::shared_lock<LockableGameTree>&,
                            int indexofnode);
   void backpropagate(boost::unique_lock<LockableGameTree>&, vertex_t leaf,
                      int value, int level);bool notifyAllUpdateDone(
@@ -209,6 +204,11 @@ class LockableGameTree : public lockable_base_type, public AbstractGameTree {
   //implement with local lock, internal
   bool addEdge(vertex_t source, vertex_t target);
   vertex_t getParent(vertex_t node);
+
+  //no lock
+  void updateNodeName(vertex_t node);  //update the value of a given node
+  void updateNodeColor(vertex_t node, char color);  //update the board position of a given node
+  void updateNodePosition(vertex_t node, std::size_t position);
 
   //for print
   class TreePrinter {
@@ -259,31 +259,31 @@ class LockableGameTree : public lockable_base_type, public AbstractGameTree {
   ;
 
   //implement with global lock, external
-  std::size_t getSizeofEdges(boost::unique_lock<LockableGameTree>&);
-  std::size_t getSizeofNodes(boost::unique_lock<LockableGameTree>&);
+  std::size_t getSizeofEdges(boost::shared_lock<LockableGameTree>&);
+  std::size_t getSizeofNodes(boost::shared_lock<LockableGameTree>&);
   void clearAll(boost::unique_lock<LockableGameTree>&);
-  int selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
+  std::pair<int,int> selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
                            int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
-      boost::unique_lock<LockableGameTree>&, int indexofnode, vector<int>& babywatsons,
-      vector<int>& opponents, hexgame::unordered_set<int>& remainingmoves);
+      boost::unique_lock<LockableGameTree>&, int indexofnode, std::vector<int>& babywatsons,
+      std::vector<int>& opponents, hexgame::unordered_set<int>& remainingmoves);
   int expandNode(boost::unique_lock<LockableGameTree>&, int indexofsource,
                  int move, char color = 'W');
   int updateNodefromSimulation(
       boost::unique_lock<LockableGameTree>& guard, int indexofnode, int winner, int level = -1);
-  std::string printGameTree(boost::unique_lock<LockableGameTree>&, int index);  //print out the tree
-  std::size_t getNumofTotalNodes(boost::unique_lock<LockableGameTree>&);
+  std::string printGameTree(boost::shared_lock<LockableGameTree>&, int index);  //print out the tree
+  std::size_t getNumofTotalNodes(boost::shared_lock<LockableGameTree>&);
   void setIsupdatedBackpropagation(boost::unique_lock<LockableGameTree>&,
                                    vertex_t leaf);
-  bool getIsupdatedBackpropagation(boost::unique_lock<LockableGameTree>&, int indexofleaf);
-  vector<size_t> getLeaves(boost::unique_lock<LockableGameTree>&);
+  bool getIsupdatedBackpropagation(boost::shared_lock<LockableGameTree>&, int indexofleaf);
+  std::vector<size_t> getLeaves(boost::shared_lock<LockableGameTree>&);
 
   //implement with global lock, internal
   std::size_t getSizeofEdges();
   std::size_t getSizeofNodes();
   void clearAll();
   std::pair<int, double> getBestMovefromSimulation();
-  int selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
+  std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
          int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
          hexgame::unordered_set<int>& remainingmoves);
@@ -296,11 +296,18 @@ class LockableGameTree : public lockable_base_type, public AbstractGameTree {
   }
   ;
 
+
+  //implement with local locak, exteranl
+  void setNodePosition(boost::unique_lock<LockableUTCPolicy>& guard,
+                                         vertex_t node, size_t position);
+  std::size_t getNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node);
+  vertex_t getParent(boost::unique_lock<LockableUTCPolicy>&, vertex_t node);
+  std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&, size_t indexofnode);
+
   //implement with local lock, internal
   void setNodePosition(std::size_t indexofnode, std::size_t position);
   std::vector<std::size_t> getLeaves();
   std::vector<std::size_t> getSiblings(std::size_t indexofnode);
-  std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&, size_t indexofnode);
   std::size_t getNodePosition(std::size_t indexofnode);
   std::size_t getNumofChildren(std::size_t indexofnode);
   std::size_t getParent(std::size_t indexofchild, bool);

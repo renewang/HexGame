@@ -219,16 +219,10 @@ int GameTree::expandNode(int indexofsource, int move, char color) {
   return indexofchild;
 }
 //called in MCST selection phase
-int GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
+pair<int,int> GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
   vertex_t parent = _root;
   out_edge_iter viter, viterend;
   size_t numofchildren = out_degree(parent, thetree);
-
-#ifndef NDEBUG
-  if (maptochildren.find(parent) == maptochildren.end())
-    maptochildren.insert(make_pair(parent, 0));
-  assert(maptochildren.at(parent) == numofchildren);
-#endif
 
   int level = 0;
 
@@ -270,28 +264,9 @@ int GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
     parent = vertexchooser.minPrioirty();
     numofchildren = out_degree(parent, thetree);
 
-#ifndef NDEBUG
-    if (maptochildren.find(parent) == maptochildren.end())
-      maptochildren.insert(make_pair(parent, 0));
-    assert(maptochildren.at(parent) == numofchildren);
-#endif
     ++level;
   }
-#ifndef NDEBUG
-  if (maptochildren.find(parent) == maptochildren.end())
-    maptochildren.insert(make_pair(parent, 1));
-  else
-    ++maptochildren.at(parent);
-  if ((currentempty - level) == 0) {
-    --maptochildren.at(parent);
-    assert(maptochildren.at(parent) == out_degree(parent, thetree));
-  } else
-    assert(maptochildren.at(parent) == out_degree(parent, thetree) + 1);
-  assert(
-      static_cast<int>(getNodeDepth(get(vertex_index, thetree, parent)))
-          == level);
-#endif
-  return get(vertex_index, thetree, parent);
+  return make_pair(get(vertex_index, thetree, parent), level);
 }
 pair<int, double> GameTree::getBestMovefromSimulation() {
   //1. examine all children nodes below the root node
@@ -389,7 +364,6 @@ void GameTree::clearAll() {
   thetree.clear();
   vertex_t root = addNode(indexofroot, rootscolor);
   _root = root;
-  maptochildren.clear();
 }
 size_t GameTree::getSizeofNodes() {
   return num_vertices(thetree);

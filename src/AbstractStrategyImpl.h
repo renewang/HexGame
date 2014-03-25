@@ -8,6 +8,10 @@
 
 #include "AbstractStrategy.h"
 
+#ifndef NDEBUG
+#include "gtest/gtest_prod.h"
+#endif
+
 class AbstractStrategyImpl : public AbstractStrategy {
  private:
   //the actual playing board in the game. Need to ensure it not to be modified during the simulation
@@ -24,6 +28,11 @@ class AbstractStrategyImpl : public AbstractStrategy {
   virtual int checkWinnerExist(std::vector<int>&, std::vector<int>&);
   virtual bool isWinner(std::vector<int>& test, bool iswestoeast);
   virtual int simulation(int currentempty) = 0;
+
+#ifndef NDEBUG
+  friend class StrategyTest;
+  FRIEND_TEST(StrategyTest, DISABLED_CheckWinnerElevenTest);
+#endif
 
  public:
   AbstractStrategyImpl():ptrtoboard(nullptr), ptrtoplayer(nullptr),numofhexgons(0){};

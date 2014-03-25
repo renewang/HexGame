@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
         cout << "Invalid input. Please Try again!" << endl;
     }
 
+    //TODO: add "choose your opponenet"
     Strategy watsonstrategy(&board, babywatson, threshold, randomness);
 
     //continue moving until one of the players wins

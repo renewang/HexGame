@@ -78,16 +78,16 @@ LockableGameTree::LockableGameTree(char playerscolor)
 }
 #else
 LockableGameTree::LockableGameTree()
-: lockable_base_type() {
+: lockable_share_type() {
   initGameTree('W', 0);
 }
 LockableGameTree::LockableGameTree(char playerscolor)
-: lockable_base_type() {
+: lockable_share_type() {
   initGameTree(playerscolor, 0);
 }
 #endif
 LockableGameTree::LockableGameTree(char playerscolor, size_t indexofroot)
-    : lockable_base_type() {
+    : lockable_share_type() {
   initGameTree(playerscolor, indexofroot);
 }
 bool LockableGameTree::notifyAllUpdateDone(unique_lock<LockableGameTree>&,
@@ -129,11 +129,9 @@ LockableGameTree::vertex_t LockableGameTree::addNode(
   vertex_t target = add_vertex(thetree);
   //TODO re-factor, updateNodeName must be created at the last
   updateNodeValue(guardoftree, target);
-  unique_lock<LockableUTCPolicy> guardofnode(
-      *get(vertex_value, thetree, target));
-  updateNodePosition(guardofnode, target, positionofchild);
-  updateNodeColor(guardofnode, target, color);
-  updateNodeName(guardofnode, target);
+  updateNodePosition(target, positionofchild);
+  updateNodeColor(target, color);
+  updateNodeName(target);
   return target;
 }
 LockableGameTree::vertex_t LockableGameTree::addNode(size_t positionofchild,
@@ -141,7 +139,7 @@ LockableGameTree::vertex_t LockableGameTree::addNode(size_t positionofchild,
   unique_lock<LockableGameTree> guard(*this);
   return addNode(guard, positionofchild, color);
 }
-string LockableGameTree::printGameTree(unique_lock<LockableGameTree>&,
+string LockableGameTree::printGameTree(shared_lock<LockableGameTree>&,
                                        int index) {
   stringstream treebuffer;
   ostream_iterator<string> treebufiter(treebuffer);
@@ -155,12 +153,15 @@ string LockableGameTree::printGameTree(unique_lock<LockableGameTree>&,
   return treebuffer.str();
 }
 string LockableGameTree::printGameTree(int index) {
-  unique_lock<LockableGameTree> guard(*this);
+  shared_lock<LockableGameTree> guard(*this);
   return printGameTree(guard, index);
 }
 //external lock version
 void LockableGameTree::updateNodeName(unique_lock<LockableUTCPolicy>&,
                                       vertex_t node) {
+ updateNodeName(node);
+}
+void LockableGameTree::updateNodeName(vertex_t node) {
   stringstream namebuffer;
   namebuffer << get(vertex_index, thetree, node);
   namebuffer << "@";
@@ -183,6 +184,10 @@ void LockableGameTree::updateNodeValue(unique_lock<LockableGameTree>&,
 //update the color of a given node
 void LockableGameTree::updateNodeColor(unique_lock<LockableUTCPolicy>&,
                                        vertex_t node, char color) {
+  updateNodeColor(node, color);
+}
+//update the color of a given node
+void LockableGameTree::updateNodeColor(vertex_t node, char color) {
   switch (color) {
     case 'R':
       put(vertex_color, thetree, node, red_color);
@@ -197,6 +202,9 @@ void LockableGameTree::updateNodeColor(unique_lock<LockableUTCPolicy>&,
 //update the board position of a given node
 void LockableGameTree::updateNodePosition(unique_lock<LockableUTCPolicy>&,
                                           vertex_t node, std::size_t position) {
+  updateNodePosition(node, position);
+}
+void LockableGameTree::updateNodePosition(vertex_t node, std::size_t position) {
   put(vertex_position, thetree, node, position);
 }
 int LockableGameTree::expandNode(unique_lock<LockableGameTree>& guard,
@@ -237,15 +245,15 @@ int LockableGameTree::expandNode(int indexofsource, int move, char color) {
   return expandNode(guard, indexofsource, move, color);
 }
 bool LockableGameTree::addEdge(vertex_t source, vertex_t target) {
-  boost::unique_lock<LockableUTCPolicy> fromLock(
-      *get(vertex_value, thetree, source), boost::defer_lock);
-  boost::unique_lock<LockableUTCPolicy> toLock(
-      *get(vertex_value, thetree, target), boost::defer_lock);
-  boost::lock(fromLock, toLock);
+/*  boost::unique_lock<LockableUTCPolicy> fromLock(
+   *get(vertex_value, thetree, source), boost::defer_lock);
+   boost::unique_lock<LockableUTCPolicy> toLock(
+   *get(vertex_value, thetree, target), boost::defer_lock);
+   boost::lock(fromLock, toLock);*/
   pair<edge_t, bool> result = add_edge(source, target, thetree);
   return result.second;
 }
-int LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
+pair<int,int> LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
                                            int currentempty, bool isbreaktie) {
   vertex_t parent = _root;
   out_edge_iter viter, viterend;
@@ -328,22 +336,27 @@ int LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
     holdforselect.notify_all();
   }
 
-  int countofchildren = get(vertex_value, thetree, parent).get()
-      ->getNumofFutureChildren();
   if ((currentempty - level) > 0)
     get(vertex_value, thetree, parent).get()->setNumofFutureChildren(0, 1);
   else
     //end of the game
-    assert(countofchildren == 0);
-  return get(vertex_index, thetree, parent);
+    assert(get(vertex_value, thetree, parent).get()
+           ->getNumofFutureChildren() == 0);
+  return make_pair(get(vertex_index, thetree, parent), level);
 }
-int LockableGameTree::selectMaxBalanceNode(int currentempty,
-bool isbreaktie) {
+pair<int,int> LockableGameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
   unique_lock<LockableGameTree> guard(*this);
   return selectMaxBalanceNode(guard, currentempty, isbreaktie);
 }
-size_t LockableGameTree::getNodeDepth(unique_lock<LockableGameTree>&,
+size_t LockableGameTree::getNodeDepth(shared_lock<LockableGameTree>&,
                                       int indexofnode) {
+#ifndef NDEBUG
+  {
+  strict_lock<recursive_mutex> lock(_recursive_mutex);
+  DEBUGHEADER();
+  cerr << this_thread::get_id()<< " acquires the lock "<< this << " get node depth " << indexofnode << endl;
+  }
+#endif
   size_t depth = 0;
   vertex_t node = vertex(indexofnode, thetree);
   while (node != _root) {
@@ -356,23 +369,18 @@ size_t LockableGameTree::getNodeDepth(unique_lock<LockableGameTree>&,
       ++depth;
     }
   }
+#ifndef NDEBUG
+  {
+  strict_lock<recursive_mutex> lock(_recursive_mutex);
+  DEBUGHEADER();
+  cerr << this_thread::get_id() <<" releases the lock "<< this << endl;
+  }
+#endif
   return depth;
 }
 size_t LockableGameTree::getNodeDepth(int indexofnode) {
-  vertex_t node = vertex(indexofnode, thetree);
-  size_t depth = 0;
-  while (node != _root) {
-    //unique_lock<LockableUTCPolicy> guard(*get(vertex_value, thetree, node));
-    //check in-edges
-    in_edge_iter viter, viterend;
-    assert(in_degree(node, thetree) == 1);
-    for (tie(viter, viterend) = in_edges(node, thetree); viter != viterend;
-        ++viter) {
-      node = source(*viter, thetree);
-      ++depth;
-    }
-  }
-  return depth;
+  shared_lock<LockableGameTree> guard;
+  return getNodeDepth(guard, indexofnode);
 }
 
 void LockableGameTree::getMovesfromTreeState(
@@ -596,11 +604,11 @@ AbstractGameTree::vertex_t LockableGameTree::getParent(vertex_t node) {
 
   return parent;
 }
-size_t LockableGameTree::getNumofTotalNodes(unique_lock<LockableGameTree>&) {
+size_t LockableGameTree::getNumofTotalNodes(shared_lock<LockableGameTree>&) {
   return num_vertices(thetree);
 }
 size_t LockableGameTree::getNumofTotalNodes() {
-  unique_lock<LockableGameTree> guard(*this);
+  shared_lock<LockableGameTree> guard(*this);
   return getNumofTotalNodes(guard);
 }
 bool LockableGameTree::notifyAllUpdateDone(vertex_t leaf, int level) {
@@ -617,7 +625,7 @@ bool LockableGameTree::getIsupdated(int indexofnode) {
   return (get(vertex_value, thetree, node).get()->getIsupdated());
 }
 bool LockableGameTree::getIsupdatedBackpropagation(
-    unique_lock<LockableGameTree>&, int indexofleaf) {
+    shared_lock<LockableGameTree>&, int indexofleaf) {
   vertex_t node = vertex(indexofleaf, thetree), parent =
       graph_traits<basegraph>::null_vertex();
   bool result = get(vertex_value, thetree, node).get()->getIsupdated();
@@ -635,11 +643,11 @@ bool LockableGameTree::getIsupdatedBackpropagation(
   return result;
 }
 bool LockableGameTree::getIsupdatedBackpropagation(int indexofleaf) {
-  unique_lock<LockableGameTree> guard(*this);
+  shared_lock<LockableGameTree> guard(*this);
   return getIsupdatedBackpropagation(guard, indexofleaf);
 }
 vector<size_t> LockableGameTree::getLeaves(
-    boost::unique_lock<LockableGameTree>&) {
+    boost::shared_lock<LockableGameTree>&) {
   vertex_t node = graph_traits<basegraph>::null_vertex();
   vector<size_t> leaves;
   stack<vertex_t> nodeholder;
@@ -657,7 +665,7 @@ vector<size_t> LockableGameTree::getLeaves(
   return (vector<size_t>(leaves));
 }
 vector<size_t> LockableGameTree::getLeaves() {
-  unique_lock<LockableGameTree> guard(*this);
+  shared_lock<LockableGameTree> guard(*this);
   return (getLeaves(guard));
 }
 void LockableGameTree::setIsupdatedBackpropagation(
@@ -719,7 +727,7 @@ int LockableGameTree::getNodeValueFeature(
   unique_lock<LockableUTCPolicy> guard(*get(vertex_value, thetree, node));
   return get(vertex_value, thetree, node).get()->feature(indexofkind);
 }
-size_t LockableGameTree::getSizeofNodes(unique_lock<LockableGameTree>&) {
+size_t LockableGameTree::getSizeofNodes(shared_lock<LockableGameTree>&) {
   return num_vertices(thetree);
 }
 size_t LockableGameTree::getSizeofNodes() {
@@ -727,11 +735,10 @@ size_t LockableGameTree::getSizeofNodes() {
   return num_vertices(thetree);
 }
 size_t LockableGameTree::getSizeofEdges() {
-  unique_lock<LockableGameTree> guard(*this);
+  shared_lock<LockableGameTree> guard(*this);
   return getSizeofEdges(guard);
 }
-size_t LockableGameTree::getSizeofEdges(unique_lock<LockableGameTree>&) {
-  unique_lock<LockableGameTree> guard(*this);
+size_t LockableGameTree::getSizeofEdges(shared_lock<LockableGameTree>&) {
   size_t numofedges = num_edges(thetree);
   assert(numofedges == num_vertices(thetree) - 1);
   return numofedges;

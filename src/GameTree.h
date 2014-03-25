@@ -96,7 +96,6 @@ class GameTree: public AbstractGameTree{
 
 #ifndef NDEBUG
   friend class LockableGameTree;
-  hexgame::unordered_map<vertex_t, std::size_t> maptochildren;
 #endif
 
  private:
@@ -170,7 +169,7 @@ class GameTree: public AbstractGameTree{
   //for simulation
   int updateNodefromSimulation(int indexofnode, int winner, int level = -1);
   std::pair<int, double> getBestMovefromSimulation();
-  int selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
+  std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
       int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
       hexgame::unordered_set<int>& remainingmoves);

@@ -140,9 +140,10 @@ void CreateSharedVecTask(
 }
 void CreateTreeTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board) {
-  int selectnode = gametree.selectMaxBalanceNode(currentempty, false);
+  pair<int,int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
+  int selectnode = selectresult.first;
   int indexofchild = selectnode;
-  int level = gametree.getNodeDepth(selectnode);
+  int level = selectresult.second;
   if (level != currentempty)
     indexofchild = gametree.expandNode(selectnode, 0);
   int totalsize = gametree.getNumofTotalNodes();
@@ -166,9 +167,10 @@ void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board,
                     hexgame::shared_ptr<set<int> >& ptrtochosenkids,
                     hexgame::shared_ptr<set<int> >& ptrtochosenparents) {
-  int indexofparent = gametree.selectMaxBalanceNode(currentempty, false);
+  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
+  int indexofparent = selectresult.first;
   int indexofchild = indexofparent;
-  int level = gametree.getNodeDepth(indexofparent);
+  int level =selectresult.second;
   if (level != currentempty)
     indexofchild = gametree.expandNode(indexofparent, 0);
 
@@ -178,7 +180,7 @@ void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
     //2) check point 2: if the node is chosen in the last round, then all isupdated of its parents including itself = false; (verify in test case)
     //3) check point 3: if the node is not chosen in the last round and it doesn't share the same parent with the chosen node, then all isupdated of its parents including itself = true; (verify in test case)
     //4) check point 4: if the node is not chosen in the last round and it shares the same parent with the chosen node, then all isupdated of its parents = false but itself = true; (verify in test case)
-    unique_lock<LockableGameTree> treelock(gametree);
+    shared_lock<LockableGameTree> treelock(gametree);
     vector<size_t> leaves = gametree.getLeaves(treelock);
     for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
         ++iter) {
@@ -206,9 +208,10 @@ void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
 }
 void SimulationTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board, hexgame::shared_ptr<bool>& emptyglobal) {
-  int selectnode = gametree.selectMaxBalanceNode(currentempty, false);
+  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
+  int selectnode = selectresult.first;
   int indexofchild = selectnode;
-  int level = gametree.getNodeDepth(selectnode);
+  int level = selectresult.second;
   if (level != currentempty)
     indexofchild = gametree.expandNode(selectnode, 0);
 
@@ -375,18 +378,20 @@ TEST_F(ParallelTest, DISABLED_ThreadGameTreeUpdate) {
 TEST_P(ParallelTestValue, ThreadEndofGameValue) {
   LockableGameTree gametree('B');
   HexBoard board(numofhexgon);
+  int numberoftrials = 2048;
   hexgame::shared_ptr<bool> emptyglobal = board.getEmptyHexIndicators();
 
   cout << "current size of available moves:" << currentempty << endl;
   cout << "current size of thread numbers:" << numberofthreads << endl;
 
-  thread_group threads;
-  for (size_t i = 0; i < numberofthreads; ++i)
-    threads.create_thread(
-        boost::bind(&SimulationTask, currentempty, boost::ref(gametree),
-                    boost::ref(board), boost::ref(emptyglobal)));
-  threads.join_all();
-
+  for (size_t j = 0; j < (numberoftrials / numberofthreads); ++j) {
+    thread_group threads;
+    for (size_t i = 0; i < numberofthreads; ++i)
+      threads.create_thread(
+          boost::bind(&SimulationTask, currentempty, boost::ref(gametree),
+                      boost::ref(board), boost::ref(emptyglobal)));
+    threads.join_all();
+  }
   //check children
   cout << "current size of tree:" << gametree.getNumofTotalNodes() << endl;
   cout << gametree.printGameTree(0);
@@ -459,7 +464,7 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
   LockableGameTree gametree('B');
   HexBoard board(numofhexgon);
   int numberoftrials = 2048;
-  numberofthreads = 16;
+  numberofthreads = 4;
   hexgame::shared_ptr<bool> emptyglobal = board.getEmptyHexIndicators();
 
   cout << "current size of available moves:" << currentempty << endl;
@@ -471,8 +476,8 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
       threads.create_thread(
           boost::bind(&SimulationTask, currentempty, boost::ref(gametree),
                       boost::ref(board), boost::ref(emptyglobal)));
-      EXPECT_EQ(threads.size(), numberofthreads);
-      threads.join_all();
+    EXPECT_EQ(threads.size(), numberofthreads);
+    threads.join_all();
   }
 
   //check children
@@ -488,7 +493,7 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
   }
   //need to be all updated
   vector<size_t> leaves = gametree.getLeaves();
-  EXPECT_TRUE(leaves.size() <= numberoftrials);
+  EXPECT_TRUE(static_cast<int>(leaves.size()) <= numberoftrials);
   for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
       ++iter) {
     EXPECT_EQ(gametree.getNumofChildren(*iter), 0);
@@ -544,18 +549,11 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
   }
 }
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetThreadNumbertoH, ParallelTestValue,
-    ::testing::Combine(Values(1, 2, 4, 8, 10, 12, 14, 16, 32, 64), Range(2, 122, 7), Values(3, 5, 11)));
+    OnTheFlySetThreadNumber, ParallelTestValue,
+    ::testing::Combine(Range(2, 18, 2), Range(2, 122, 7), Values(3, 5, 11)));
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetThreadNumbertoH2,
-    ParallelTestValue,
-    ::testing::Combine(Range(1, 104, 17), Range(2, 122, 7),
-                       Values(3, 5, 11)));
-INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetThreadNumbertoH3,
-    ParallelTestValue,
-    ::testing::Combine(Values(1, 2, 4, 8, 10, 12, 14, 16, 32, 64), Values(9, 25, 121),
-                       Values(3, 5, 11)));
+    OnTheFlySetThreadNumberFixempty, ParallelTestValue,
+    ::testing::Combine(Range(2, 18, 2), Values(9, 25, 121), Values(3, 5, 11)));
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();

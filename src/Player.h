@@ -33,11 +33,15 @@ class Player {
     WESTTOEAST,
     NORTHTOSOUTH
   };
+#define winConditions_WESTTOEAST winConditions::WESTTOEAST
+#define winConditions_NORTHTOSOUTH winConditions::NORTHTOSOUTH
 #else
   enum winConditions {
     WESTTOEAST,
     NORTHTOSOUTH
   };
+#define winConditions_WESTTOEAST WESTTOEAST
+#define winConditions_NORTHTOSOUTH NORTHTOSOUTH
 #endif
 
   HexBoard& board;  //global board
@@ -53,40 +57,23 @@ class Player {
   void setPlayerBoard(int index);
 
  public:
-  //parameterless constructor, doing nothing
-  Player();
   //constructor used to specify which kind of player
   Player(HexBoard& board, hexgonValKind kind)
       : board(board),
-        playerkind(kind) {
+        playerkind(kind){
     playersboard.setNumofhexgons(board.getNumofhexgons());
     //RED player always starts from North side to South side
-#if __cplusplus > 199711L
-    if (kind == hexgonValKind::RED) {
+    if (kind == hexgonValKind_RED) {
       viewlabel = 'R';
       playername = "RED";
-      condition = winConditions::NORTHTOSOUTH;
+      condition = winConditions_NORTHTOSOUTH;
 
-    } else if (kind == hexgonValKind::BLUE) {
+    } else if (kind == hexgonValKind_BLUE) {
       //BLUE player always starts from West side to East side
       viewlabel = 'B';
       playername = "BLUE";
-      condition = winConditions::WESTTOEAST;
+      condition = winConditions_WESTTOEAST;
     }
-#else
-    hexgonValKind redkind = RED, bludkind = BLUE;
-    if (kind == redkind) {
-      viewlabel = 'R';
-      playername = "RED";
-      condition = NORTHTOSOUTH;
-
-    } else if (kind == bludkind) {
-      //BLUE player always starts from West side to East side
-      viewlabel = 'B';
-      playername = "BLUE";
-      condition = WESTTOEAST;
-    }
-#endif
   }
   ;
   //destructor
@@ -106,8 +93,8 @@ class Player {
     return playerkind;
   }
   //getter for private member of playername
-  const std::string& getPlayername() const {
-    return playername;
+  const std::string getPlayername() const {
+    return std::string(playername);
   }
   //setter for private member of playername
   void setPlayername(const std::string& playername) {
@@ -119,20 +106,13 @@ class Player {
   }
 
   inline bool getWestToEastCondition() const {
-#if __cplusplus > 199711L
-    return this->condition == winConditions::WESTTOEAST ? true : false;
-#else
-    winConditions cond = WESTTOEAST;
-    return this->condition == cond ? true : false;
-#endif
+    return this->condition == winConditions_WESTTOEAST ? true : false;
   }
   inline bool getNorthToSouthCondition() const {
-#if __cplusplus > 199711L
-    return this->condition == winConditions::NORTHTOSOUTH ? true : false;
-#else
-    winConditions cond = NORTHTOSOUTH;
-    return this->condition == cond ? true : false;
-#endif
+    return this->condition == winConditions_NORTHTOSOUTH ? true : false;
+  }
+  inline void resetPlayersboard(){
+    this->playersboard.resetHexBoard(true);
   }
 };
 

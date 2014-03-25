@@ -20,12 +20,18 @@ enum class hexgonValKind {
   BLUE,
   RED
 };
+#define hexgonValKind_EMPTY hexgonValKind::EMPTY
+#define hexgonValKind_BLUE hexgonValKind::BLUE
+#define hexgonValKind_RED hexgonValKind::RED
 #else
 enum hexgonValKind {
   EMPTY,
   BLUE,
   RED
 };
+#define hexgonValKind_EMPTY EMPTY
+#define hexgonValKind_BLUE BLUE
+#define hexgonValKind_RED RED
 #endif
 //Overloading function for hexgonValKind to output the value
 std::ostream& operator<<(std::ostream& os, hexgonValKind hexgonkind);
@@ -46,8 +52,9 @@ class HexBoard : public Graph<hexgonValKind, int> {
   //HexgonLocType inner class
   class HexgonLocType {
    private:
-    HexBoard& board;  // in order to access enclosing class
+    HexBoard& board;  // HexBoard object for the purpose access enclosing class
    public:
+    //constructor which passes enclosing class, HexBoard, in order to access the functionality of HexBoard
     HexgonLocType(HexBoard& board)
         : board(board) {
     }
@@ -67,26 +74,34 @@ class HexBoard : public Graph<hexgonValKind, int> {
     //calculate the type of numLocEdge given row and column
     numLocEdges getLocEdges(int row, int col);
   };
-  int numofhexgons;  //hexgon per side which constitutes numofvertices = numofhexgon*numofhexgon board
+  //Graph property
+  std::vector<Node>& repgraph;  //adjacent list implementation of Graph representation
+  bool isundirected;  //indicator for a undirected graph
+  unsigned numofvertices;  //size of Nodes or Vertex in Graph
+  unsigned numofedges;  //size of Edges in Graph
 
-  std::vector<int> redmoves;
-  std::vector<int> bluemoves;
-  hexgame::shared_ptr<bool> emptyhexindicators;
-  int numofemptyhexgons;
+  int numofhexgons;  //hexgon per side which constitutes numofvertices = numofhexgon*numofhexgon board
+  std::vector<int> redmoves;  //vector stores the indices of hexgons marked as RED
+  std::vector<int> bluemoves;  //vector stores the indices of hexgons marked as BLUE
+  hexgame::shared_ptr<bool> emptyhexindicators;  //boolean array stores the indicator which shows if this hexgon is empty or not
+  int numofemptyhexgons;  //number of empty hexgons
 
   //init emptyhexgons
   void initEmptyHexIndicators();
-
- protected:
   //overriding base class' initNode function
-  virtual void initNode(Node& node, int index);
+  void initNode(Node& node, int index);
   //overriding base class' initGraph function
-  virtual void initGraph();
+  void initGraph();
+
  public:
   //default constructor, doing nothing
   HexBoard();
   //constructor to initialize the board according to given hexgon size per side
-  HexBoard(unsigned);
+  explicit HexBoard(unsigned);
+  //user defined copy constructor
+  HexBoard(const HexBoard& otherboard);
+  //user defined copy assignment constructor
+  HexBoard& operator =(const HexBoard& otherboard);
   //destructor
   virtual ~HexBoard();
   //setter and overloading function to set edge
@@ -95,22 +110,38 @@ class HexBoard : public Graph<hexgonValKind, int> {
   inline int getNumofhexgons() const {
     return numofhexgons;
   }
+  //setter for the value of a hexgon
   void setNodeValue(int indexofnode, hexgonValKind value);
   //setter for private member numofhexgons
   void setNumofhexgons(int numofhexgon);
-  const std::vector<int>& getBluemoves() const {
+  //getter for private member bluemoves. Note: Used to return reference. Now return value
+  inline const std::vector<int>& getBluemoves() const {
     return bluemoves;
   }
-
+  //getter for private member emptyhexindicators. Note: Used to return reference. Now return value
   inline const hexgame::shared_ptr<bool>& getEmptyHexIndicators() const {
     return emptyhexindicators;
   }
-
+  //getter for private member redmoves. Note: Used to return reference. Now return value
   inline const std::vector<int>& getRedmoves() const {
     return redmoves;
   }
+  //getter for private member numofemptyhexgons
   inline int getNumofemptyhexgons() const {
     return numofemptyhexgons;
   }
+  //restore HexBoard to the initial state
+  //Input:
+  //isresetedges: the boolean variable which is used to indicate if the edges are all removed too
+  //TRUE: the edges will be reset as no edges present (for players board)
+  //FALSE:  the edges will be reset as the initial game setup (for general board)
+  //Output: None
+  void resetHexBoard(bool isresetedges = true);
+  //Delete the edge between the specified nodes
+  //Input:
+  //indexofnodefrom: the vertexindex of the source node
+  //indexofnodeto, the vertexindex of the destination node
+  //Output: None
+  void deleteEdge(int indexofnodefrom, int indexofnodeto);
 };
 #endif /* HEXBOARD_H_ */

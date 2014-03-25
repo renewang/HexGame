@@ -7,23 +7,70 @@
 
 using namespace std;
 //default constructor, doing nothing except initializing the member values as defaults
+#if __cplusplus > 199711L
 HexBoard::HexBoard()
-    : numofhexgons(0),
-      numofemptyhexgons(0) {
+    : HexBoard(0) {
+}
+#else
+HexBoard::HexBoard()
+: Graph<hexgonValKind, int>(),
+repgraph(Graph<hexgonValKind, int>::getRepgraph()),
+numofhexgons(0) {
   initGraph();
 }
+#endif
 //constructor to initialize the board according to given hexgon size per side
 HexBoard::HexBoard(unsigned numofhexgon)
-    : numofhexgons(numofhexgon) {
+    : Graph<hexgonValKind, int>(numofhexgon * numofhexgon),
+      repgraph(Graph<hexgonValKind, int>::getRepgraph()),
+      numofhexgons(numofhexgon) {
   initGraph();
   numofvertices = numofhexgon * numofhexgon;
-  for (unsigned i = 0; i < numofvertices; i++) {
-    Node node;
-    initNode(node, i);
-    repgraph.push_back(node);
-  }
+  for (unsigned i = 0; i < numofvertices; i++)
+    initNode(repgraph[i], i);
   numofedges /= 2;
   initEmptyHexIndicators();
+  Graph<hexgonValKind, int>::setIsundirected(isundirected);
+  Graph<hexgonValKind, int>::setSizeOfVertices(numofvertices);
+  Graph<hexgonValKind, int>::setSizeOfEdges(numofedges);
+}
+//copy constructor
+HexBoard::HexBoard(const HexBoard& otherboard)
+    : Graph<hexgonValKind, int>(otherboard),
+      repgraph(Graph<hexgonValKind, int>::getRepgraph()) {
+  this->redmoves = otherboard.redmoves;
+  this->bluemoves = otherboard.bluemoves;
+  this->emptyhexindicators = otherboard.emptyhexindicators;
+  this->numofemptyhexgons = otherboard.numofemptyhexgons;
+  this->numofhexgons = otherboard.numofhexgons;
+  ;
+  this->isundirected = otherboard.isundirected;
+  this->numofedges = otherboard.numofedges;
+  this->numofvertices = otherboard.numofvertices;
+
+  Graph<hexgonValKind, int>::setIsundirected(isundirected);
+  Graph<hexgonValKind, int>::setSizeOfEdges(numofedges);
+  Graph<hexgonValKind, int>::setSizeOfVertices(numofvertices);
+  ;
+}
+//copy assignment using copy and swap semantics
+HexBoard& HexBoard::operator =(const HexBoard& otherboard) {
+  HexBoard tmp(otherboard);
+  this->redmoves.swap(tmp.redmoves);
+  this->bluemoves.swap(tmp.bluemoves);
+  this->emptyhexindicators.swap(tmp.emptyhexindicators);
+  this->repgraph.swap(tmp.repgraph);
+  this->numofemptyhexgons = tmp.numofemptyhexgons;
+  this->numofhexgons = tmp.numofhexgons;
+  this->isundirected = tmp.isundirected;
+  this->numofedges = tmp.numofedges;
+  this->numofvertices = tmp.numofvertices;
+
+  Graph<hexgonValKind, int>::setIsundirected(isundirected);
+  Graph<hexgonValKind, int>::setSizeOfEdges(numofedges);
+  Graph<hexgonValKind, int>::setSizeOfVertices(numofvertices);
+
+  return *this;
 }
 //destructor
 HexBoard::~HexBoard() {
@@ -37,11 +84,7 @@ void HexBoard::initNode(Node& node, int index) {
   //Assign the corresponding edges according to the hexgonloctype
   //Assign all empty to all hexgons
   node.vertexindex = (index + 1);
-#if __cplusplus > 199711L
-  node.vertexvalue = hexgonValKind::EMPTY;
-#else
-  node.vertexvalue = EMPTY;
-#endif
+  node.vertexvalue = hexgonValKind_EMPTY;
   int row = index / numofhexgons;
   int col = index % numofhexgons;
   HexBoard::HexgonLocType locafinder(*this);
@@ -165,31 +208,17 @@ HexBoard::HexgonLocType::numLocEdges HexBoard::HexgonLocType::getLocEdges(
 //OUTPUT:
 //output stream type for pipe
 ostream& operator<<(ostream& os, hexgonValKind hexgonkind) {
-#if __cplusplus > 199711L
   switch (hexgonkind) {
-    case hexgonValKind::EMPTY:
-      os << "EMPTY";
-      break;
-    case hexgonValKind::RED:
-      os << "RED";
-      break;
-    case hexgonValKind::BLUE:
-      os << "BLUE";
-      break;
+    case hexgonValKind_EMPTY:
+    os << "EMPTY";
+    break;
+    case hexgonValKind_RED:
+    os << "RED";
+    break;
+    case hexgonValKind_BLUE:
+    os << "BLUE";
+    break;
   }
-#else
-  switch (hexgonkind) {
-    case EMPTY:
-      os << "EMPTY";
-      break;
-    case RED:
-      os << "RED";
-      break;
-    case BLUE:
-      os << "BLUE";
-      break;
-  }
-#endif
   return os;
 }
 //Set the edge value according to the index of hexgon
@@ -203,6 +232,10 @@ void HexBoard::setEdgeValue(int indexofhexgon) {
   list<Edge> neigh = node->neighbors;
 #if __cplusplus > 199711L
   for (auto e : neigh) {
+#else
+    for (typename list<Edge>::iterator iter = neigh.begin(); iter!=neigh.end(); ++iter) {
+      Edge e = *iter;
+#endif
     Node* neighbor = findNodeByIndex(e.indexoftonode);
     Edge edge;
     edge.indexoffromnode = neighbor->vertexindex;
@@ -211,68 +244,81 @@ void HexBoard::setEdgeValue(int indexofhexgon) {
     neighbor->neighbors.push_back(edge);
     neighbor->numofneighbors = (neighbor->neighbors).size();
   }
-#else
-  typename list<Edge>::iterator iter = neigh.begin();
-  for ( ; iter!=neigh.end(); ++iter) {
-    Node* neighbor = findNodeByIndex((*iter).indexoftonode);
-    Edge edge;
-    edge.indexoffromnode = neighbor->vertexindex;
-    edge.indexoftonode = node->vertexindex;
-    edge.weight = 1;
-    neighbor->neighbors.push_back(edge);
-    neighbor->numofneighbors = (neighbor->neighbors).size();
-  }
-#endif
+  Graph<hexgonValKind, int>::setSizeOfEdges(numofedges);
 }
 //Set the number of hexgons and initialize the node as EMPTY and no neighbors
 //INPUT:
 //numofhexgon: number of hexgon per side
 //OUTPUT: NONE
 void HexBoard::setNumofhexgons(int numofhexgon) {
-  this->numofhexgons = numofhexgon;
   initGraph();
+  this->numofhexgons = numofhexgon;
   numofvertices = numofhexgon * numofhexgon;
+  repgraph.clear();
+  assert(repgraph.size() == 0);
+  Graph<hexgonValKind, int>::setSizeOfVertices(numofvertices);
   for (unsigned i = 0; i < numofvertices; i++) {
     Node node;
-    node.vertexindex = (i + 1);
-#if __cplusplus > 199711L
-    node.vertexvalue = hexgonValKind::EMPTY;
-#else
-    node.vertexvalue = EMPTY;
-#endif
-    node.numofneighbors = 0;
+    Graph<hexgonValKind, int>::initNode(node, i);
     repgraph.push_back(node);
   }
-  numofedges = 0;
-  initEmptyHexIndicators();
+  resetHexBoard();
 }
-//Set the valud of hexgon and push the move into move vector
+//Set the value of hexgon and push the move into move vector
 //INPUT:
 //indexofnode: the index of node whose value needs to be set
 //value: the value needs to be set
 //OUTPUT:
 void HexBoard::setNodeValue(int indexofnode, hexgonValKind value) {
   Graph<hexgonValKind, int>::setNodeValue(indexofnode, value);
-#if __cplusplus > 199711L
   assert(emptyhexindicators.get() != nullptr);
-  if (value == hexgonValKind::RED)
-#else
-    assert(emptyhexindicators.get() != 0);
-    if (value == RED)
-#endif
-    redmoves.push_back(indexofnode);
+  if (value == hexgonValKind_RED)
+  redmoves.push_back(indexofnode);
   else
-    bluemoves.push_back(indexofnode);
+  bluemoves.push_back(indexofnode);
   emptyhexindicators.get()[indexofnode - 1] = false;
   numofemptyhexgons--;
 }
 void HexBoard::initEmptyHexIndicators() {
   if (numofvertices) {
-    emptyhexindicators = hexgame::shared_ptr<bool>(new bool[numofvertices],
-                                                 hexgame::default_delete<bool[]>());
+    emptyhexindicators = hexgame::shared_ptr<bool>(
+        new bool[numofvertices], hexgame::default_delete<bool[]>());
     bool* ptrtoemptyhexindicators = emptyhexindicators.get();
     fill(ptrtoemptyhexindicators, ptrtoemptyhexindicators + numofvertices,
-         true);
+    true);
     numofemptyhexgons = numofvertices;
   }
+}
+//Reset the HexBoard to the initial state
+//INPUT:
+//isresetedges: the boolean variable which is used to indicate if the edges are all removed too
+//TRUE: remove all the edges too (for restoring the initial state of playersboard)
+//FALSE: not remove all the edges which has been established in game set up (for restoring the initial state of general board)
+//OUTPUT:
+void HexBoard::resetHexBoard(bool isresetedges) {
+  assert(repgraph.size() == numofvertices);
+  for (unsigned i = 0; i < numofvertices; i++) {
+    repgraph[i].vertexvalue = hexgonValKind_EMPTY;
+    if(isresetedges){
+    repgraph[i].numofneighbors = 0;
+    repgraph[i].neighbors.clear();
+    }
+  }
+  if (isresetedges)
+    numofedges = 0;
+
+  Graph<hexgonValKind, int>::setIsundirected(isundirected);
+  Graph<hexgonValKind, int>::setSizeOfEdges(numofedges);
+  Graph<hexgonValKind, int>::setSizeOfVertices(numofvertices);
+
+  initEmptyHexIndicators();
+}
+//Delete the edge between the specified nodes
+//Input:
+//indexofnodefrom: the vertexindex of the source node
+//indexofnodeto, the vertexindex of the destination node
+//Output: None
+void HexBoard::deleteEdge(int indexofnodefrom, int indexofnodeto) {
+  Graph<hexgonValKind, int>::deleteEdge(indexofnodefrom, indexofnodeto);
+  numofedges = Graph<hexgonValKind, int>::getSizeOfEdges();
 }

@@ -103,7 +103,7 @@ class AbstractGameTree {
   //for simulation
   virtual int updateNodefromSimulation(int indexofnode, int winner, int level) = 0;
   virtual std::pair<int, double> getBestMovefromSimulation() = 0;
-  virtual int selectMaxBalanceNode(int currentempty, bool isbreaktie) = 0;
+  virtual std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie) = 0;
   virtual void getMovesfromTreeState(
       int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
       hexgame::unordered_set<int>& remainingmoves) = 0;

@@ -31,7 +31,7 @@ string Game::showView(Player& playera, Player& playerb) {
   int side = board.getNumofhexgons();
   int step = 3;
   int totoalwide = ((step - 1) * side) + step * side + (step - 1) * (side - 1);
-  strout << setw(totoalwide / 2) << ' ' << "NORTH" << endl;
+  strout << setw(totoalwide / 2) << ' ' << "NORTH" << '\n';
   string alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   strout << setw(step) << ' ';
   for (int i = 0; i < side; i++) {
@@ -40,7 +40,7 @@ string Game::showView(Player& playera, Player& playerb) {
       strout << setw(step - 1) << ' ';
   }
 
-  strout << endl;
+  strout << '\n';
   for (int i = 0; i < side; i++) {
     if (i == side / 2)
       strout
@@ -81,7 +81,7 @@ string Game::showView(Player& playera, Player& playerb) {
       strout << setw(step) << '\n';
     }
   }
-  strout << setw(totoalwide / 2) << ' ' << "SOUTH" << endl;
+  strout << setw(totoalwide / 2) << ' ' << "SOUTH" << '\n';
   return strout.str();
 }
 //get the winner
@@ -104,4 +104,12 @@ string Game::getWinner(Player& playera, Player& playerb) {
 //the index of next move (starting from 1 to number of hexgon per side)
 int Game::genMove(AbstractStrategy& aistrategy) {
   return (aistrategy.genMove());
+}
+//Reset board for the next round
+//INPUT: NONE
+//OUTPUT:
+void Game::resetGame(Player& playera, Player& playerb){
+  board.resetHexBoard(false);
+  playera.resetPlayersboard();
+  playerb.resetPlayersboard();
 }

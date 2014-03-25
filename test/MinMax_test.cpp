@@ -42,6 +42,17 @@ class TimeTestValue : public ::testing::TestWithParam<hexgame::tuple<int, int> >
   size_t numberofthreads;
   int numofhexgon;
 };
+class BoardTestValue : public ::testing::TestWithParam<int> {
+  virtual void SetUp() {
+    numofhexgon = GetParam();
+  }
+  ;
+  virtual void TearDown() {
+  }
+  ;
+ public:
+  int numofhexgon;
+};
 TEST_F(MinMaxTest,GameTreeConstruct) {
   //test expand child
   //expand from root
@@ -127,7 +138,8 @@ TEST_F(MinMaxTest, MCSTSelection) {
   unsigned numofmoves = 9;
   int maxnode = -1, sum = 0, node = 0;
   for (unsigned i = 0; i < numofmoves; ++i) {
-    node = tree.selectMaxBalanceNode(numofmoves, false);
+    pair<int, int> result = tree.selectMaxBalanceNode(numofmoves, false);
+    node = result.first;
     int leaf = tree.expandNode(node, (i + 1));
     float prob = static_cast<float>(rand()) / RAND_MAX;
     if (prob <= 0.5)
@@ -141,7 +153,8 @@ TEST_F(MinMaxTest, MCSTSelection) {
     EXPECT_EQ(sum, tree.getNodeValueFeature(0, AbstractUTCPolicy::visitcount));
     EXPECT_EQ(0, node);
   }
-  node = tree.selectMaxBalanceNode(numofmoves, false);
+  pair<int, int> result = tree.selectMaxBalanceNode(numofmoves, false);
+  node = result.first;
   EXPECT_EQ(maxnode, node);
   unsigned numofmaxnodechildren = 0;
   int firstchild = -1;
@@ -157,7 +170,8 @@ TEST_F(MinMaxTest, MCSTSelection) {
         firstchild = leaf;
     } else
       tree.updateNodefromSimulation(leaf, -1);
-    node = tree.selectMaxBalanceNode(numofmoves, false);
+    pair<int, int> result = tree.selectMaxBalanceNode(numofmoves, false);
+    node = result.first;
     sum += tree.getNodeValueFeature(leaf, AbstractUTCPolicy::visitcount);
     EXPECT_EQ(sum, tree.getNodeValueFeature(0, AbstractUTCPolicy::visitcount));
   }
@@ -166,7 +180,8 @@ TEST_F(MinMaxTest, MCSTSelection) {
   int leaf = tree.expandNode(node, position);
   EXPECT_NE(leaf, node);
 
-  node = tree.selectMaxBalanceNode(numofmoves, false);
+  result = tree.selectMaxBalanceNode(numofmoves, false);
+  node = result.first;
   EXPECT_EQ(firstchild, node);
   position = rand() % numofmoves + 1;
   leaf = tree.expandNode(node, position);
@@ -176,7 +191,8 @@ TEST_F(MinMaxTest, MCSTSelection) {
   tree.clearAll();
   firstchild = -1;
   for (unsigned i = 0; i < 2; ++i) {
-    node = tree.selectMaxBalanceNode(2, false);
+    pair<int, int> result = tree.selectMaxBalanceNode(2, false);
+    node = result.first;
     position = rand() % numofmoves + 1;
     leaf = tree.expandNode(node, position);
     if (firstchild < 0)
@@ -186,12 +202,14 @@ TEST_F(MinMaxTest, MCSTSelection) {
     else
       tree.updateNodefromSimulation(leaf, -1);
   }
-  node = tree.selectMaxBalanceNode(2, false);
+  result = tree.selectMaxBalanceNode(2, false);
+  node = result.first;
   EXPECT_EQ(firstchild, node);
 
   //4. test with tie
   for (unsigned i = 0; i < (numofmoves - 1); ++i) {
-    node = tree.selectMaxBalanceNode(numofmoves - 1);
+    result = tree.selectMaxBalanceNode(numofmoves - 1);
+    node = result.first;
     position = rand() % numofmoves + 1;
     leaf = tree.expandNode(node, position);
     tree.updateNodefromSimulation(leaf, -1);
@@ -204,13 +222,8 @@ TEST_F(MinMaxTest,MCSTExpansion) {
   //1. expand from a visited node, check if the move is not repeating in the same level
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   Game hexboardgame(board);
   GameTree gametree(playera.getViewLabel());
   MonteCarloTreeSearch mcst(&board, &playera);
@@ -233,8 +246,9 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 
     int proportionofempty = initempty;
 
-    selectnode = mcst.selection(proportionofempty, gametree);
-    int expandedchild = mcst.expansion(selectnode, emptyindicators,
+    pair<int, int>selectresult = mcst.selection(proportionofempty, gametree);
+    selectnode = selectresult.first;
+    int expandedchild = mcst.expansion(selectresult, emptyindicators,
                                        proportionofempty, babywatsons,
                                        opponents, gametree);
 #if __cplusplus > 199711L
@@ -274,7 +288,8 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 
     EXPECT_EQ(0, selectnode);
   }
-  selectnode = mcst.selection(initempty, gametree);
+  pair<int, int>selectresult = mcst.selection(initempty, gametree);
+  selectnode = selectresult.first;
   //EXPECT_EQ(maxchild, selectnode);
 
   //clean out game tree for the current round of estimation
@@ -335,8 +350,9 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 
     int proportionofempty = currentempty;
 
-    selectnode = mcst.selection(proportionofempty, gametree);
-    int expandedchild = mcst.expansion(selectnode, emptyindicators,
+    pair<int, int>selectresult = mcst.selection(proportionofempty, gametree);
+    selectnode = selectresult.first;
+    int expandedchild = mcst.expansion(selectresult, emptyindicators,
                                        proportionofempty, babywatsons,
                                        opponents, gametree);
 #if __cplusplus > 199711L
@@ -432,9 +448,10 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 
     int proportionofempty = currentempty;
 
-    selectnode = mcst.selection(proportionofempty, gametree);
+    pair<int, int>selectresult = mcst.selection(proportionofempty, gametree);
+    selectnode = selectresult.first;
     depth = gametree.getNodeDepth(selectnode);
-    int expandedchild = mcst.expansion(selectnode, emptyindicators,
+    int expandedchild = mcst.expansion(selectresult, emptyindicators,
                                        proportionofempty, babywatsons,
                                        opponents, gametree);
 #if __cplusplus > 199711L
@@ -484,11 +501,7 @@ TEST_F(MinMaxTest,MCSTExpansion) {
 TEST_F(MinMaxTest,SimulationCombine) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-  Player playerb(board, BLUE);  //west to east, 'X'
-#endif
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   GameTree gametree(playerb.getViewLabel());
   MonteCarloTreeSearch mcst(&board, &playerb);
 
@@ -509,8 +522,8 @@ TEST_F(MinMaxTest,SimulationCombine) {
          emptyindicators.get());
 
     //in-tree phase
-    int selectnode = mcst.selection(currentempty, gametree);
-    int expandednode = mcst.expansion(selectnode, emptyindicators,
+    pair<int, int> selectresult = mcst.selection(currentempty, gametree);
+    int expandednode = mcst.expansion(selectresult, emptyindicators,
                                       proportionofempty, babywatsons, opponents,
                                       gametree);
     //check the newly expanded node has duplicated position in board
@@ -567,13 +580,8 @@ TEST_F(MinMaxTest,CheckEndofGame) {
   for (unsigned k = 0; k < 3; ++k) {  //Strategy, MonteCarloTreeSearch, MultiMonteCarloTreeSearch
     HexBoard board(numofhexgon);
     Game hexboardgame(board);
-#if __cplusplus > 199711L
-    Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-    Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-    Player playera(board, RED);  //north to south, 'O'
-    Player playerb(board, BLUE);//west to east, 'X'
-#endif
+    Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+    Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
 
     MonteCarloTreeSearch mcstred(&board, &playera, 1);
     switch (k) {
@@ -638,13 +646,8 @@ TEST_F(MinMaxTest,CheckEndofGame) {
 TEST_F(MinMaxTest,CheckHexFiveGame) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-  Player playera(board, RED);  //north to south, 'O'
-  Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   MonteCarloTreeSearch mcstred(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
   Game hexboardgame(board);
@@ -678,13 +681,8 @@ TEST_F(MinMaxTest,CheckHexFiveGame) {
 TEST_F(MinMaxTest,CompeteHexFiveGame) {
   int numofhexgon = 5;
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-  Player playera(board, RED);  //north to south, 'O'
-  Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   Strategy naivered(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
   Game hexboardgame(board);
@@ -715,16 +713,11 @@ TEST_F(MinMaxTest,CompeteHexFiveGame) {
   }
   cout << "winner is " << winner << endl;
 }
-TEST_F(MinMaxTest,CheckHexELEVENGame) {
+TEST_F(MinMaxTest,DISABLED_CheckHexELEVENGame) {
   int numofhexgon = 11;
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   MonteCarloTreeSearch mcstred(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
   Game hexboardgame(board);
@@ -755,16 +748,11 @@ TEST_F(MinMaxTest,CheckHexELEVENGame) {
   }
   cout << "winner is " << winner << endl;
 }
-TEST_F(MinMaxTest,CompeteHexELEVENGame) {
+TEST_F(MinMaxTest,DISABLED_CompeteHexELEVENGame) {
   int numofhexgon = 11;
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   Strategy naivered(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
   Game hexboardgame(board);
@@ -799,14 +787,8 @@ TEST_F(MinMaxTest,CheckHexParallelGame) {
   int numofhexgon = 3;
   HexBoard board(numofhexgon);
 
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
-#endif
-
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   MultiMonteCarloTreeSearch mcstred(&board, &playera);
   MultiMonteCarloTreeSearch mcstblue(&board, &playerb);
 
@@ -845,13 +827,8 @@ TEST_F(MinMaxTest,CompeteNaiveHexParallelGame) {
   int numofhexgon = 3;
   HexBoard board(numofhexgon);
 
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-                 Player playera(board, RED);  //north to south, 'O'
-      Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
 
   Strategy naivered(&board, &playera);
   MultiMonteCarloTreeSearch mcstblue(&board, &playerb);
@@ -891,13 +868,8 @@ TEST_F(MinMaxTest,CompeteHexMCParallelGame) {
   int numofhexgon = 3;
   HexBoard board(numofhexgon);
 
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-  Player playera(board, RED);  //north to south, 'O'
-  Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
 
   MonteCarloTreeSearch mcstred(&board, &playera);
   MultiMonteCarloTreeSearch mcstblue(&board, &playerb);
@@ -934,15 +906,10 @@ TEST_F(MinMaxTest,CompeteHexMCParallelGame) {
   cout << "winner is " << winner << endl;
 }
 //value test
-TEST_P(TimeTestValue,CheckSingleGameTime) {
+TEST_P(BoardTestValue,CheckSingleGameTime) {
   HexBoard board(numofhexgon);
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-  Player playera(board, RED);  //north to south, 'O'
-  Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
   MonteCarloTreeSearch mcstred(&board, &playera);
   MonteCarloTreeSearch mcstblue(&board, &playerb);
   Game hexboardgame(board);
@@ -978,13 +945,8 @@ TEST_P(TimeTestValue,CheckSingleGameTime) {
 TEST_P(TimeTestValue,CheckParallelGameTime) {
   HexBoard board(numofhexgon);
 
-#if __cplusplus > 199711L
-  Player playera(board, hexgonValKind::RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind::BLUE);  //west to east, 'X'
-#else
-  Player playera(board, RED);  //north to south, 'O'
-  Player playerb(board, BLUE);//west to east, 'X'
-#endif
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
 
   MultiMonteCarloTreeSearch mcstred(&board, &playera, numberofthreads);
   MultiMonteCarloTreeSearch mcstblue(&board, &playerb, numberofthreads);
@@ -1025,8 +987,12 @@ TEST_P(TimeTestValue,CheckParallelGameTime) {
 }
 INSTANTIATE_TEST_CASE_P(
     OnTheFlySetVariable,
+    BoardTestValue,
+    ::testing::Values(3, 5, 7, 9, 11));
+INSTANTIATE_TEST_CASE_P(
+    OnTheFlySetVariable,
     TimeTestValue,
-    ::testing::Combine(::testing::Values(2, 4, 8, 12, 16, 32, 64),
+    ::testing::Combine(::testing::Values(1, 2, 4, 8, 12, 16, 32, 64),
                        ::testing::Values(3, 5, 7, 9, 11)));
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

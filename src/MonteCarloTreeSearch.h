@@ -33,8 +33,8 @@ class MonteCarloTreeSearch : public AbstractStrategyImpl {
   virtual int simulation(int currentempty);
   //Monte Carlo tree search steps
   //in-tree phase
-  int selection(int currentempty, AbstractGameTree& gametree);
-  int expansion(int selectnode, hexgame::shared_ptr<bool>& emptyindicators,
+  std::pair<int,int> selection(int currentempty, AbstractGameTree& gametree);
+  int expansion(std::pair<int,int> selectresult, hexgame::shared_ptr<bool>& emptyindicators,
                 int& portionofempty, std::vector<int>& babywatsons,
                 std::vector<int>& opponents, AbstractGameTree& gametree);
   //play-out phase
