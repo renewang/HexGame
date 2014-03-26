@@ -5,7 +5,10 @@
 
 #include <cstdlib>
 
+#include "Strategy.h"
+#include "MonteCarloTreeSearch.h"
 #include "AbstractStrategyImpl.h"
+#include "MultiMonteCarloTreeSearch.h"
 
 using namespace std;
 
@@ -125,5 +128,23 @@ void AbstractStrategyImpl::initGameState(hexgame::shared_ptr<bool>& emptyglobal,
   }else{
     bwglobal = ptrtoboard->getBluemoves();
     oppglobal = ptrtoboard->getRedmoves();
+  }
+}
+void selectStrategy(AIStrategyKind strategykind,
+                    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
+                    Player& player, HexBoard& board) {
+  switch (strategykind) {
+    case AIStrategyKind_NAIVE:
+    std::cout <<"\n"<< player.getPlayername()<<" uses naive strategy" << endl;
+    watsonstrategy.reset(new Strategy(&board, &player));
+    break;
+    case AIStrategyKind_PMCST:
+    std::cout <<"\n"<< player.getPlayername()<<" uses PMCST strategy" << endl;
+    watsonstrategy.reset(new MultiMonteCarloTreeSearch(&board, &player));
+    break;
+    default:
+    std::cout <<"\n"<< player.getPlayername()<< " uses MCST strategy" << endl;
+    watsonstrategy.reset(new MonteCarloTreeSearch(&board, &player));
+    break;
   }
 }

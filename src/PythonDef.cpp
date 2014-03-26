@@ -5,9 +5,6 @@
 #include "HexBoard.h"
 #include "Strategy.h"
 #include "AbstractStrategy.h"
-#include "AbstractStrategyImpl.h"
-#include "MonteCarloTreeSearch.h"
-#include "MultiMonteCarloTreeSearch.h"
 
 using namespace boost::python;
 class HexGamePyEngine {
@@ -53,10 +50,10 @@ class HexGamePyEngine {
   }
   void showView() {
     std::string view = hexboardgame.showView(redplayer, blueplayer);
-/*    string alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    for(int i = 1; i <= board.getNumofhexgons(); ++i)
-    view.replace(to_string(i), std::string(alphabets[i-1]));*/
-    std::cout <<  view << '\n';
+    /*    string alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+     for(int i = 1; i <= board.getNumofhexgons(); ++i)
+     view.replace(to_string(i), std::string(alphabets[i-1]));*/
+    std::cout << view << '\n';
   }
   std::string getWinner() {
     return hexboardgame.getWinner(redplayer, blueplayer);
@@ -85,22 +82,13 @@ class HexGamePyEngine {
   Player blueplayer;  //west to east, 'X'
   Game hexboardgame;
   hexgame::unordered_map<char, hexgame::shared_ptr<AbstractStrategy> > aistrategy;
-//TODO, duplicate code
   void selectStrategy(AIStrategyKind strategykind, Player& player) {
-    switch (strategykind) {
-      case AIStrategyKind_NAIVE:
-      std::cout <<"\n"<< player.getPlayername()<<" uses naive strategy" << endl;
-      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new Strategy(&board, &player))));
-      break;
-      case AIStrategyKind_PMCST:
-      std::cout <<"\n"<< player.getPlayername()<<" uses PMCST strategy" << endl;
-      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new MultiMonteCarloTreeSearch(&board, &player))));
-      break;
-      default:
-      std::cout <<"\n"<< player.getPlayername()<< " uses MCST strategy" << endl;
-      aistrategy.insert(make_pair(player.getViewLabel(), hexgame::shared_ptr<AbstractStrategy>(new MonteCarloTreeSearch(&board, &player))));
-      break;
-    }
+    hexgame::unique_ptr<AbstractStrategy,
+        hexgame::default_delete<AbstractStrategy> > transformer(nullptr);
+    ::selectStrategy(strategykind, transformer, player, board);
+    aistrategy.insert(
+            make_pair(player.getViewLabel(),
+                      hexgame::shared_ptr<AbstractStrategy>(transformer.release())));
   }
 };
 BOOST_PYTHON_MODULE(libhexgame)

@@ -29,9 +29,6 @@ int queryHumanMove(int& userrow, int& usercol);
 void simulations(hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
                  hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue, float threshold,
                  float randomness);
-void selectStrategy(AIStrategyKind strategykind,
-                    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
-                    Player& player, HexBoard& board);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
 int numofhexgon = 11;
@@ -100,7 +97,7 @@ int main(int argc, char **argv) {
       if (aistrategykind < 1 || aistrategykind > 3)
         cout << "Invalid input. Please Try again!" << endl;
       else {
-        selectStrategy(static_cast<AIStrategyKind>(aistrategykind - 1),
+        ::selectStrategy(static_cast<AIStrategyKind>(aistrategykind - 1),
                        watsonstrategy, *babywatson, board);
         break;
       }
@@ -209,25 +206,6 @@ void parserMove(string movestring, int& row, int& col) {
     col = atoi(movestring.substr(posofcomma + 1).c_str());
   } else
     row = col = 0;
-}
-//function to select AI opponents
-void selectStrategy(AIStrategyKind strategykind,
-                    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
-                    Player& player, HexBoard& board) {
-  switch (strategykind) {
-    case AIStrategyKind_NAIVE:
-    std::cout <<"\n"<< player.getPlayername()<<" uses naive strategy" << endl;
-    watsonstrategy.reset(new Strategy(&board, &player));
-    break;
-    case AIStrategyKind_PMCST:
-    std::cout <<"\n"<< player.getPlayername()<<" uses PMCST strategy" << endl;
-    watsonstrategy.reset(new MultiMonteCarloTreeSearch(&board, &player));
-    break;
-    default:
-    std::cout <<"\n"<< player.getPlayername()<< " uses MCST strategy" << endl;
-    watsonstrategy.reset(new MonteCarloTreeSearch(&board, &player));
-    break;
-  }
 }
 //function to print out the header
 string printHeader() {

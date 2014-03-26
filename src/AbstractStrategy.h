@@ -17,6 +17,7 @@ enum class AIStrategyKind {
 #define AIStrategyKind_MCST AIStrategyKind::MCST
 #define AIStrategyKind_PMCST AIStrategyKind::PMCST
 #else
+
 enum AIStrategyKind {
   NAIVE,
   MCST,
@@ -26,6 +27,7 @@ enum AIStrategyKind {
 #define AIStrategyKind_MCST MCST
 #define AIStrategyKind_PMCST PMCST
 #endif
+
 class AbstractStrategy {
 
  protected:
@@ -46,5 +48,7 @@ class AbstractStrategy {
   virtual int genMove() = 0;
   virtual std::string name() = 0;
 };
-
+void selectStrategy(AIStrategyKind strategykind,
+                    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
+                    Player& player, HexBoard& board);
 #endif /* ABSTRACTSTRATEGY_H_ */

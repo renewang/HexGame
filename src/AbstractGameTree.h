@@ -1,8 +1,6 @@
 /*
  * AbstractGameTree.h
- *
- *  Created on: Mar 10, 2014
- *      Author: renewang
+ * This file defines an interface for Monte Carlo Game Tree and UTC Policy. UTC Policy is part of Game Tree property.
  */
 
 #ifndef ABSTRACTGAMETREE_H_
@@ -18,21 +16,16 @@
 
 namespace boost {
 //create an additional property
-enum vertex_value_t {
+enum vertex_value_t {//for storing the calculation result of UTC calculation function
   vertex_value
 };
-//for storing the calculation result of value function
-enum vertex_position_t {
+
+enum vertex_position_t {//for storing the hex game board position
   vertex_position
 };
-enum vertex_key_t {
-  vertex_key
-};
-BOOST_INSTALL_PROPERTY(vertex, value);
-BOOST_INSTALL_PROPERTY(vertex, position);
-BOOST_INSTALL_PROPERTY(vertex, key);
+BOOST_INSTALL_PROPERTY(vertex, value); //install vertex_value_t as internal property
+BOOST_INSTALL_PROPERTY(vertex, position); //install vertex_position_t as internal property
 }
-
 
 class AbstractUTCPolicy {
  public:
