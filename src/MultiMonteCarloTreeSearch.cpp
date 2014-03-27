@@ -18,7 +18,7 @@ using namespace boost;
 #if __cplusplus > 199711L
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
                                                      const Player* aiplayer)
-    : MultiMonteCarloTreeSearch(board, aiplayer, 4, 2048) {
+    : MultiMonteCarloTreeSearch(board, aiplayer, 8, 2048) {
 }
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
                                                      const Player* aiplayer,

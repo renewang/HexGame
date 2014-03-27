@@ -7,6 +7,7 @@
 #define HEXBOARD_H_
 
 #include "Graph.h"
+#include "Global.h"
 /*
  * hexgonValKind enum type
  * Define 3 node kinds which can be later owned by different players (BLUE or RED)

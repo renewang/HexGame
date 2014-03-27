@@ -15,6 +15,7 @@
 #include <iostream>
 
 #include "Game.h"
+#include "Global.h"
 #include "Player.h"
 #include "HexBoard.h"
 #include "Strategy.h"
@@ -26,29 +27,25 @@ using namespace std;
 string printHeader();
 void parserMove(string movestring, int& row, int& col);
 int queryHumanMove(int& userrow, int& usercol);
-void simulations(hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
-                 hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue, float threshold,
-                 float randomness);
 
 //global variable to set the hex board size as numofhexgon x numofhexgon
 int numofhexgon = 11;
 
 int main(int argc, char **argv) {
 
-  float threshold = 0.3;
-  float randomness = 0.7;
   bool isstop = false;
-  if (argc >= 3) {
-    threshold = atof(argv[1]);
-    randomness = atof(argv[2]);
-    if (argc == 4)
-      numofhexgon = atoi(argv[3]);
+  if (argc == 2) {
+    numofhexgon = atoi(argv[1]);
 
     cout << "Doing Simulation for two virtual players" << endl;
-    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > ptrtostrategyforred(nullptr);
-    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > ptrtostrategyforblue(nullptr);
+    hexgame::unique_ptr<AbstractStrategy,
+        hexgame::default_delete<AbstractStrategy> > ptrtostrategyforred(
+        nullptr);
+    hexgame::unique_ptr<AbstractStrategy,
+        hexgame::default_delete<AbstractStrategy> > ptrtostrategyforblue(
+        nullptr);
 
-    simulations(ptrtostrategyforred, ptrtostrategyforblue, threshold, randomness);
+    simulations(ptrtostrategyforred, ptrtostrategyforblue, AIStrategyKind_NAIVE, AIStrategyKind_MCST, numofhexgon);
     return 0;
   }
   cout << printHeader() << "\n\n";
@@ -87,7 +84,8 @@ int main(int argc, char **argv) {
     }
 
     //let user decide to play against which AI oppoenent with different strategies
-    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > watsonstrategy(nullptr);
+    hexgame::unique_ptr<AbstractStrategy,
+        hexgame::default_delete<AbstractStrategy> > watsonstrategy(nullptr);
     int aistrategykind = 2;
     while (true) {
       cout
@@ -98,7 +96,7 @@ int main(int argc, char **argv) {
         cout << "Invalid input. Please Try again!" << endl;
       else {
         ::selectStrategy(static_cast<AIStrategyKind>(aistrategykind - 1),
-                       watsonstrategy, *babywatson, board);
+                         watsonstrategy, *babywatson, board);
         break;
       }
     }
@@ -147,44 +145,6 @@ int main(int argc, char **argv) {
       isstop = true;
   }
   return 0;
-}
-void simulations(hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
-                 hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue, float threshold,
-                 float randomness) {
-  HexBoard board(numofhexgon);
-
-  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
-  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
-
-  Game hexboardgame(board);
-  strategyred.reset(new Strategy(&board, &playera, threshold, randomness));
-  strategyblue.reset(new MonteCarloTreeSearch(&board, &playerb));
-
-  string winner = "UNKNOWN";
-  int round = 0;
-
-  while (winner == "UNKNOWN") {
-    //the virtual player moves
-    int redmove, redrow, redcol;
-    redmove = hexboardgame.genMove(*strategyred);
-    redrow = (redmove - 1) / numofhexgon + 1;
-    redcol = (redmove - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playera, redrow, redcol);
-
-    //the virtual opponent moves
-    int bluemove, bluerow, bluecol;
-    bluemove = hexboardgame.genMove(*strategyblue);
-    bluerow = (bluemove - 1) / numofhexgon + 1;
-    bluecol = (bluemove - 1) % numofhexgon + 1;
-    hexboardgame.setMove(playerb, bluerow, bluecol);
-
-    round++;
-    winner = hexboardgame.getWinner(playera, playerb);
-  }
-  cout << strategyred->name() << " (RED) plays against " << strategyblue->name()
-       << " (BLUE)" << endl;
-  cout << "simulation: " << round << endl;
-  cout << "simulation: the winner is " << winner << endl;
 }
 //function to collect logics of inquiring human to make legitimate move
 int queryHumanMove(int& userrow, int& usercol) {

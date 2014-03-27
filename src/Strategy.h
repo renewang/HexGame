@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include "Player.h"
+#include "Global.h"
 #include "HexBoard.h"
 #include "PriorityQueue.h"
 #include "AbstractStrategyImpl.h"
@@ -52,7 +53,12 @@ class Strategy : public AbstractStrategyImpl {
 
 #ifndef NDEBUG
   //for google test framework
-  friend class StrategyTest;FRIEND_TEST(StrategyTest,CheckWinnerTest);FRIEND_TEST(StrategyTest,CheckWinnerTestTwo);FRIEND_TEST(StrategyTest,CheckWinnerElevenTest);FRIEND_TEST(StrategyTest,CheckGenMoveForPair);FRIEND_TEST(StrategyTest,CheckGenNextFillBasic);
+  friend class StrategyTest;
+  FRIEND_TEST(StrategyTest,CheckWinnerTest);
+  FRIEND_TEST(StrategyTest,CheckWinnerTestTwo);
+  FRIEND_TEST(StrategyTest,CheckWinnerElevenTest);
+  FRIEND_TEST(StrategyTest,CheckGenMoveForPair);
+  FRIEND_TEST(StrategyTest,CheckGenNextFillBasic);
 #endif
 
  public:

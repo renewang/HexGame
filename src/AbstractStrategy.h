@@ -5,6 +5,7 @@
 #include <string>
 
 #include "Player.h"
+#include "Global.h"
 #include "HexBoard.h"
 
 #if __cplusplus > 199711L
@@ -51,4 +52,8 @@ class AbstractStrategy {
 void selectStrategy(AIStrategyKind strategykind,
                     hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
                     Player& player, HexBoard& board);
+void simulations(
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue,
+    AIStrategyKind redstrategykind, AIStrategyKind bluestrategykind, int numofhexgon = 11);
 #endif /* ABSTRACTSTRATEGY_H_ */

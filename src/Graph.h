@@ -23,7 +23,7 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "Global.h"
+//#include "Global.h"
 #include "AbstractParser.h"
 
 /*

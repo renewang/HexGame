@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 
+#include "Game.h"
 #include "Strategy.h"
 #include "MonteCarloTreeSearch.h"
 #include "AbstractStrategyImpl.h"
@@ -147,4 +148,45 @@ void selectStrategy(AIStrategyKind strategykind,
     watsonstrategy.reset(new MonteCarloTreeSearch(&board, &player));
     break;
   }
+}
+void simulations(
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
+    hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue,
+    AIStrategyKind redstrategykind, AIStrategyKind bluestrategykind, int numofhexgon){
+
+  HexBoard board(numofhexgon);
+
+  Player playera(board, hexgonValKind_RED);  //north to south, 'O'
+  Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
+
+  Game hexboardgame(board);
+
+  selectStrategy(redstrategykind, strategyred, playera, board);
+  selectStrategy(bluestrategykind, strategyblue, playerb, board);
+
+  string winner = "UNKNOWN";
+  int round = 0;
+
+  while (winner == "UNKNOWN") {
+    //the virtual player moves
+    int redmove, redrow, redcol;
+    redmove = hexboardgame.genMove(*strategyred);
+    redrow = (redmove - 1) / numofhexgon + 1;
+    redcol = (redmove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playera, redrow, redcol);
+
+    //the virtual opponent moves
+    int bluemove, bluerow, bluecol;
+    bluemove = hexboardgame.genMove(*strategyblue);
+    bluerow = (bluemove - 1) / numofhexgon + 1;
+    bluecol = (bluemove - 1) % numofhexgon + 1;
+    hexboardgame.setMove(playerb, bluerow, bluecol);
+
+    round++;
+    winner = hexboardgame.getWinner(playera, playerb);
+  }
+  cout << strategyred->name() << " (RED) plays against " << strategyblue->name()
+       << " (BLUE)" << endl;
+  cout << "simulation: " << round << endl;
+  cout << "simulation: the winner is " << winner << endl;
 }

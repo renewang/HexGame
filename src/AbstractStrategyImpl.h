@@ -6,6 +6,7 @@
 #ifndef ABSTRACTSTRATEGYIMPL_H_
 #define ABSTRACTSTRATEGYIMPL_H_
 
+#include "Global.h"
 #include "AbstractStrategy.h"
 
 #ifndef NDEBUG

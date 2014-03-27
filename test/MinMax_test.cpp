@@ -906,7 +906,7 @@ TEST_F(MinMaxTest,CompeteHexMCParallelGame) {
   cout << "winner is " << winner << endl;
 }
 //value test
-TEST_P(BoardTestValue,CheckSingleGameTime) {
+TEST_P(BoardTestValue,DISABLED_CheckSingleGameTime) {
   HexBoard board(numofhexgon);
   Player playera(board, hexgonValKind_RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
@@ -931,6 +931,7 @@ TEST_P(BoardTestValue,CheckSingleGameTime) {
     bluemove = hexboardgame.genMove(mcstblue);
     bluerow = (bluemove - 1) / numofhexgon + 1;
     bluecol = (bluemove - 1) % numofhexgon + 1;
+
     ASSERT_TRUE(hexboardgame.setMove(playerb, bluerow, bluecol));
 
     cout << "simulation " << round << " : " << mcstred.name() << " " << redmove
@@ -942,7 +943,7 @@ TEST_P(BoardTestValue,CheckSingleGameTime) {
   }
   cout << "winner is " << winner << " during " << round << " in total" << endl;
 }
-TEST_P(TimeTestValue,CheckParallelGameTime) {
+TEST_P(TimeTestValue,DISABLED_CheckParallelGameTime) {
   HexBoard board(numofhexgon);
 
   Player playera(board, hexgonValKind_RED);  //north to south, 'O'

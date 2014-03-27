@@ -290,7 +290,6 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   int expandNode(int indexofsource, int move, char color = 'W');
   int updateNodefromSimulation(int indexofnode, int winner, int level = -1);
   std::string printGameTree(int key);  //print out the tree
-  std::size_t getNumofTotalNodes();
   std::string name() {
     return std::string("LockableGameTree");
   }
