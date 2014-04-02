@@ -139,7 +139,7 @@ void Graph<Type, Val>::randomGraphGenerator() {
     return;
   }
   //initialize random seed with current time
-  srand(static_cast<unsigned int>(clock()));
+  srand(static_cast<unsigned>(time(NULL)));
 
   for (typename std::vector<Node>::iterator iterself = repgraph.begin();
       iterself != repgraph.end(); ++iterself) {  // for each vertex

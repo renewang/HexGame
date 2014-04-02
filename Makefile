@@ -1,4 +1,4 @@
-CXXFLAGS =	-O3 -Wall -Wextra -Werror -fmessage-length=0 $(OPTFLAGS)
+CXXFLAGS =	-Wall -Wextra -Werror -fmessage-length=0 $(OPTFLAGS)
 LIBS = -lboost_chrono -lboost_thread -lboost_system $(OPTLIBS)
 SRCDIR =	src
 SOURCES=	$(filter Graph.cpp MinSpanTreeAlgo.cpp ShortestPathAlgo.cpp PriorityQueue.cpp, $(wildcard *.cpp))
@@ -12,8 +12,13 @@ PREFIX?=	/usr/local
 CHECKFLAG= -v --enable=all
 
 # compile release build
-all:	CXXFLAGS+= -std=c++11 -DNDEBUG
-all:	$(EXEDIR)/DijkstraAlg $(EXEDIR)/KruskalMSTAlg $(EXEDIR)/HexBoardGameApp
+rel:	CXXFLAGS+= -std=c++11 -DNDEBUG -O3
+rel:	CHECKFLAG+= -std=c++11
+rel:	cppcheck all
+
+relold: CXXFLAGS+= -DNDEBUG -O3
+relold:	CHECKFLAG+= -std=c++03
+relold: cppcheck all
 
 # compile debug build
 dev:	CXXFLAGS+= -g3 -pg --std=c++11
@@ -25,6 +30,8 @@ devold:	CXXFLAGS+= -g3 -pg
 devold: CHECKFLAG+= --std=c++03
 devold:	OPTINCLUDE= -I./contrib
 devold: cppcheck all
+
+all:	$(EXEDIR)/DijkstraAlg $(EXEDIR)/KruskalMSTAlg $(EXEDIR)/HexBoardGameApp
 
 .PHONY:  buildtest $(TEST_SUBDIRS)
 buildtest: MAKECOMMAND = $(MAKE) all -C

@@ -1,7 +1,9 @@
-/*
+/**
  * Strategy.cpp
- * This file defines MC simulation implementation for AI player
+ * This file defines a pure/naive Mont Carlo simulation implementation for AI player
  *
+ *  Created on:
+ *      Author: renewang
  */
 #if __cplusplus <= 199711L
 #include <boost/random/mersenne_twister.hpp>
@@ -14,7 +16,7 @@ using namespace std;
 
 #if __cplusplus > 199711L
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer)
-    : Strategy(board, aiplayer, 0.1, 0.1, 2048) {
+    : Strategy(board, aiplayer, 0.3, 0.7, 2048) {
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
                    double threshold, double randomness)
@@ -22,13 +24,13 @@ Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
 }
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
                    size_t numberoftrials)
-    : Strategy(board, aiplayer, 0.1, 0.1, numberoftrials) {
+    : Strategy(board, aiplayer, 0.3, 0.7, numberoftrials) {
 }
 #else
 Strategy::Strategy(const HexBoard* board, const Player* aiplayer)
 : AbstractStrategyImpl(board, aiplayer),
-threshold(0.1),
-randomness(0.1),
+threshold(0.3),
+randomness(0.7),
 ptrtoboard(board),
 ptrtoplayer(aiplayer),
 numberoftrials(2048) {
@@ -65,10 +67,9 @@ Strategy::Strategy(const HexBoard* board, const Player* aiplayer,
       numberoftrials(numberoftrials) {
   numofhexgons = ptrtoboard->getNumofhexgons();
 }
-//simulation body
-//INPUT: NONE
-//OUTPUT:
-//the index number of next step
+///Simulation implementation
+///@param currentempty is the current number of emtpy hexgons in the current game state
+///@return the index or position on the board of generated move
 int Strategy::simulation(int currentempty) {
   vector<int> result(ptrtoboard->getSizeOfVertices(), 0);
   int cutoff = static_cast<int>(threshold
@@ -139,7 +140,7 @@ int Strategy::simulation(int currentempty) {
       result[nextmove - 1]++;
   }
 
-//find the move with the maximal successful simulated outcome
+//Find the move with the maximal successful simulated outcome
   vector<int> index(result.size());
   PriorityQueue<int, int> queue(result.size());
   for (unsigned i = 0; i < result.size(); i++) {
@@ -148,12 +149,11 @@ int Strategy::simulation(int currentempty) {
   }
   return queue.minPrioirty();
 }
-//initialize counter for neighbors
-//INPUT:
-//queue, priority queue used to store the
-//moves, the current move made by one of player
-//counter, the counter to record the number of neighbors
-//OUTPUT: NONE
+///Initialize counter of neighbors or connected hexgons for each hexgon or position on the hex board
+///@param queue, priority queue used to store the
+///@param moves, the current move made by one of player
+///@param counter, to record the number of neighbors or connected hexgons
+///@return NONE
 void Strategy::countNeighbors(hexgame::shared_ptr<bool> emptyindicators,
                               hexgame::unordered_set<int>& moves,
                               vector<pair<int, int> >& counter) {
@@ -176,13 +176,11 @@ void Strategy::countNeighbors(hexgame::shared_ptr<bool> emptyindicators,
     }
   }
 }
-//Generate next move by taking into account the most connected cells.
-//INPUT:
-//emptyindicators: boolean array to indicate the empty positions
-//queue: the priority queue stores the empty positions with the priority as the connections to the position adding some randomness
-//counter: the auxiliary vector which stores the index of position and priority
-//OUPUT:
-//next move
+///Generate next move by taking into account the most connected cells.
+///@param emptyindicators: boolean array to indicate the empty positions
+///@param queue the priority queue stores the empty positions with the priority as the connections to the position adding some randomness
+///@param counter the auxiliary vector which stores the index of position and priority
+///@return next move represent as index or position on the hex board
 int Strategy::genNextFill(hexgame::shared_ptr<bool>& emptyindicators,
                           PriorityQueue<int, int>&queue,
                           int& proportionofempty) {
@@ -191,11 +189,10 @@ int Strategy::genNextFill(hexgame::shared_ptr<bool>& emptyindicators,
   --proportionofempty;
   return nexloc;
 }
-//assign random number to neighbors counter
-//INPUT:
-//queue: priority queue stores the number of neighbors for each empty cell of current game
-//counter: vector stores pair of index value of empty cells and count of neighbors
-//OUTPUT: NONE
+///Assign random number to modify the priority of neighbors counter
+///@param queue is a priority queue stores the number of neighbors for each empty cell of current game
+///@param counter is a vector stores pair of index value of empty cells and count of neighbors
+///@return NONE
 void Strategy::assignRandomNeighbors(PriorityQueue<int, int>& queue,
                                      vector<pair<int, int> >& counter,
                                      int currentempty) {

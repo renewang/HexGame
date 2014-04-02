@@ -107,7 +107,7 @@ void MinSpanTreeAlgo<Type, Val>::UnionFind::calculate() {
 //implement prim algorithm
 template<class Type, class Val>
 void MinSpanTreeAlgo<Type, Val>::Prim::calculate() {
-  srand(static_cast<unsigned int>(clock()));
+  srand(static_cast<unsigned>(time(NULL)));
   std::vector<int> vertices;  //get the all vertices in graph
   std::vector<int> close;  //visited or close set
   const Val kINF = std::numeric_limits<Val>::max();  //set the INF as the maximal value of the type

@@ -1,6 +1,6 @@
 /*
  * LockableGameTree.h
- *
+ * This file defines the implementation for Parallelized Monte Carlo Game Tree and Lockable UTC Policy. Lockable UTC Policy is part of Game Tree property.
  *  Created on: Feb 11, 2014
  *      Author: renewang
  */
@@ -26,20 +26,27 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/pthread/shared_mutex.hpp>
 
-typedef boost::lockable_adapter<boost::mutex> lockable_base_type;
-typedef boost::shared_lockable_adapter<boost::shared_mutex> lockable_share_type;
+typedef boost::lockable_adapter<boost::mutex> lockable_base_type; ///< Define boost lockable_adapter as lockable_base_type
+typedef boost::shared_lockable_adapter<boost::shared_mutex> lockable_share_type;///< Define boost shared_lockable_adapter as lockable_base_type
+/**
+ * LockableUTCPolicy class is used to provide the implementations of lockable AbstractUTCPolicy for the parallelization
+ * LockableUTCPolicy(): default constructor which will initialize data members with default values
+ *
+ */
 class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
  private:
-  double value;  //this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
-  double balance;  //this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
-  const double coefficient;
-  std::size_t numoffeatures;
-  std::vector<int> featureholder;
-  hexgame::atomic<int> countforexpand;  //vertex property, semaphore for local lock.
-  hexgame::atomic<bool> isupdated;
-  int sizeoffuturechildren;
-  boost::condition_variable_any holdforupdate;
+  double value;  ///< this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
+  double balance;  ///< this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
+  const double coefficient; ///< this constant value is used in UTC Policy to strike a balance between exploration and exploitation
+  std::size_t numoffeatures; ///< this value is used to specify how many features are used for UTC value calculation
+  std::vector<int> featureholder; ///< this vector is used to hold the values of features
+  hexgame::atomic<int> countforexpand;///< vertex property, semaphore for local lock to wait for expansion
+  hexgame::atomic<bool> isupdated; ///< vertex property, mutex-like atomic variable for local lock to wait for expansion
+  int sizeoffuturechildren; ///< this value is to record the future expandable children
+  boost::condition_variable_any holdforupdate; ///< this value is used to keep thread in selection phase till the values are updated
+
  public:
+  ///default constructor which will initialize data members with default values
   LockableUTCPolicy()
       : lockable_share_type(),
         value(0.0),
@@ -53,8 +60,10 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
     std::fill(featureholder.begin(), featureholder.end(), 0);
   }
   ;
+  ///destructor
   virtual ~LockableUTCPolicy() {
   }
+  ///Print the values of Lockable UTC object, debug purpose
   std::string print() {
     std::stringstream buffer;
     buffer << " [" << value << "|" << balance << "|"
@@ -62,6 +71,7 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
            << "] ";
     return buffer.str();
   }
+  ///Copy constructor which should do deep copy
   LockableUTCPolicy(const LockableUTCPolicy& policy)
       : lockable_share_type(),
         coefficient(2.0) {
@@ -74,6 +84,7 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   }
   ;
   //for the purpose to construct graph property
+  ///Copy assignment operator which should do deep copy
   LockableUTCPolicy& operator=(const LockableUTCPolicy& policy) {
     this->value = policy.value;
     this->balance = policy.balance;
@@ -89,8 +100,8 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   virtual void notifyupdatedone();
   bool update(valuekind indexofkind, int value, int increment = 0);
   bool updateAll(
-      valuekind visitkind, int valueofvisit, int increaseofvisit,
-      valuekind winkind, int valueofwin, int increaseofwin);
+      valuekind visitcount, int valueofvisit, int increaseofvisit,
+      valuekind wincount, int valueofwin, int increaseofwin);
   int feature(valuekind indexofkind) {
     return featureholder.at(indexofkind);
   }
@@ -269,10 +280,9 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
       std::vector<int>& opponents, hexgame::unordered_set<int>& remainingmoves);
   int expandNode(boost::unique_lock<LockableGameTree>&, int indexofsource,
                  int move, char color = 'W');
-  int updateNodefromSimulation(
+  void updateNodefromSimulation(
       boost::unique_lock<LockableGameTree>& guard, int indexofnode, int winner, int level = -1);
   std::string printGameTree(boost::shared_lock<LockableGameTree>&, int index);  //print out the tree
-  std::size_t getNumofTotalNodes(boost::shared_lock<LockableGameTree>&);
   void setIsupdatedBackpropagation(boost::unique_lock<LockableGameTree>&,
                                    vertex_t leaf);
   bool getIsupdatedBackpropagation(boost::shared_lock<LockableGameTree>&, int indexofleaf);
@@ -288,7 +298,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
          int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
          hexgame::unordered_set<int>& remainingmoves);
   int expandNode(int indexofsource, int move, char color = 'W');
-  int updateNodefromSimulation(int indexofnode, int winner, int level = -1);
+  void updateNodefromSimulation(int indexofnode, int winner, int level = -1);
   std::string printGameTree(int key);  //print out the tree
   std::string name() {
     return std::string("LockableGameTree");

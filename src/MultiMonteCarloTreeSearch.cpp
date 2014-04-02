@@ -1,6 +1,6 @@
 /*
  * MultiMonteCarloTreeSearch.cpp
- *
+ * This file declares a Mont Carlo Tree Search implementation for AI player
  *  Created on: Feb 11, 2014
  *      Author: renewang
  */
@@ -34,7 +34,8 @@ ptrtoboard(board),
 ptrtoplayer(aiplayer),
 numberofthreads(4),
 numberoftrials(2048) {
-  init();
+  babywatsoncolor = mcstimpl.babywatsoncolor;
+  oppoenetcolor = mcstimpl.oppoenetcolor;
 }
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
     const Player* aiplayer,
@@ -44,8 +45,9 @@ ptrtoboard(board),
 ptrtoplayer(aiplayer),
 numberofthreads(numberofthreads),
 numberoftrials(2048) {
-  init();
-  }
+  babywatsoncolor = mcstimpl.babywatsoncolor;
+  oppoenetcolor = mcstimpl.oppoenetcolor;
+}
 #endif
 MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
                                                      const Player* aiplayer,
@@ -57,15 +59,17 @@ MultiMonteCarloTreeSearch::MultiMonteCarloTreeSearch(const HexBoard* board,
       ptrtoplayer(aiplayer),
       numberofthreads(numberofthreads),
       numberoftrials(numberoftrials) {
-  init();
+  babywatsoncolor = mcstimpl.babywatsoncolor;
+  oppoenetcolor = mcstimpl.oppoenetcolor;
 }
+///Overwritten simulation method. See AbstractStrategy.
 int MultiMonteCarloTreeSearch::simulation(int currentempty) {
   hexgame::shared_ptr<bool> emptyglobal;
   vector<int> bwglobal, oppglobal;
   initGameState(emptyglobal, bwglobal, oppglobal);
   LockableGameTree gametree(ptrtoplayer->getViewLabel());  //shared and lockable
 
-  for (size_t i = 0; i < (numberoftrials/numberofthreads); ++i){
+  for (size_t i = 0; i < (numberoftrials / numberofthreads); ++i) {
     thread_group threads;
     for (size_t j = 0; j < numberofthreads; ++j)
       threads.create_thread(
@@ -73,14 +77,21 @@ int MultiMonteCarloTreeSearch::simulation(int currentempty) {
                       boost::ref(*this), boost::cref(bwglobal),
                       boost::cref(oppglobal), boost::cref(emptyglobal),
                       currentempty, boost::ref(gametree)));
-      assert(threads.size() == numberofthreads);
-      threads.join_all();
+    assert(threads.size() == numberofthreads);
+    threads.join_all();
   }
   int resultmove = mcstimpl.getBestMove(gametree);
   //find the move with the maximal successful simulated outcome
   assert(resultmove != -1);
   return resultmove;
 }
+///the actual task passed to each thread for execution which contains selection, expansion and backpropagation phases
+///@param bwglobal is the moves made by AI player in the current actual game state
+///@param oppglobal is the moves made by human player in the current actual game state
+///@param emptyglobal stores indicator of a position on the hex board is empty or not which will be modified when a simulated game progresses
+///@param currentempty is the current empty hexgons or positions left in the actual game state which will be the number of children nodes of root of game tree
+///@param gametree is a game tree object which stores the simulation progress and result
+///@return NONE
 void MultiMonteCarloTreeSearch::task(
     const std::vector<int>& bwglobal, const std::vector<int>& oppglobal,
     const hexgame::shared_ptr<bool>& emptyglobal, int currentempty,
@@ -97,7 +108,7 @@ void MultiMonteCarloTreeSearch::task(
   int proportionofempty = currentempty;
 
   //in-tree phase
-  pair<int,int> selectresult = mcstimpl.selection(currentempty, gametree);
+  pair<int, int> selectresult = mcstimpl.selection(currentempty, gametree);
   int expandednode = mcstimpl.expansion(selectresult, emptyindicators,
                                         proportionofempty, babywatsons,
                                         opponents, gametree);
@@ -108,12 +119,4 @@ void MultiMonteCarloTreeSearch::task(
   assert(winner != 0);
   //back-propagate
   mcstimpl.backpropagation(expandednode, winner, gametree);
-}
-void MultiMonteCarloTreeSearch::init() {
-  numofhexgons = ptrtoboard->getNumofhexgons();
-  babywatsoncolor = 'B', oppoenetcolor = 'R';
-  if (babywatsoncolor != ptrtoplayer->getViewLabel()) {
-    oppoenetcolor = babywatsoncolor;
-    babywatsoncolor = ptrtoplayer->getViewLabel();
-  }
 }

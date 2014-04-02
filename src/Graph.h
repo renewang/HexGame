@@ -1,7 +1,10 @@
-/*
+/**
  * Graph.h
  * This file defines a Graph data structure which holds a graph's vertices and edges.
  * Also implement Monte Carlo simulation to generate  a random graph given the probability and distance range
+ *
+ *  Created on:
+ *      Author: renewang
  */
 
 #ifndef GRAPH_H_
@@ -19,11 +22,12 @@
 #include <iostream>
 #include <algorithm>
 
+#include <ctime>
 #include <cstring>
 #include <cassert>
 #include <cstdlib>
 
-//#include "Global.h"
+
 #include "AbstractParser.h"
 
 /*

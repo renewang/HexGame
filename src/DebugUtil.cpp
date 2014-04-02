@@ -1,3 +1,11 @@
+/*
+ * DebugUtil.cpp
+ * This file defines the utility functions which can be used for debugging purpose
+ *
+ *   Created on:
+ *      Author: renewang
+ */
+
 #include "Global.h"
 #include <boost/thread/thread.hpp>
 #include <boost/thread/lock_guard.hpp>

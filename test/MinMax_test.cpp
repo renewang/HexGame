@@ -59,10 +59,10 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
   GameTree tree('B');
   tree.expandNode(0, 1, 'B');
   tree.expandNode(0, 2, 'B');
-  EXPECT_EQ(tree.updateNodefromSimulation(1, 0), 0);
+  tree.updateNodefromSimulation(1, 0);
   EXPECT_EQ(tree.getNodeValueFeature(1, AbstractUTCPolicy::visitcount),
             tree.getNodeValueFeature(0, AbstractUTCPolicy::visitcount));
-  EXPECT_EQ(tree.updateNodefromSimulation(2, 0), 0);
+  tree.updateNodefromSimulation(2, 0);
   EXPECT_EQ(1, tree.getNodeValueFeature(1, AbstractUTCPolicy::visitcount));
   EXPECT_EQ(1, tree.getNodeValueFeature(2, AbstractUTCPolicy::visitcount));
   EXPECT_EQ(
@@ -74,13 +74,13 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
 
   //expand from the leaf node
   tree.expandNode(1, 3);
-  EXPECT_EQ(tree.updateNodefromSimulation(3, 0), 0);
+  tree.updateNodefromSimulation(3, 0);
   tree.expandNode(1, 4);
-  EXPECT_EQ(tree.updateNodefromSimulation(4, 0), 0);
+  tree.updateNodefromSimulation(4, 0);
   tree.expandNode(3, 5);
   tree.expandNode(2, 6);
-  EXPECT_EQ(tree.updateNodefromSimulation(5, 0), 0);
-  EXPECT_EQ(tree.updateNodefromSimulation(6, 0), 0);
+  tree.updateNodefromSimulation(5, 0);
+  tree.updateNodefromSimulation(6, 0);
   EXPECT_EQ(
       tree.getNodeValueFeature(3, AbstractUTCPolicy::visitcount)
           + tree.getNodeValueFeature(4, AbstractUTCPolicy::visitcount) + 1,
@@ -95,11 +95,11 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
 
   // test with updating winning count
   tree.expandNode(5, 7);
-  EXPECT_EQ(tree.updateNodefromSimulation(7, 0), 0);
+  tree.updateNodefromSimulation(7, 0);
   tree.expandNode(7, 8);
-  EXPECT_EQ(tree.updateNodefromSimulation(8, 0), 0);
+  tree.updateNodefromSimulation(8, 0);
   tree.expandNode(8, 9);
-  EXPECT_EQ(tree.updateNodefromSimulation(9, 1), -1);
+  tree.updateNodefromSimulation(9, 1);
   EXPECT_EQ(
       tree.getNodeValueFeature(3, AbstractUTCPolicy::visitcount)
           + tree.getNodeValueFeature(4, AbstractUTCPolicy::visitcount) + 1,
@@ -113,7 +113,7 @@ TEST_F(MinMaxTest,GameTreeConstruct) {
       tree.printGameTree(0));
 
   for (int i = 0; i < 4; i++)
-    EXPECT_EQ(tree.updateNodefromSimulation(6, 1), -1);
+    tree.updateNodefromSimulation(6, 1);
 
   EXPECT_EQ(tree.getNodeValueFeature(6, AbstractUTCPolicy::visitcount) + 1,
             tree.getNodeValueFeature(2, AbstractUTCPolicy::visitcount));
@@ -137,12 +137,12 @@ TEST_F(MinMaxTest, MCSTSelection) {
   GameTree tree('R');
   unsigned numofmoves = 9;
   int maxnode = -1, sum = 0, node = 0;
+  srand(static_cast<unsigned long>(time(NULL)));
   for (unsigned i = 0; i < numofmoves; ++i) {
     pair<int, int> result = tree.selectMaxBalanceNode(numofmoves, false);
     node = result.first;
     int leaf = tree.expandNode(node, (i + 1));
-    float prob = static_cast<float>(rand()) / RAND_MAX;
-    if (prob <= 0.5)
+    if (i > 0)
       tree.updateNodefromSimulation(leaf, -1);
     else {
       tree.updateNodefromSimulation(leaf, 1);
@@ -906,7 +906,7 @@ TEST_F(MinMaxTest,CompeteHexMCParallelGame) {
   cout << "winner is " << winner << endl;
 }
 //value test
-TEST_P(BoardTestValue,DISABLED_CheckSingleGameTime) {
+TEST_P(BoardTestValue,CheckSingleGameTime) {
   HexBoard board(numofhexgon);
   Player playera(board, hexgonValKind_RED);  //north to south, 'O'
   Player playerb(board, hexgonValKind_BLUE);  //west to east, 'X'
@@ -943,7 +943,7 @@ TEST_P(BoardTestValue,DISABLED_CheckSingleGameTime) {
   }
   cout << "winner is " << winner << " during " << round << " in total" << endl;
 }
-TEST_P(TimeTestValue,DISABLED_CheckParallelGameTime) {
+TEST_P(TimeTestValue,CheckParallelGameTime) {
   HexBoard board(numofhexgon);
 
   Player playera(board, hexgonValKind_RED);  //north to south, 'O'
@@ -987,11 +987,11 @@ TEST_P(TimeTestValue,DISABLED_CheckParallelGameTime) {
   cout << "winner is " << winner << " during " << round << " in total" << endl;
 }
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetVariable,
+    DISABLED_OnTheFlySetVariable,
     BoardTestValue,
     ::testing::Values(3, 5, 7, 9, 11));
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetVariable,
+    DISABLED_OnTheFlySetVariable,
     TimeTestValue,
     ::testing::Combine(::testing::Values(1, 2, 4, 8, 12, 16, 32, 64),
                        ::testing::Values(3, 5, 7, 9, 11)));

@@ -260,7 +260,7 @@ pair<int,int> LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTre
           .time_since_epoch().count()));
   uniform_real_distribution<double> distribution(0.0, 1.0);
 #else
-  srand(static_cast<unsigned>(clock()));
+  srand(static_cast<unsigned>(time(NULL)));
 #endif
   while (isblockingforexpand)
     holdforexpand.wait(guard);
@@ -412,7 +412,6 @@ void LockableGameTree::getMovesfromTreeState(
 #endif
         {
       size_t pos = getNodePosition(*iter);
-      //assert(remainingmoves.count(pos) != 0);
       if (remainingmoves.count(pos) != 0) {
         remainingmoves.erase(pos);
       }
@@ -425,7 +424,7 @@ void LockableGameTree::getMovesfromTreeState(
     size_t index = distribution(generator);  // generates number in the range 1..6
     assert(index < remainingmoves.size());
 #else
-    srand((unsigned long)clock());
+    srand(static_cast<unsigned>(time(NULL)));
     size_t index = rand() % remainingmoves.size();
 #endif
     hexgame::unordered_set<int>::iterator iter = remainingmoves.begin();
@@ -479,7 +478,7 @@ size_t LockableGameTree::getNodePosition(std::size_t indexofnode) {
   unique_lock<LockableUTCPolicy> guard(*get(vertex_value, thetree, node));
   return get(vertex_position, thetree, node);
 }
-int LockableGameTree::updateNodefromSimulation(
+void LockableGameTree::updateNodefromSimulation(
     unique_lock<LockableGameTree>& guard, int indexofnode, int winner,
     int level) {
   vertex_t node = vertex(indexofnode, thetree);
@@ -514,12 +513,11 @@ int LockableGameTree::updateNodefromSimulation(
   get(vertex_value, thetree, node).get()->updateAll(LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0, 0);
 #endif
   backpropagate(guard, indexofnode, value, level);
-  return value;
 }
-int LockableGameTree::updateNodefromSimulation(int indexofnode, int winner,
+void LockableGameTree::updateNodefromSimulation(int indexofnode, int winner,
                                                int level) {
   unique_lock<LockableGameTree> guard(*this);
-  return updateNodefromSimulation(guard, indexofnode, winner, level);
+  updateNodefromSimulation(guard, indexofnode, winner, level);
 }
 void LockableGameTree::backpropagate(unique_lock<LockableGameTree>&,
                                      vertex_t leaf, int value, int level) {
@@ -598,13 +596,6 @@ AbstractGameTree::vertex_t LockableGameTree::getParent(vertex_t node) {
     parent = source(*viter, thetree);
 
   return parent;
-}
-size_t LockableGameTree::getNumofTotalNodes(shared_lock<LockableGameTree>&) {
-  return num_vertices(thetree);
-}
-size_t LockableGameTree::getNumofTotalNodes() {
-  shared_lock<LockableGameTree> guard(*this);
-  return getNumofTotalNodes(guard);
 }
 bool LockableGameTree::notifyAllUpdateDone(vertex_t leaf, int level) {
   unique_lock<LockableGameTree> guard(*this);

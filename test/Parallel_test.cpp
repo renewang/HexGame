@@ -59,7 +59,7 @@ struct Indicator {
 //    .WillRepeatedly(::testing::Return(void()));
 //threads.create_thread(boost::bind(&CreateVecTask, boost::ref(sharedvec)));
 void CreateVecTask(vector<MockLockableUTCPolicy>& sharedvec) {
-  srand(static_cast<unsigned>(clock()));
+  srand(static_cast<unsigned>(time(NULL)));
   {
     strict_lock<recursive_mutex> lock(_recursive_mutex);
     sharedvec.resize(sharedvec.size() + 1);  //Expect call updateAll once will fail due to vector resize and reconstruct objects.
@@ -100,7 +100,7 @@ void CreateVecTask(vector<MockLockableUTCPolicy>& sharedvec) {
 }
 void CreateSharedVecTask(
     vector<hexgame::shared_ptr<MockLockableUTCPolicy> >& sharedvec) {
-  srand(static_cast<unsigned>(clock()));
+  srand(static_cast<unsigned>(time(NULL)));
 
   {
     strict_lock<recursive_mutex> lock(_recursive_mutex);
@@ -146,7 +146,7 @@ void CreateTreeTask(int currentempty, LockableGameTree& gametree,
   int level = selectresult.second;
   if (level != currentempty)
     indexofchild = gametree.expandNode(selectnode, 0);
-  int totalsize = gametree.getNumofTotalNodes();
+  int totalsize = gametree.getSizeofNodes();
   int indexofparent = gametree.getParent(indexofchild);
   int numofchildren = gametree.getNumofChildren(indexofparent);
   {
@@ -336,7 +336,7 @@ TEST_F(ParallelTest, ThreadGameTreeNode) {
   threads.join_all();
 
   //check children
-  for (size_t i = 0; i < gametree.getNumofTotalNodes(); ++i) {
+  for (size_t i = 0; i < gametree.getSizeofNodes(); ++i) {
     int numofchildren = gametree.getNumofChildren(i);
     int level = gametree.getNodeDepth(i);
     EXPECT_TRUE(numofchildren <= (currentempty - level));
@@ -359,7 +359,7 @@ TEST_F(ParallelTest, DISABLED_ThreadGameTreeUpdate) {
   threads.join_all();
 
   //check children
-  for (size_t i = 0; i < gametree.getNumofTotalNodes(); ++i) {
+  for (size_t i = 0; i < gametree.getSizeofNodes(); ++i) {
     int numofchildren = gametree.getNumofChildren(i);
     int level = gametree.getNodeDepth(i);
     EXPECT_TRUE(numofchildren <= (currentempty - level));
@@ -393,10 +393,10 @@ TEST_P(ParallelTestValue, ThreadEndofGameValue) {
     threads.join_all();
   }
   //check children
-  cout << "current size of tree:" << gametree.getNumofTotalNodes() << endl;
+  cout << "current size of tree:" << gametree.getSizeofNodes() << endl;
   cout << gametree.printGameTree(0);
   //check number of children per node
-  for (size_t i = 0; i < gametree.getNumofTotalNodes(); ++i) {
+  for (size_t i = 0; i < gametree.getSizeofNodes(); ++i) {
     int numofchildren = gametree.getNumofChildren(i);
     int level = gametree.getNodeDepth(i);
     cout << "index:" << i << ";level:" << level << ";number of children:"
@@ -414,7 +414,7 @@ TEST_P(ParallelTestValue, ThreadEndofGameValue) {
   }
   //check all positions at the same level cannot be repeating
   map<int, vector<int> > trackmovesatlevel;
-  for (size_t i = 1; i < gametree.getNumofTotalNodes(); ++i) {
+  for (size_t i = 1; i < gametree.getSizeofNodes(); ++i) {
     int pos = gametree.getNodePosition(i);
     int parent = gametree.getParent(i);
     if (trackmovesatlevel.count(parent) == 0) {
@@ -481,10 +481,10 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
   }
 
   //check children
-  cout << "current size of tree:" << gametree.getNumofTotalNodes() << endl;
+  cout << "current size of tree:" << gametree.getSizeofNodes() << endl;
   cout << gametree.printGameTree(0);
   //check number of children per node
-  for (size_t i = 0; i < gametree.getNumofTotalNodes(); ++i) {
+  for (size_t i = 0; i < gametree.getSizeofNodes(); ++i) {
     int numofchildren = gametree.getNumofChildren(i);
     int level = gametree.getNodeDepth(i);
     cout << "index:" << i << ";level:" << level << ";number of children:"
@@ -502,7 +502,7 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
   }
   //check all positions at the same level cannot be repeating
   map<int, vector<int> > trackmovesatlevel;
-  for (size_t i = 1; i < gametree.getNumofTotalNodes(); ++i) {
+  for (size_t i = 1; i < gametree.getSizeofNodes(); ++i) {
     int pos = gametree.getNodePosition(i);
     int parent = gametree.getParent(i);
     if (trackmovesatlevel.count(parent) == 0) {

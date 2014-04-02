@@ -98,8 +98,8 @@ BOOST_PYTHON_MODULE(libhexgame)
   .value("BLUE", hexgonValKind_BLUE);
   enum_<AIStrategyKind>("AIStrategyKind")
   .value("NAIVE", AIStrategyKind_NAIVE)
-  .value("MCST", AIStrategyKind_MCST)
-  .value("PMCST", AIStrategyKind_PMCST);
+  .value("MCST", AIStrategyKind_MCTS)
+  .value("PMCST", AIStrategyKind_PMCTS);
   class_<HexGamePyEngine>("HexGamePyEngine", init<unsigned>())
   .def("showView", &HexGamePyEngine::showView)
   .def("setRedPlayerMove", &HexGamePyEngine::setRedPlayerMove)

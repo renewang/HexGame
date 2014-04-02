@@ -1,6 +1,8 @@
 /*
  * MonteCarloTreeSearch.cpp
- *
+ * This file declares a Mont Carlo Tree Search implementation for AI player
+ *   Created on: Dec 13, 2013
+ *      Author: renewang
  */
 
 #include "Global.h"
@@ -51,6 +53,7 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(const HexBoard* board,
       numberoftrials(numberoftrials) {
   init();
 }
+///Overwritten simulation method. See AbstractStrategy.
 int MonteCarloTreeSearch::simulation(int currentempty) {
   hexgame::shared_ptr<bool> emptyglobal;
   vector<int> bwglobal, oppglobal;
@@ -83,10 +86,34 @@ int MonteCarloTreeSearch::simulation(int currentempty) {
   return resultmove;
 }
 //in-tree phase
+///The first phase in MCTS. Selection phase is according to UTC Policy and maximizing winning rate in play-out phase
+///@param currentempty is the current empty hexgons or positions left in the actual game state which will be the number of children nodes of root of game tree
+///@param gametree is a game tree object which stores the simulation progress and result
+///@return a pair of integers; the first is the index of selected node of game tree (Notice: not the index of position on hex board which is bound by the size of hex board) and the second is the depth or level of selected node on game tree.
 pair<int,int> MonteCarloTreeSearch::selection(int currentempty, AbstractGameTree& gametree) {
   //when the board is not empty, return the node with the highest expected value
   return gametree.selectMaxBalanceNode(currentempty, true);
 }
+///The second phase in MCTS. Expansion phase will take the result from selection phase and return the index of expanded node. Several required containers are also processed according to the game state of the selected tree node
+///@param selectresult is the pair of integers returned by selection method
+///@param emptyindicators stores indicator of a position on the hex board is empty or not which will be modified when a simulated game progresses
+///@param portionofempty is the number of empty hexgons left in the current actual game state which will be modified during simulated games
+///@param babywatsons is the moves made by AI player in the current actual game state and will serve as a container for moves made in simulated games
+///@param opponents is the moves made by human player in the current actual game state and will serve as a container for moves made in simulated games
+///@param gametree is a game tree object which stores the simulation progress and result
+///@return the index of expanded child if the tree is still expandable or the index of selected node if the tree is unable to be expanded (reach the end of game)
+///<br/>Sample Usage:<br/>
+///
+/// GameTree gametree(ptrtoplayer->getViewLabel());<br/>
+/// hexgame::shared_ptr<bool> emptyinit;<br/>
+/// vector<int> bwinit, oppinit;<br/>
+/// initGameState(emptyinit, bwinit, oppinit); //restore the current game progress<br/>
+/// vector<int> babywatsons(bwinit), opponents(oppinit);<br/>
+/// hexgame::shared_ptr<bool> emptyindicators = hexgame::shared_ptr<bool>(new bool[ptrtoboard->getSizeOfVertices()], hexgame::default_delete<bool[]>());<br/>
+/// copy(emptyinit.get(), emptyinit.get() + board.getSizeOfVertices(), emptyindicators.get()); <br/>
+/// int proportionofempty = ptrboard->getNumofemptyhexgons();<br/>
+/// pair<int, int>selectresult = selection(proportionofempty, gametree); <br/>
+/// int expandedchild = expansion(selectresult, emptyindicators, proportionofempty, babywatsons, opponents, gametree); <br/>
 int MonteCarloTreeSearch::expansion(pair<int,int> selectresult,
                                     hexgame::shared_ptr<bool>& emptyindicators,
                                     int& portionofempty,
@@ -131,7 +158,13 @@ int MonteCarloTreeSearch::expansion(pair<int,int> selectresult,
 
   return indexofchild;
 }
-//play-out phase
+///The third phase in MCTS. The play-out phase will take the containers processed in expansion phase and start simulation by self-playing. The play result will back-propagate update in game tree
+///@param emptyindicators is the number of empty hexgons left in the current actual game state which will be modified during simulated games
+///@param portionofempty is the number of empty hexgons left in the current actual game state which will be modified during simulated games
+///@param babywatsons is the moves made by AI player in the current actual game state
+///@param opponents is the moves made by human player in the current actual game state
+///@return an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
+//[Notice]: All parameters used in playout need to be processed by expansion firstly
 int MonteCarloTreeSearch::playout(hexgame::shared_ptr<bool>& emptyindicators,
                                   int& portionofempty, vector<int>& babywatsons,
                                   vector<int>& opponents) {
@@ -150,17 +183,27 @@ int MonteCarloTreeSearch::playout(hexgame::shared_ptr<bool>& emptyindicators,
 
   return winner;
 }
+///The fourth and last phase in MCTS. The backpropagation phase will take the simulated result from play-out phase and expanded node from expansion phase
+///@param expandednode is the node expanded at the expansioni phase
+///@param winner is the play result of play-out phase.
+///@param gametree is a game tree object which stores the simulation progress and result
+///@return the resulting value updated by game tree
+void MonteCarloTreeSearch::backpropagation(int expandednode, int winner,
+                                           AbstractGameTree& gametree) {
+  gametree.updateNodefromSimulation(expandednode, winner, -1);
+}
+///Get the best move according to estimation result from game tree
+///@param gametree is a game tree object which stores the simulation progress and result
+///@return the best move estimated by gametree which will be passed to genMove
 int MonteCarloTreeSearch::getBestMove(AbstractGameTree& gametree) {
   pair<int, double> result = gametree.getBestMovefromSimulation();
   int bestmove = gametree.getNodePosition(result.first);
   assert(bestmove != -1);
   return bestmove;
 }
-int MonteCarloTreeSearch::backpropagation(int backupnode, int winner,
-                                           AbstractGameTree& gametree) {
-  int value = gametree.updateNodefromSimulation(backupnode, winner, -1);
-  return value;
-}
+///initialize babywatsoncolor and oppoenetcolor
+///@param NONE
+///@return NONE
 void MonteCarloTreeSearch::init() {
   numofhexgons = ptrtoboard->getNumofhexgons();
   babywatsoncolor = 'B', oppoenetcolor = 'R';

@@ -1,6 +1,6 @@
 /*
  * GameTree.cpp
- *
+ * This file defines the implementation of GameTree and UTCPolicy classes
  *  Created on: Jan 3, 2014
  *      Author: renewang
  */
@@ -18,10 +18,63 @@
 
 using namespace std;
 using namespace boost;
+
+///Estimate the winning rate
+///@param NONE
+///@return the estimated winning rate
+double UTCPolicy::estimate() {
+  assert(featureholder.at(visitcount) > 0);
+  value = static_cast<double>(featureholder.at(wincount))
+      / static_cast<double>(featureholder.at(visitcount));
+  return value;
+}
+///Calculate the UTC value
+///@param parent is the parent node whose features will be used for UTC calculation
+///@return the calculated balance according the UTC Policy
+double UTCPolicy::calculate(AbstractUTCPolicy& parent) {
+  double value = estimate();
+  //calculate UCT value (Upper Confidence Bound applied to Tree)
+  //equation is used from Chaslot G et al,
+  double vcount = static_cast<double>(featureholder.at(visitcount));
+  double vcountofparent = static_cast<double>(parent.feature(visitcount));
+  balance = (value
+      + (std::sqrt(coefficient * std::log(vcountofparent) / vcount)));
+  return balance;
+}
+///Update the value of a given feature index or AbstractUTCPolicy::valuekind
+///@param indexofkind is a AbstractUTCPolicy::valuekind enum type which can serve as index to access feature
+///@param value is the given value intended to be updated. Value will not be updated when the value is zero but incremented by specified increment parameter
+///@param increment is the amount of self increment. Self increment only takes effect when value is zero
+///@return boolean variable which indicates the update is successful
+bool UTCPolicy::update(valuekind indexofkind, int value, int increment) {
+  if (value == 0)  //simply incrementing original value
+    featureholder.at(indexofkind) = featureholder.at(indexofkind) + increment;
+  else
+    featureholder.at(indexofkind) = value;
+  return true;
+}
+///Update all the values of given features
+///@param visitcount is AbstractUTCPolicy::visitkind which will update visit count feature
+///@param valueofvisit is the given value intended to be updated for visitcount
+///@param increaseofvisit is the amount of self increment for visitcount. Self increment only takes effect when value is zero
+///@param wincount is AbstractUTCPolicy::wincount which will update winning count feature
+///@param valueofwin is the given value intended to be updated for wincount
+///@param increaseofwin is the amount of self increment for wincount. Self increment only takes effect when value is zero
+///@return boolean variable which indicates the update is successful
+bool UTCPolicy::updateAll(valuekind visitcount, int valueofvisit, int increaseofvisit,
+               valuekind wincount, int valueofwin, int increaseofwin) {
+  update(visitcount, valueofvisit, increaseofvisit);
+  update(wincount, valueofwin, increaseofwin);
+  return true;
+}
 #if __cplusplus > 199711L
+///Default constructor which will initiate a Game tree with one root node. The color of root is white and index of root is zero.
 GameTree::GameTree()
     : GameTree('W', 0) {
 }
+///User defined constructor which will initiate a Game tree with one root node. The color of root is the opposite of playerscolor. <br/>
+///For example, if playerscolor is 'R', then root's color is 'B'. Conversely, playercolor is 'B', then root's color is 'R'.<br/>
+///The index of root is initialized as zero.
 GameTree::GameTree(char playerscolor)
     : GameTree(playerscolor, 0) {
 }
@@ -33,6 +86,9 @@ GameTree::GameTree(char playerscolor) {
   initGameTree(playerscolor, 0);
 }
 #endif
+///User defined constructor which will initiate a Game tree with one root node. The color of root is the opposite of playerscolor. <br/>
+///For example, if playerscolor is 'R', then root's color is 'B'. Conversely, playercolor is 'B', then root's color is 'R'.<br/>
+///The index of root is initialized as given indexofroot.
 GameTree::GameTree(char playerscolor, size_t indexofroot) {
   initGameTree(playerscolor, indexofroot);
 }
@@ -48,15 +104,6 @@ GameTree::vertex_t GameTree::addNode(std::size_t positionofchild, char color) {
 bool GameTree::addEdge(vertex_t source, vertex_t target) {
   pair<edge_t, bool> result = add_edge(source, target, thetree);
   return result.second;
-}
-void GameTree::removeChidren(string nameofsource) {
-#if __cplusplus > 199711L
-  size_t indexofsource = stoul(nameofsource);
-#else
-  size_t indexofsource = atoi(nameofsource.c_str());
-#endif
-  vertex_t source = vertex(indexofsource, thetree);
-  clear_out_edges(source, thetree);
 }
 string GameTree::printGameTree(int index) {
   stringstream treebuffer;
@@ -163,7 +210,7 @@ size_t GameTree::getNodePosition(size_t indexofnode) {
   vertex_t node = vertex(indexofnode, thetree);
   return get(vertex_position, thetree, node);
 }
-int GameTree::updateNodefromSimulation(int indexofnode, int winner, int level) {
+void GameTree::updateNodefromSimulation(int indexofnode, int winner, int level) {
   vertex_t node = vertex(indexofnode, thetree);
 #if __cplusplus > 199711L
   int value = 0;
@@ -197,7 +244,6 @@ int GameTree::updateNodefromSimulation(int indexofnode, int winner, int level) {
   get(vertex_value, thetree, node).get()->updateAll(AbstractUTCPolicy::visitcount, 0, 1, AbstractUTCPolicy::wincount, 0, 0);
 #endif
   backpropagate(node, value, level);
-  return value;
 }
 int GameTree::expandNode(int indexofsource, int move, char color) {
   vertex_t source = vertex(indexofsource, thetree);
@@ -232,7 +278,7 @@ pair<int,int> GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) 
           .time_since_epoch().count()));
   uniform_real_distribution<double> distribution(0.0, 1.0);
 #else
-  srand(static_cast<unsigned>(clock()));
+  srand(static_cast<unsigned>(time(NULL)));
 #endif
   while (numofchildren != 0) {  //reach leaf
     //test if the current examining node is fully expanded, if yes then return its child; otherwise, return the current node for expansion
@@ -334,7 +380,7 @@ void GameTree::getMovesfromTreeState(
     size_t index = distribution(generator);  // generates number in the range 1..6
     assert(index < remainingmoves.size());
 #else
-    srand((unsigned long)clock());
+    srand(static_cast<unsigned>(time(NULL)));
     size_t index = rand() % remainingmoves.size();
 #endif
     hexgame::unordered_set<int>::iterator iter = remainingmoves.begin();
@@ -426,9 +472,6 @@ void GameTree::initGameTree(char playerscolor, size_t indexofroot) {
     rootscolor = 'R';
   vertex_t root = addNode(indexofroot, rootscolor);
   _root = root;
-}
-size_t GameTree::getNumofTotalNodes() {
-  return num_vertices(thetree);
 }
 size_t GameTree::getNumofChildren(size_t indexofnode) {
   vertex_t parent = vertex(indexofnode, thetree);

@@ -1,6 +1,8 @@
 /*
- * AbstractStrategy.cpp
- *
+ * AbstractStrategyImpl.cpp
+ * This file file define the default implementation used for AbstractStrategy interface
+ *  Created on:
+ *      Author: renewang
  */
 
 #include <cstdlib>
@@ -13,22 +15,19 @@
 
 using namespace std;
 
-//the genMove called by Game
-//INPUT: NONE
-//OUTPUT:
-//the next move evaluated by simulation
+///genMove called by Game object in order to generate move via self-play simulation
+///@param NONE
+///@return: the next move evaluated by self-play simulation
 int AbstractStrategyImpl::genMove() {
   if(ptrtoboard->getNumofemptyhexgons() > 0)
     return(simulation(ptrtoboard->getNumofemptyhexgons()));
   else
     return -1; //there's no empty moves
 }
-//check if the winner exists for this stage of simulation
-//INPUT:
-//babywatsons: the proposed moves made by baby watson so far
-//opponenets: the proposed moves made by virtual opponent so far
-//OUTPUT:
-//an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
+///Check if the winner exists for this stage of simulation
+///@param babywatsons: the proposed moves made by baby watson so far
+///@param opponenets: the proposed moves made by virtual opponent so far
+///@return an integer indicates 0: no winner, -1, babywatson loses and 1 babywatson wins
 int AbstractStrategyImpl::checkWinnerExist(vector<int>& babywatsons,
                                            vector<int>& opponents) {
   if (isWinner(babywatsons, ptrtoplayer->getWestToEastCondition()))
@@ -38,12 +37,10 @@ int AbstractStrategyImpl::checkWinnerExist(vector<int>& babywatsons,
   else
     return 0;
 }
-//check if the test vector satisfies the winning condition
-//INPUT:
-//candidates: stores the moves
-//iswestoeast: the boolean variable to indicate if the winning condition is west to east
-//OUTPUT:
-//the boolean variable indicates if this simulation wins the game
+///Check if the test vector satisfies the winning condition
+///@param candidates: stores the moves
+///@param iswestoeast: the boolean variable to indicate if the winning condition is west to east
+///@return a boolean variable indicates if provided moves made by a player wins the simulated self-play game
 bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
   bool iswinner = false;
 
@@ -57,7 +54,7 @@ bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
   for (unsigned i = 0; i < (candidates.size() - 1); i++) {
     for (unsigned j = i + 1; j < candidates.size(); j++) {
       //temporary for test adjacent
-      if (ptrtoboard->isAdjacent(candidates[i], candidates[j])
+      if (ptrtoboard->isAdjacent(candidates[i], candidates[j])//TODO, performance improvement. another loop to access neighbors
           && representative[i] != representative[j]) {
         int smallgroup = representative[j];
         int largegroup =
@@ -67,7 +64,7 @@ bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
           smallgroup = representative[i];
 
         representative[smallgroup] = largegroup;
-        for (unsigned k = 0; k < candidates.size(); k++)
+        for (unsigned k = 0; k < candidates.size(); k++)//TODO, performance improvement. n^3 implementation here...
           if (representative[k] == smallgroup) {
             representative[k] = largegroup;
             repsize[smallgroup]--;
@@ -99,15 +96,17 @@ bool AbstractStrategyImpl::isWinner(vector<int>& candidates, bool iswestoeast) {
   }
   return iswinner;
 }
-//generate the random next move representing with index [1, number of hexgon per side]
-//INPUT: NONE
-//OUPUT: NONE
+///Generate the random next move representing with index [1, number of hexgon per side]
+///@param emptyindicators is used to store the indicator of empty hexgon on hex board for current simulated game state
+///@param proportionofempty is the proportion of empty hexgons left in the current simulated game process <br/>
+///[Notice]: the value of proportionofempty will subtract one after calling genNextRandom
+///@return the index or position of hexgon on hex board
 int AbstractStrategyImpl::genNextRandom(hexgame::shared_ptr<bool>& emptyindicators,
                                         int& proportionofempty) {
   bool isoccupied = true;
   int index = -1;
 #ifdef NDEBUG
-  srand((unsigned long)clock());
+  srand(static_cast<unsigned>(time(NULL)));
 #endif
 
   while (isoccupied && proportionofempty > 0) {
@@ -120,7 +119,11 @@ int AbstractStrategyImpl::genNextRandom(hexgame::shared_ptr<bool>& emptyindicato
   proportionofempty--;
   return index;
 }
-//initialize the following containers to the current progress of playing board
+///Initialize the following containers to the current progress of playing board
+///@param emptyglobal is used to store the indicator of empty hexgon on hex board for current real game state
+///@param bwglobal is used to store the moves made by AI player in current real game state
+///@param oppglobal is used to store the moves made by real human player
+///@return NONE
 void AbstractStrategyImpl::initGameState(hexgame::shared_ptr<bool>& emptyglobal,vector<int>& bwglobal, vector<int>& oppglobal) {
   emptyglobal = ptrtoboard->getEmptyHexIndicators();
   if(ptrtoplayer->getViewLabel() == 'R'){
@@ -131,24 +134,48 @@ void AbstractStrategyImpl::initGameState(hexgame::shared_ptr<bool>& emptyglobal,
     oppglobal = ptrtoboard->getRedmoves();
   }
 }
+///Select AI strategy for AI player
+///@param strategykind is the enum type which is used to indicate which AI strategy should be used for AI player
+///@param watsonstrategy is uninitialized a strategy object wrapped by unique pointer which will be initialized within this function
+///@param player is the reference of the player assigned with AI strategy
+///@param board is the reference of the hex board
+///@return NONE
+///Sample Usage:<br/>
+/// HexBoard board(numofhexgon); <br/>
+/// Player playerfirst(board, hexgonValKind_BLUE);<br/>
+/// Player* babywatson =  &playerfirst; <br/>
+/// hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> > watsonstrategy(nullptr);<br/>
+/// ::selectStrategy(AIStrategyKind_MCTS, watsonstrategy, *babywatson, board);<br/>
 void selectStrategy(AIStrategyKind strategykind,
                     hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
                     Player& player, HexBoard& board) {
   switch (strategykind) {
     case AIStrategyKind_NAIVE:
-    std::cout <<"\n"<< player.getPlayername()<<" uses naive strategy" << endl;
+    std::cout << player.getPlayername()<<" uses Naive Monte Carlo strategy" << endl;
     watsonstrategy.reset(new Strategy(&board, &player));
     break;
-    case AIStrategyKind_PMCST:
-    std::cout <<"\n"<< player.getPlayername()<<" uses PMCST strategy" << endl;
+    case AIStrategyKind_PMCTS:
+    std::cout << player.getPlayername()<<" uses Parallel Monte Carlo Tree Search strategy" << endl;
     watsonstrategy.reset(new MultiMonteCarloTreeSearch(&board, &player));
     break;
     default:
-    std::cout <<"\n"<< player.getPlayername()<< " uses MCST strategy" << endl;
+    std::cout << player.getPlayername()<< " uses Monte Carlo Tree Search strategy" << endl;
     watsonstrategy.reset(new MonteCarloTreeSearch(&board, &player));
     break;
   }
 }
+///An automatic and simulated game played by two AI players
+///@param strategyred is is uninitialized a strategy object for red player wrapped by unique pointer which will be initialized within this function
+///@param strategyblue is uninitialized a strategy object for blue player wrapped by unique pointer which will be initialized within this function
+///@param redstrategykind is the strategy used for red player
+///@param bluestrategykind is the strategy used for blue player
+///@param numofhexgon is the size of hexgons per side
+///@return NONE
+///Sample Usage:<br/>
+///int numofhexgon = 11;<br/>
+///hexgame::unique_ptr<AbstractStrategy,hexgame::default_delete<AbstractStrategy> > ptrtostrategyforred(nullptr);<br/>
+///hexgame::unique_ptr<AbstractStrategy,hexgame::default_delete<AbstractStrategy> > ptrtostrategyforblue(nullptr);<br/>
+/// ::simulations(ptrtostrategyforred, ptrtostrategyforblue, AIStrategyKind_NAIVE, AIStrategyKind_MCST, numofhexgon);<br/>
 void simulations(
     hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyred,
     hexgame::unique_ptr<AbstractStrategy, hexgame::default_delete<AbstractStrategy> >& strategyblue,
