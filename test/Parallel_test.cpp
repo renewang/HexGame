@@ -146,13 +146,13 @@ void CreateTreeTask(int currentempty, LockableGameTree& gametree,
   int level = selectresult.second;
   if (level != currentempty)
     indexofchild = gametree.expandNode(selectnode, 0);
+
   int totalsize = gametree.getSizeofNodes();
-  int indexofparent = gametree.getParent(indexofchild);
-  int numofchildren = gametree.getNumofChildren(indexofparent);
+  int numofchildren = gametree.getNumofChildren(selectnode);
   {
     strict_lock<recursive_mutex> lock(_recursive_mutex);
     DEBUGHEADER();
-    cout << boost::this_thread::get_id() << " " << indexofparent
+    cout << boost::this_thread::get_id() << " " << selectnode
          << ";has a new child;" << indexofchild << ";currently has;"
          << numofchildren << ";should have;" << (currentempty - level)
          << ";total size of tree;" << totalsize << endl;
@@ -162,49 +162,6 @@ void CreateTreeTask(int currentempty, LockableGameTree& gametree,
   gametree.setNodePosition(indexofchild, move);
   int winner = rand() % 2;
   gametree.updateNodefromSimulation(indexofchild, winner);
-}
-void UpdateTreeTask(int currentempty, LockableGameTree& gametree,
-                    HexBoard& board,
-                    hexgame::shared_ptr<set<int> >& ptrtochosenkids,
-                    hexgame::shared_ptr<set<int> >& ptrtochosenparents) {
-  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
-  int indexofparent = selectresult.first;
-  int indexofchild = indexofparent;
-  int level =selectresult.second;
-  if (level != currentempty)
-    indexofchild = gametree.expandNode(indexofparent, 0);
-
-  ptrtochosenkids.get()->insert(indexofchild);
-  ptrtochosenparents.get()->insert(indexofparent);
-  {
-    //2) check point 2: if the node is chosen in the last round, then all isupdated of its parents including itself = false; (verify in test case)
-    //3) check point 3: if the node is not chosen in the last round and it doesn't share the same parent with the chosen node, then all isupdated of its parents including itself = true; (verify in test case)
-    //4) check point 4: if the node is not chosen in the last round and it shares the same parent with the chosen node, then all isupdated of its parents = false but itself = true; (verify in test case)
-    shared_lock<LockableGameTree> treelock(gametree);
-    vector<size_t> leaves = gametree.getLeaves(treelock);
-    for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
-        ++iter) {
-      //3/14/14, TODO not quite know how to test this condition when update and expand compete against each other
-      //int parentnode = gametree.getParent(*iter);
-      EXPECT_EQ(gametree.getNumofChildren(*iter), 0);
-      if (ptrtochosenkids.get()->count(*iter) != 0) {
-        EXPECT_FALSE(gametree.getIsupdated(*iter));
-        //EXPECT_FALSE(gametree.getIsupdatedBackpropagation(treelock, *iter));
-      } else {
-        EXPECT_TRUE(gametree.getIsupdated(*iter));
-        /*        if (ptrtochosenparents.get()->count(parentnode) != 0)
-         EXPECT_FALSE(gametree.getIsupdatedBackpropagation(treelock, *iter));
-         else
-         EXPECT_TRUE(gametree.getIsupdatedBackpropagation(treelock, *iter));*/
-      }
-    }
-  }
-  int move = rand() % (board.getSizeOfVertices());
-  gametree.setNodePosition(indexofchild, move);
-  int winner = rand() % 2;
-  gametree.updateNodefromSimulation(indexofchild, winner);
-  ptrtochosenkids.get()->erase(indexofchild);
-  ptrtochosenparents.get()->erase(indexofparent);
 }
 void SimulationTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board, hexgame::shared_ptr<bool>& emptyglobal) {
@@ -223,7 +180,7 @@ void SimulationTask(int currentempty, LockableGameTree& gametree,
   {
     strict_lock<recursive_mutex> lock(_recursive_mutex);
     for (int i = 0; i < board.getSizeOfVertices(); ++i)
-      EXPECT_TRUE(emptyindicators.get()[i]);
+      EXPECT_EQ(emptyindicators.get()[i], emptyglobal.get()[i]);
   }
   hexgame::unordered_set<int> remainingmoves;
   for (int i = 0; i < board.getSizeOfVertices(); ++i) {
@@ -255,7 +212,7 @@ void SimulationTask(int currentempty, LockableGameTree& gametree,
 //create value-parameterized tests, test with numberoftrials (equivalently number of threads)
 class ParallelTest : public ::testing::Test {
   virtual void SetUp() {
-    numberofthreads = 1000;
+    numberofthreads = 16;
     currentempty = 9;
     numofhexgon = 3;
   }
@@ -328,6 +285,7 @@ TEST_F(ParallelTest, ThreadGameTreeNode) {
   HexBoard board(numofhexgon);
   currentempty = board.getNumofemptyhexgons();
 
+  cout << "current size of thread numbers:" << numberofthreads << endl;
   thread_group threads;
   for (size_t i = 0; i < numberofthreads; ++i)
     threads.create_thread(
@@ -343,43 +301,22 @@ TEST_F(ParallelTest, ThreadGameTreeNode) {
   }
   cout << gametree.printGameTree(0) << endl;
 }
-TEST_F(ParallelTest, DISABLED_ThreadGameTreeUpdate) {
-  LockableGameTree gametree('B');
-  HexBoard board(numofhexgon);
-  currentempty = board.getNumofemptyhexgons();
-  hexgame::shared_ptr<set<int> > ptrtochosenkids(new set<int>);
-  hexgame::shared_ptr<set<int> > ptrtochosenparents(new set<int>);
-
-  thread_group threads;
-  for (size_t i = 0; i < numberofthreads; ++i)
-    threads.create_thread(
-        boost::bind(&UpdateTreeTask, currentempty, boost::ref(gametree),
-                    boost::ref(board), boost::ref(ptrtochosenkids),
-                    boost::ref(ptrtochosenparents)));
-  threads.join_all();
-
-  //check children
-  for (size_t i = 0; i < gametree.getSizeofNodes(); ++i) {
-    int numofchildren = gametree.getNumofChildren(i);
-    int level = gametree.getNodeDepth(i);
-    EXPECT_TRUE(numofchildren <= (currentempty - level));
-  }
-  //need to be all updated
-  vector<size_t> leaves = gametree.getLeaves();
-  EXPECT_TRUE(leaves.size() <= numberofthreads);
-  for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
-      ++iter) {
-    EXPECT_EQ(gametree.getNumofChildren(*iter), 0);
-    EXPECT_TRUE(gametree.getIsupdated(*iter));
-    EXPECT_TRUE(gametree.getIsupdatedBackpropagation(*iter));
-  }
-  cout << gametree.printGameTree(0) << endl;
-}
 TEST_P(ParallelTestValue, ThreadEndofGameValue) {
   LockableGameTree gametree('B');
   HexBoard board(numofhexgon);
   int numberoftrials = 2048;
   hexgame::shared_ptr<bool> emptyglobal = board.getEmptyHexIndicators();
+  srand(static_cast<unsigned>(time(NULL)));
+  vector<int> numbers(board.getSizeOfVertices());
+  for (int i = 0; i < board.getSizeOfVertices(); i++)
+    numbers[i] = i;
+  std::random_shuffle(numbers.begin(), numbers.end());
+
+  for(int i = board.getSizeOfVertices(); i > currentempty; i--)
+    emptyglobal.get()[numbers[i-1]] = false;
+
+  int randempty = std::count (emptyglobal.get(), emptyglobal.get()+board.getSizeOfVertices(), true);
+  ASSERT_EQ(randempty, currentempty);
 
   cout << "current size of available moves:" << currentempty << endl;
   cout << "current size of thread numbers:" << numberofthreads << endl;
@@ -405,7 +342,6 @@ TEST_P(ParallelTestValue, ThreadEndofGameValue) {
   }
   //need to be all updated
   vector<size_t> leaves = gametree.getLeaves();
-  EXPECT_TRUE(leaves.size() <= numberofthreads);
   for (vector<size_t>::iterator iter = leaves.begin(); iter != leaves.end();
       ++iter) {
     EXPECT_EQ(gametree.getNumofChildren(*iter), 0);
@@ -550,9 +486,9 @@ TEST_F(ParallelTest, ThreadIterativeGame) {
 }
 INSTANTIATE_TEST_CASE_P(
     OnTheFlySetThreadNumber, ParallelTestValue,
-    ::testing::Combine(Range(2, 18, 2), Range(2, 122, 7), Values(3, 5, 11)));
+    ::testing::Combine(Values(4), Range(1, 26, 1), Values(5)));
 INSTANTIATE_TEST_CASE_P(
-    OnTheFlySetThreadNumberFixempty, ParallelTestValue,
+    DISABLED_OnTheFlySetThreadNumberFixempty, ParallelTestValue,
     ::testing::Combine(Range(2, 18, 2), Values(9, 25, 121), Values(3, 5, 11)));
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

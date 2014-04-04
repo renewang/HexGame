@@ -195,7 +195,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   void backpropagate(boost::unique_lock<LockableGameTree>&, vertex_t leaf,
                      int value, int level);bool notifyAllUpdateDone(
       boost::unique_lock<LockableGameTree>&, vertex_t leaf, int level);
-  void updateNodeValue(boost::unique_lock<LockableGameTree>&, vertex_t node);  //update the color of a given node
+  void updateNodeValue(vertex_t node);  //update the value of a given node
 
   //implement with global lock, internal
   vertex_t addNode(std::size_t positionofchild, char color);
@@ -210,11 +210,10 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
                        char color);  //update the board position of a given node
   void updateNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node,
                           std::size_t position);
-  size_t getNumofChildren(boost::unique_lock<LockableUTCPolicy>&, vertex_t parent);
+  size_t getNumofChildren(boost::unique_lock<LockableGameTree>&, vertex_t parent);
 
   //implement with local lock, internal
   bool addEdge(vertex_t source, vertex_t target);
-  vertex_t getParent(vertex_t node);
 
   //no lock
   void updateNodeName(vertex_t node);  //update the value of a given node
@@ -305,7 +304,6 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   }
   ;
 
-
   //implement with local locak, exteranl
   void setNodePosition(boost::unique_lock<LockableUTCPolicy>& guard,
                                          vertex_t node, size_t position);
@@ -319,7 +317,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   std::vector<std::size_t> getSiblings(std::size_t indexofnode);
   std::size_t getNodePosition(std::size_t indexofnode);
   std::size_t getNumofChildren(std::size_t indexofnode);
-  std::size_t getParent(std::size_t indexofchild, bool);
+  std::size_t getParent(std::size_t indexofchild);
   bool getIsupdated(int indexofnode);
   bool getIsupdatedBackpropagation(int indexofleaf);
   int getNodeValueFeature(int indexofnode, AbstractUTCPolicy::valuekind indexofkind);
