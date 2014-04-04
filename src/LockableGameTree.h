@@ -9,6 +9,7 @@
 #define LOCKABLEGAMETREE_H_
 
 #include "Global.h"
+#include "GameTree.h"
 #include "AbstractGameTree.h"
 
 #ifndef NDEBUG
@@ -35,11 +36,7 @@ typedef boost::shared_lockable_adapter<boost::shared_mutex> lockable_share_type;
  */
 class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
  private:
-  double value;  ///< this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
-  double balance;  ///< this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
-  const double coefficient; ///< this constant value is used in UTC Policy to strike a balance between exploration and exploitation
-  std::size_t numoffeatures; ///< this value is used to specify how many features are used for UTC value calculation
-  std::vector<int> featureholder; ///< this vector is used to hold the values of features
+  UTCPolicy policy;
   hexgame::atomic<int> countforexpand;///< vertex property, semaphore for local lock to wait for expansion
   hexgame::atomic<bool> isupdated; ///< vertex property, mutex-like atomic variable for local lock to wait for expansion
   int sizeoffuturechildren; ///< this value is to record the future expandable children
@@ -49,15 +46,9 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   ///default constructor which will initialize data members with default values
   LockableUTCPolicy()
       : lockable_share_type(),
-        value(0.0),
-        balance(value),
-        coefficient(2.0),
-        numoffeatures(2),
-        featureholder(std::vector<int>(numoffeatures)),
         countforexpand(0),
         isupdated(false),
         sizeoffuturechildren(0) {
-    std::fill(featureholder.begin(), featureholder.end(), 0);
   }
   ;
   ///destructor
@@ -65,20 +56,12 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   }
   ///Print the values of Lockable UTC object, debug purpose
   std::string print() {
-    std::stringstream buffer;
-    buffer << " [" << value << "|" << balance << "|"
-           << featureholder.at(wincount) << "|" << featureholder.at(visitcount)
-           << "] ";
-    return buffer.str();
+    return policy.print();
   }
   ///Copy constructor which should do deep copy
   LockableUTCPolicy(const LockableUTCPolicy& policy)
-      : lockable_share_type(),
-        coefficient(2.0) {
-    this->value = policy.value;
-    this->balance = policy.balance;
-    this->numoffeatures = policy.numoffeatures;
-    this->featureholder = policy.featureholder;
+      : lockable_share_type() {
+    this->policy = policy.policy;
     this->sizeoffuturechildren = policy.sizeoffuturechildren;
     this->countforexpand.store(policy.countforexpand.load());
   }
@@ -86,10 +69,7 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   //for the purpose to construct graph property
   ///Copy assignment operator which should do deep copy
   LockableUTCPolicy& operator=(const LockableUTCPolicy& policy) {
-    this->value = policy.value;
-    this->balance = policy.balance;
-    this->numoffeatures = policy.numoffeatures;
-    this->featureholder = policy.featureholder;
+    this->policy = policy.policy;
     this->sizeoffuturechildren = policy.sizeoffuturechildren;
     this->countforexpand.store(policy.countforexpand.load());
     return *this;
@@ -103,14 +83,14 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
       valuekind visitcount, int valueofvisit, int increaseofvisit,
       valuekind wincount, int valueofwin, int increaseofwin);
   int feature(valuekind indexofkind) {
-    return featureholder.at(indexofkind);
+    return policy.feature(indexofkind);
   }
   double getValue() const {
-    return value;
+    return policy.getValue();
   }
 
   double getBalance() const {
-    return balance;
+    return policy.getBalance();
   }
 
   int getCountforexpand() {
@@ -267,7 +247,6 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   virtual ~LockableGameTree() {
   }
   ;
-
   //implement with global lock, external
   std::size_t getSizeofEdges(boost::shared_lock<LockableGameTree>&);
   std::size_t getSizeofNodes(boost::shared_lock<LockableGameTree>&);
@@ -303,7 +282,6 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
     return std::string("LockableGameTree");
   }
   ;
-
   //implement with local locak, exteranl
   void setNodePosition(boost::unique_lock<LockableUTCPolicy>& guard,
                                          vertex_t node, size_t position);

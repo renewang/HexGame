@@ -31,39 +31,22 @@ bool LockableUTCPolicy::waitforupdate() {
   return true;
 }
 double LockableUTCPolicy::estimate() {
-  assert(featureholder.at(visitcount) > 0);
-  value = static_cast<double>(featureholder.at(wincount))
-      / static_cast<double>(featureholder.at(visitcount));
-  return value;
+  return policy.estimate();
 }
 double LockableUTCPolicy::calculate(AbstractUTCPolicy& parent) {
   boost::unique_lock<LockableUTCPolicy> lock(*this);
-  //choose the maximal value for non-uct implementation (greedy mc) if isgreedy = true
-  double value = estimate();
-  //calculate UCT value (Upper Confidence Bound applied to Tree)
-  //equation is used from Chaslot G et al,
-  double vcount = static_cast<double>(featureholder.at(visitcount));
-  double vcountofparent = static_cast<double>(parent.feature(visitcount));
-  assert(vcountofparent >= vcount);
-  balance = (value
-      + (std::sqrt(coefficient * std::log(vcountofparent) / vcount)));
-  return balance;
+  return policy.calculate(parent);
 }
 bool LockableUTCPolicy::update(valuekind indexofkind, int value,
                                int increment) {
-  if (value == 0)  //simply incrementing original value
-    featureholder.at(indexofkind) = featureholder.at(indexofkind) + increment;
-  else
-    featureholder.at(indexofkind) = value;
+  policy.update(indexofkind, value, increment);
   return true;
 }
 bool LockableUTCPolicy::updateAll(valuekind visitkind, int valueofvisit,
                                   int increaseofvisit, valuekind winkind,
                                   int valueofwin, int increaseofwin) {
   boost::unique_lock<LockableUTCPolicy> lock(*this);
-  update(winkind, valueofwin, increaseofwin);
-  update(visitkind, valueofvisit, increaseofvisit);
-  isupdated = true;
+  policy.updateAll(visitkind, valueofvisit, increaseofvisit, winkind, valueofwin, increaseofwin);
   return true;
 }
 void LockableUTCPolicy::notifyupdatedone() {
@@ -109,7 +92,6 @@ bool LockableGameTree::notifyAllUpdateDone(unique_lock<LockableGameTree>&,
   }
   return true;
 }
-
 void LockableGameTree::initGameTree(char playerscolor, size_t indexofroot) {
   //set the root's color label as opponent's color label
   char rootscolor = 'W';
@@ -565,10 +547,7 @@ void LockableGameTree::backpropagate(vertex_t leaf, int value, int level) {
 size_t LockableGameTree::getNumofChildren(size_t indexofnode) {
   vertex_t parent = vertex(indexofnode, thetree);
   unique_lock<LockableGameTree> guard(*this);
-
-  int numofchildren = getNumofChildren(guard, parent);
-
-  return numofchildren;
+  return getNumofChildren(guard, parent);
 }
 size_t LockableGameTree::getNumofChildren(unique_lock<LockableGameTree>&,
                                           vertex_t parent) {

@@ -8,12 +8,12 @@
 
 #include "Graph.h"
 #include "Global.h"
-/*
- * hexgonValKind enum type
- * Define 3 node kinds which can be later owned by different players (BLUE or RED)
- * EMPTY: the node is not being occupied
- * BLUE: the player marked as blue color
- * RED: the player marked as red color
+/**
+ * hexgonValKind enum type <br/>
+ * Define 3 node kinds which can be later owned by different players (BLUE or RED) <br/>
+ * EMPTY: the node is not being occupied <br/>
+ * BLUE: the player marked as blue color <br/>
+ * RED: the player marked as red color <br/>
  */
 #if __cplusplus > 199711L
 enum class hexgonValKind {
@@ -36,26 +36,27 @@ enum hexgonValKind {
 #endif
 //Overloading function for hexgonValKind to output the value
 std::ostream& operator<<(std::ostream& os, hexgonValKind hexgonkind);
-/*
- * HexBoard class is used as a representation of hex board and inherited from Graph
- * Several additional members are added in order to specialize the board
- * This class contains two constructors:
- * HexBoard(): default constructor, not doing anything particular
- * HexBoard(unsigned): constructor used to initialize the board according to the given number of hexgons per side
- * Sample Usage:
- * HexBoard board(5);
- * board.isAdjacent(1, 2) => return TRUE
- * board.isAdjacent(1, 3) => return FALSE
- * which generate 5x5 board
+/**
+ * HexBoard class is used as a representation of hex board and inherited from Graph<br/>
+ * Several additional members are added in order to specialize the board<br/>
+ * This class contains two constructors:<br/>
+ * HexBoard(): default constructor, not doing anything particular<br/>
+ * HexBoard(unsigned): constructor used to initialize the board according to the given number of hexgons per side<br/>
+ * Sample Usage:<br/>
+ * HexBoard board(5);<br/>
+ * board.isAdjacent(1, 2) => return TRUE<br/>
+ * board.isAdjacent(1, 3) => return FALSE<br/>
+ * which generate 5x5 board<br/>
  */
 class HexBoard : public Graph<hexgonValKind, int> {
  private:
   //HexgonLocType inner class
   class HexgonLocType {
    private:
-    HexBoard& board;  // HexBoard object for the purpose access enclosing class
+    HexBoard& board;  ///< HexBoard object for the purpose access enclosing class
    public:
-    //constructor which passes enclosing class, HexBoard, in order to access the functionality of HexBoard
+    ///constructor which passes enclosing class, HexBoard, in order to access the functionality of HexBoard
+    ///@param board is the hex board
     HexgonLocType(HexBoard& board)
         : board(board) {
     }
