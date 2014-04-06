@@ -101,7 +101,6 @@ void CreateVecTask(vector<MockLockableUTCPolicy>& sharedvec) {
 void CreateSharedVecTask(
     vector<hexgame::shared_ptr<MockLockableUTCPolicy> >& sharedvec) {
   srand(static_cast<unsigned>(time(NULL)));
-
   {
     strict_lock<recursive_mutex> lock(_recursive_mutex);
     sharedvec.resize(sharedvec.size() + 1);
@@ -153,8 +152,7 @@ void CreateTreeTask(int currentempty, LockableGameTree& gametree,
 }
 void SimulationTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board, hexgame::shared_ptr<bool>& emptyglobal) {
-  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty,
-  false);
+  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
   int selectnode = selectresult.first;
   int indexofchild = selectnode;
   int level = selectresult.second;
@@ -201,7 +199,7 @@ void SimulationTask(int currentempty, LockableGameTree& gametree,
 //create value-parameterized tests, test with numberoftrials (equivalently number of threads)
 class ParallelTest : public ::testing::Test {
   virtual void SetUp() {
-    numberofthreads = 64;
+    numberofthreads = 1;
     currentempty = 9;
     numofhexgon = 3;
     numberoftrials = 2048;
@@ -266,7 +264,6 @@ TEST_F(ParallelTest, ThreadPropResize) {
     EXPECT_CALL((*sharedvec.at(i).get()), notifyupdatedone()).Times(
         ::testing::AtLeast(1)).WillRepeatedly(::testing::Return());
   }
-
   thread_group threads;
   for (size_t i = 0; i < numberofthreads; ++i)
     threads.create_thread(

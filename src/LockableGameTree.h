@@ -31,13 +31,13 @@
 typedef boost::lockable_adapter<boost::mutex> lockable_base_type; ///< Define boost lockable_adapter as lockable_base_type
 typedef boost::shared_lockable_adapter<boost::shared_mutex> lockable_share_type;///< Define boost shared_lockable_adapter as lockable_base_type
 /**
- * LockableUTCPolicy class is used to provide the implementations of lockable AbstractUTCPolicy for the parallelization
- * LockableUTCPolicy(): default constructor which will initialize data members with default values
+ * LockableUTCPolicy class is used to provide the implementations of lockable AbstractUTCPolicy for the parallelization <br/>
+ * LockableUTCPolicy(): default constructor which will initialize data members with default values <br/>
  *
  */
 class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
  private:
-  UTCPolicy policy;
+  UTCPolicy policy; ///< UTCPolicy project object which will provide actual implementations of UTCPolicy
   hexgame::atomic<int> countforexpand;///< vertex property, semaphore for local lock to wait for expansion
   hexgame::atomic<bool> isupdated; ///< vertex property, mutex-like atomic variable for local lock to wait for expansion
   int sizeoffuturechildren; ///< this value is to record the future expandable children
@@ -75,49 +75,64 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
     this->countforexpand.store(policy.countforexpand.load());
     return *this;
   }
-  virtual bool waitforupdate();
+  ///See UTCPolicy estimate()
   double estimate();
+  ///See UTCPolicy calculate()
   double calculate(AbstractUTCPolicy& parent);
-  virtual void notifyupdatedone();
+  ///See UTCPolicy update()
   bool update(valuekind indexofkind, int value, int increment = 0);
+  ///See UTCPolicy updateAll()
   bool updateAll(
       valuekind visitcount, int valueofvisit, int increaseofvisit,
       valuekind wincount, int valueofwin, int increaseofwin);
+  ///See UTCPolicy feature()
   int feature(valuekind indexofkind) {
     return policy.feature(indexofkind);
   }
+  ///See UTCPolicy getValue()
   double getValue() const {
     return policy.getValue();
   }
-
+  ///See UTCPolicy getBalance()
   double getBalance() const {
     return policy.getBalance();
   }
-
+  //Wait for the update of feature values from back-propagation phase in MCTS
+  virtual bool waitforupdate();
+  //Wait for the update of feature values from back-propagation phase in MCTS
+  virtual void notifyupdatedone();
+  //Get the count of threads waiting for expansion
   int getCountforexpand() {
     return countforexpand.load();
   }
+  //Set the count of threads waiting for expansion
   void setCountforexpand(int value) {
     this->countforexpand.store(value);
   }
+  //Add the count of threads waiting for expansion
   void addCountforexpand(int increment) {
     countforexpand.fetch_add(increment);
   }
+  //Subtract the count of threads waiting for expansion
   void subCountforexpand(int decrement) {
     countforexpand.fetch_sub(decrement);
   }
+  //Get the number of future children of the node selected for expansion in selection phase
   int getNumofFutureChildren() {
     return sizeoffuturechildren;
   }
+  //Set the number of future children of the node selected for expansion in selection phase
   void setNumofFutureChildren(int numofchildren, int increment) {
     if (numofchildren == 0)
       sizeoffuturechildren += increment;
     else
       sizeoffuturechildren = numofchildren;
   }
+  //Get the boolean indicator which shows
   bool getIsupdated() const {
     return isupdated.load();
   }
+  //Set the boolean indicator which shows
   void setIsupdated(bool isupdated) {
     this->isupdated.store(isupdated);
   }
@@ -126,6 +141,7 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
 class LockableGameTree : public lockable_share_type, public AbstractGameTree {
  private:
   //for property
+  //TODO remove redundancy
   typedef boost::property<boost::vertex_value_t,
       hexgame::shared_ptr<LockableUTCPolicy> > vertex_value_prop;
   typedef boost::property<boost::vertex_color_t, boost::default_color_type,

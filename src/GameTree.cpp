@@ -129,38 +129,24 @@ void GameTree::backpropagate(vertex_t leaf, int value, int level) {
     for (tie(viter, viterend) = in_edges(node, thetree); viter != viterend;
         ++viter) {
       parent = source(*viter, thetree);
-#if __cplusplus > 199711L
       get(vertex_value, thetree, parent).get()->updateAll(
-          AbstractUTCPolicy::valuekind::visitcount, 0, 1,
-          AbstractUTCPolicy::valuekind::wincount, 0, curvalue);
+          AbstractUTCPolicy_visitcount, 0, 1,
+          AbstractUTCPolicy_wincount, 0, curvalue);
       if (get(vertex_color, thetree, parent)
           == get(vertex_color, thetree, _root) && (parent != _root))
         assert(
             get(vertex_value, thetree, parent).get()->feature(
-                AbstractUTCPolicy::valuekind::wincount) <= 0);  //make sure it's minimizing node
+                AbstractUTCPolicy_wincount) <= 0);  //make sure it's minimizing node
       else if (parent != _root)
         assert(
             get(vertex_value, thetree, parent).get()->feature(
-                AbstractUTCPolicy::valuekind::wincount) >= 0);  //make sure it's maximizing node
+                AbstractUTCPolicy_wincount) >= 0);  //make sure it's maximizing node
 
       assert(
           abs(get(vertex_value, thetree, parent).get()->feature(
-              AbstractUTCPolicy::valuekind::wincount))
+              AbstractUTCPolicy_wincount))
               <= get(vertex_value, thetree, parent).get()->feature(
-                  AbstractUTCPolicy::valuekind::visitcount));
-#else
-      get(vertex_value, thetree, parent).get()->updateAll(AbstractUTCPolicy::visitcount, 0, 1, AbstractUTCPolicy::wincount, 0, curvalue);
-      if (get(vertex_color, thetree, parent) == get(vertex_color, thetree, _root) && (parent != _root))
-      assert(
-          get(vertex_value, thetree, parent).get()->feature(AbstractUTCPolicy::wincount) <= 0);  //make sure it's minimizing node
-      else if (parent != _root)
-      assert(
-          get(vertex_value, thetree, parent).get()->feature(AbstractUTCPolicy::wincount) >= 0);//make sure it's maximizing node
-
-      assert(
-          abs(get(vertex_value, thetree, parent).get()->feature(AbstractUTCPolicy::wincount))
-          <= get(vertex_value, thetree, parent).get()->feature(AbstractUTCPolicy::visitcount));
-#endif
+                  AbstractUTCPolicy_visitcount));
     }
     node = parent;
     curvalue = -1 * curvalue;
@@ -212,37 +198,24 @@ size_t GameTree::getNodePosition(size_t indexofnode) {
 }
 void GameTree::updateNodefromSimulation(int indexofnode, int winner, int level) {
   vertex_t node = vertex(indexofnode, thetree);
-#if __cplusplus > 199711L
   int value = 0;
   if (winner > 0) {
     value = get(vertex_value, thetree, node).get()->feature(
-        AbstractUTCPolicy::valuekind::wincount);
+        AbstractUTCPolicy_wincount);
     if (get(vertex_color, thetree, node) == get(vertex_color, thetree, _root))  //a minimizing node
       get(vertex_value, thetree, node).get()->updateAll(
-          AbstractUTCPolicy::valuekind::visitcount, 0, 1,
-          AbstractUTCPolicy::valuekind::wincount, 0, -1);
+          AbstractUTCPolicy_visitcount, 0, 1,
+          AbstractUTCPolicy_wincount, 0, -1);
     else
       get(vertex_value, thetree, node).get()->updateAll(
-          AbstractUTCPolicy::valuekind::visitcount, 0, 1,
-          AbstractUTCPolicy::valuekind::wincount, 0, 1);
+          AbstractUTCPolicy_visitcount, 0, 1,
+          AbstractUTCPolicy_wincount, 0, 1);
     value = get(vertex_value, thetree, node).get()->feature(
-        AbstractUTCPolicy::valuekind::wincount) - value;
+        AbstractUTCPolicy_wincount) - value;
   } else
     get(vertex_value, thetree, node).get()->updateAll(
-        AbstractUTCPolicy::valuekind::visitcount, 0, 1,
-        AbstractUTCPolicy::valuekind::wincount, 0, 0);
-#else
-  int value = 0;
-  if (winner > 0) {
-    value = get(vertex_value, thetree, node).get()->feature(AbstractUTCPolicy::wincount);
-    if (get(vertex_color, thetree, node) == get(vertex_color, thetree, _root))  //a minimizing node
-    get(vertex_value, thetree, node).get()->updateAll(AbstractUTCPolicy::visitcount, 0, 1, AbstractUTCPolicy::wincount, 0, -1);
-    else
-    get(vertex_value, thetree, node).get()->updateAll(AbstractUTCPolicy::visitcount, 0, 1, AbstractUTCPolicy::wincount, 0, 1);
-    value = get(vertex_value, thetree, node).get()->feature(AbstractUTCPolicy::wincount) - value;
-  } else
-  get(vertex_value, thetree, node).get()->updateAll(AbstractUTCPolicy::visitcount, 0, 1, AbstractUTCPolicy::wincount, 0, 0);
-#endif
+        AbstractUTCPolicy_visitcount, 0, 1,
+        AbstractUTCPolicy_wincount, 0, 0);
   backpropagate(node, value, level);
 }
 int GameTree::expandNode(int indexofsource, int move, char color) {

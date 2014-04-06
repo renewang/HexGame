@@ -14,8 +14,8 @@
 
 //TODO template for featureholder
 /**
- * UTCPolicy class is used to provide implementations for UTC Policy calculation
- * UTCPolicy(): is parameterless default constructor which initialize data members
+ * UTCPolicy class is used to provide implementations for UTC Policy calculation <br/>
+ * UTCPolicy(): is parameterless default constructor which initialize data members <br/>
  */
 class UTCPolicy: public AbstractUTCPolicy{
  private:
@@ -75,10 +75,10 @@ class UTCPolicy: public AbstractUTCPolicy{
   }
 };
 /**
- * GameTree class defines the implementations of AbstractGameTree
- * GameTree(); parameterless default constructor which will initiate a game tree with one white root node
- * GameTree(char playerslabel): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel.
- * GameTree(char playerslabel, std::size_t indexofroot): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel and index is indexofroot.
+ * GameTree class defines the implementations of AbstractGameTree <br/>
+ * GameTree(); parameterless default constructor which will initiate a game tree with one white root node <br/>
+ * GameTree(char playerslabel): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel. <br/>
+ * GameTree(char playerslabel, std::size_t indexofroot): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel and index is indexofroot. <br/>
  */
 class GameTree: public AbstractGameTree{
  private:
@@ -162,11 +162,11 @@ class GameTree: public AbstractGameTree{
   };
 
  public:
-  ///Parameterless default constructor which will initialize a game tree with a single white root node
+  //Parameterless default constructor which will initialize a game tree with a single white root node
   GameTree();
-  ///User defined game tree which will initialize a game tree with a single root node with opponent's color
+  //User defined game tree which will initialize a game tree with a single root node with opponent's color
   GameTree(char playerslabel);
-  ///User defined game tree which will initialize a game tree with a single root node with opponent's color and given indexofroot
+  //User defined game tree which will initialize a game tree with a single root node with opponent's color and given indexofroot
   GameTree(char playerslabel, std::size_t indexofroot);
   ///destructor
   virtual ~GameTree() {

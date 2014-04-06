@@ -447,36 +447,23 @@ void LockableGameTree::updateNodefromSimulation(
     unique_lock<LockableGameTree>& guard, int indexofnode, int winner,
     int level) {
   vertex_t node = vertex(indexofnode, thetree);
-#if __cplusplus > 199711L
   int value = 0;
   if (winner > 0) {
     value = get(vertex_value, thetree, node).get()->feature(
-        LockableUTCPolicy::valuekind::wincount);
+        AbstractUTCPolicy::wincount);
     if (get(vertex_color, thetree, node) == get(vertex_color, thetree, _root))  //a minimizing node
       get(vertex_value, thetree, node).get()->updateAll(
-          LockableUTCPolicy::valuekind::visitcount, 0, 1,
-          LockableUTCPolicy::valuekind::wincount, 0, -1);
+          AbstractUTCPolicy_visitcount, 0, 1,
+          AbstractUTCPolicy_wincount, 0, -1);
     else
       get(vertex_value, thetree, node).get()->updateAll(
-          LockableUTCPolicy::valuekind::visitcount, 0, 1,
-          LockableUTCPolicy::valuekind::wincount, 0, 1);
+          AbstractUTCPolicy_visitcount, 0, 1,
+          AbstractUTCPolicy_wincount, 0, 1);
     value = get(vertex_value, thetree, node).get()->feature(
-        LockableUTCPolicy::valuekind::wincount) - value;
+        AbstractUTCPolicy_wincount) - value;
   } else
     get(vertex_value, thetree, node).get()->updateAll(
-        LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0, 0);
-#else
-  int value = 0;
-  if (winner > 0) {
-    value = get(vertex_value, thetree, node).get()->feature(LockableUTCPolicy::wincount);
-    if (get(vertex_color, thetree, node) == get(vertex_color, thetree, _root))  //a minimizing node
-    get(vertex_value, thetree, node).get()->updateAll(LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0, -1);
-    else
-    get(vertex_value, thetree, node).get()->updateAll(LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0, 1);
-    value = get(vertex_value, thetree, node).get()->feature(LockableUTCPolicy::wincount) - value;
-  } else
-  get(vertex_value, thetree, node).get()->updateAll(LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0, 0);
-#endif
+        AbstractUTCPolicy_visitcount, 0, 1, AbstractUTCPolicy_wincount, 0, 0);
   backpropagate(guard, indexofnode, value, level);
 }
 void LockableGameTree::updateNodefromSimulation(int indexofnode, int winner,
@@ -496,38 +483,24 @@ void LockableGameTree::backpropagate(unique_lock<LockableGameTree>&,
     for (tie(viter, viterend) = in_edges(node, thetree); viter != viterend;
         ++viter) {
       parent = source(*viter, thetree);
-#if __cplusplus > 199711L
       get(vertex_value, thetree, parent).get()->updateAll(
-          LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0,
+          AbstractUTCPolicy_visitcount, 0, 1, AbstractUTCPolicy_wincount, 0,
           curvalue);
       if (get(vertex_color, thetree, parent)
           == get(vertex_color, thetree, _root) && (parent != _root))
         assert(
             get(vertex_value, thetree, parent).get()->feature(
-                LockableUTCPolicy::valuekind::wincount) <= 0);  //make sure it's minimizing node
+                AbstractUTCPolicy_wincount) <= 0);  //make sure it's minimizing node
       else if (parent != _root)
         assert(
             get(vertex_value, thetree, parent).get()->feature(
-                LockableUTCPolicy::valuekind::wincount) >= 0);  //make sure it's maximizing node
+                AbstractUTCPolicy_wincount) >= 0);  //make sure it's maximizing node
 
       assert(
           abs(get(vertex_value, thetree, parent).get()->feature(
-              LockableUTCPolicy::valuekind::wincount))
+              AbstractUTCPolicy_wincount))
               <= get(vertex_value, thetree, parent).get()->feature(
-                  LockableUTCPolicy::valuekind::visitcount));
-#else
-      get(vertex_value, thetree, parent).get()->updateAll(LockableUTCPolicy::visitcount, 0, 1, LockableUTCPolicy::wincount, 0,curvalue);
-      if (get(vertex_color, thetree, parent) == get(vertex_color, thetree, _root) && (parent != _root))
-      assert(
-          get(vertex_value, thetree, parent).get()->feature(LockableUTCPolicy::wincount) <= 0);  //make sure it's minimizing node
-      else if (parent != _root)
-      assert(
-          get(vertex_value, thetree, parent).get()->feature(LockableUTCPolicy::wincount) >= 0);//make sure it's maximizing node
-
-      assert(
-          abs(get(vertex_value, thetree, parent).get()->feature(LockableUTCPolicy::wincount))
-          <= get(vertex_value, thetree, parent).get()->feature(LockableUTCPolicy::visitcount));
-#endif
+                  AbstractUTCPolicy_visitcount));
     }
     node = parent;
     curvalue = -1 * curvalue;
