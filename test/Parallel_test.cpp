@@ -140,24 +140,12 @@ void CreateSharedVecTask(
 }
 void CreateTreeTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board) {
-  pair<int,int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
+  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
   int selectnode = selectresult.first;
   int indexofchild = selectnode;
   int level = selectresult.second;
   if (level != currentempty)
     indexofchild = gametree.expandNode(selectnode, 0);
-
-  int totalsize = gametree.getSizeofNodes();
-  int numofchildren = gametree.getNumofChildren(selectnode);
-  {
-    strict_lock<recursive_mutex> lock(_recursive_mutex);
-    DEBUGHEADER();
-    cout << boost::this_thread::get_id() << " " << selectnode
-         << ";has a new child;" << indexofchild << ";currently has;"
-         << numofchildren << ";should have;" << (currentempty - level)
-         << ";total size of tree;" << totalsize << endl;
-    EXPECT_TRUE(numofchildren != 0);
-  }
   int move = rand() % (board.getSizeOfVertices());
   gametree.setNodePosition(indexofchild, move);
   int winner = rand() % 2;
@@ -165,7 +153,8 @@ void CreateTreeTask(int currentempty, LockableGameTree& gametree,
 }
 void SimulationTask(int currentempty, LockableGameTree& gametree,
                     HexBoard& board, hexgame::shared_ptr<bool>& emptyglobal) {
-  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty, false);
+  pair<int, int> selectresult = gametree.selectMaxBalanceNode(currentempty,
+  false);
   int selectnode = selectresult.first;
   int indexofchild = selectnode;
   int level = selectresult.second;
@@ -212,9 +201,10 @@ void SimulationTask(int currentempty, LockableGameTree& gametree,
 //create value-parameterized tests, test with numberoftrials (equivalently number of threads)
 class ParallelTest : public ::testing::Test {
   virtual void SetUp() {
-    numberofthreads = 16;
+    numberofthreads = 64;
     currentempty = 9;
     numofhexgon = 3;
+    numberoftrials = 2048;
   }
   ;
   virtual void TearDown() {
@@ -224,6 +214,7 @@ class ParallelTest : public ::testing::Test {
   size_t numberofthreads;
   int currentempty;
   int numofhexgon;
+  int numberoftrials;
 };
 //create value-parameterized tests, test with numberoftrials (equivalently number of threads)
 class ParallelTestValue : public ::testing::TestWithParam<
@@ -232,6 +223,7 @@ class ParallelTestValue : public ::testing::TestWithParam<
     numberofthreads = static_cast<size_t>(hexgame::get<0>(GetParam()));
     currentempty = hexgame::get<1>(GetParam());
     numofhexgon = hexgame::get<2>(GetParam());
+    numberoftrials = 2048;
   }
   ;
   virtual void TearDown() {
@@ -241,6 +233,7 @@ class ParallelTestValue : public ::testing::TestWithParam<
   size_t numberofthreads;
   int currentempty;
   int numofhexgon;
+  int numberoftrials;
 };
 TEST_F(ParallelTest, DISABLED_ThreadPropResizeFailed) {
   vector<MockLockableUTCPolicy> sharedvec;
@@ -286,17 +279,20 @@ TEST_F(ParallelTest, ThreadGameTreeNode) {
   currentempty = board.getNumofemptyhexgons();
 
   cout << "current size of thread numbers:" << numberofthreads << endl;
-  thread_group threads;
-  for (size_t i = 0; i < numberofthreads; ++i)
-    threads.create_thread(
-        boost::bind(&CreateTreeTask, currentempty, boost::ref(gametree),
-                    boost::ref(board)));
-  threads.join_all();
-
+  for (size_t j = 0; j < (numberoftrials / numberofthreads); ++j) {
+    thread_group threads;
+    for (size_t i = 0; i < numberofthreads; ++i)
+      threads.create_thread(
+          boost::bind(&CreateTreeTask, currentempty, boost::ref(gametree),
+                      boost::ref(board)));
+    threads.join_all();
+  }
   //check children
   for (size_t i = 0; i < gametree.getSizeofNodes(); ++i) {
     int numofchildren = gametree.getNumofChildren(i);
     int level = gametree.getNodeDepth(i);
+    cout << "index:" << i << ";level:" << level << ";number of children:"
+             << numofchildren << endl;
     EXPECT_TRUE(numofchildren <= (currentempty - level));
   }
   cout << gametree.printGameTree(0) << endl;
@@ -304,7 +300,6 @@ TEST_F(ParallelTest, ThreadGameTreeNode) {
 TEST_P(ParallelTestValue, ThreadEndofGameValue) {
   LockableGameTree gametree('B');
   HexBoard board(numofhexgon);
-  int numberoftrials = 2048;
   hexgame::shared_ptr<bool> emptyglobal = board.getEmptyHexIndicators();
   srand(static_cast<unsigned>(time(NULL)));
   vector<int> numbers(board.getSizeOfVertices());
@@ -312,10 +307,12 @@ TEST_P(ParallelTestValue, ThreadEndofGameValue) {
     numbers[i] = i;
   std::random_shuffle(numbers.begin(), numbers.end());
 
-  for(int i = board.getSizeOfVertices(); i > currentempty; i--)
-    emptyglobal.get()[numbers[i-1]] = false;
+  for (int i = board.getSizeOfVertices(); i > currentempty; i--)
+    emptyglobal.get()[numbers[i - 1]] = false;
 
-  int randempty = std::count (emptyglobal.get(), emptyglobal.get()+board.getSizeOfVertices(), true);
+  int randempty = std::count(emptyglobal.get(),
+                             emptyglobal.get() + board.getSizeOfVertices(),
+                             true);
   ASSERT_EQ(randempty, currentempty);
 
   cout << "current size of available moves:" << currentempty << endl;
@@ -399,8 +396,6 @@ TEST_P(ParallelTestValue, ThreadEndofGameValue) {
 TEST_F(ParallelTest, ThreadIterativeGame) {
   LockableGameTree gametree('B');
   HexBoard board(numofhexgon);
-  int numberoftrials = 2048;
-  numberofthreads = 4;
   hexgame::shared_ptr<bool> emptyglobal = board.getEmptyHexIndicators();
 
   cout << "current size of available moves:" << currentempty << endl;

@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/externally_locked.hpp>
@@ -190,7 +191,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
                        char color);  //update the board position of a given node
   void updateNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node,
                           std::size_t position);
-  size_t getNumofChildren(boost::unique_lock<LockableGameTree>&, vertex_t parent);
+  size_t getNumofChildren(boost::shared_lock<LockableUTCPolicy>&, vertex_t parent);
 
   //implement with local lock, internal
   bool addEdge(vertex_t source, vertex_t target);
