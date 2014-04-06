@@ -114,7 +114,7 @@ class AbstractGameTree {
   ///To get the best move by maximizing simulated winning statistics
   virtual std::pair<int, double> getBestMovefromSimulation() = 0;
   ///To select the node with maximal UTC balance value
-  virtual std::pair<int, int> selectMaxBalanceNode(int currentempty,
+  virtual std::pair<int, std::size_t> selectMaxBalanceNode(int currentempty,
                                                    bool isbreaktie) = 0;
   ///To get past moves (with the position information on the hex board)
   virtual void getMovesfromTreeState(

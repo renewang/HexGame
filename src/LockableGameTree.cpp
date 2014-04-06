@@ -25,10 +25,19 @@
 using namespace std;
 using namespace boost;
 
+/// Let the thread wait for the update of feature values from back-propagation phase in MCTS
+///@param NONE
+///@return boolean indicator which will return true when complete waiting
 bool LockableUTCPolicy::waitforupdate() {
   boost::unique_lock<LockableUTCPolicy> guard(*this);
   holdforupdate.wait(guard);
   return true;
+}
+/// Notify all waiting threads that update in back-propagation phase already finishes
+///@param NONE
+///@return NONE
+void LockableUTCPolicy::notifyupdatedone() {
+  holdforupdate.notify_all();
 }
 double LockableUTCPolicy::estimate() {
   return policy.estimate();
@@ -48,13 +57,14 @@ bool LockableUTCPolicy::updateAll(valuekind visitkind, int valueofvisit,
   isupdated = true;
   return true;
 }
-void LockableUTCPolicy::notifyupdatedone() {
-  holdforupdate.notify_all();
-}
 #if __cplusplus > 199711L
+///Default constructor which will construct a game tree whose root has color label as 'W' (white) and index as 0. See also GameTree::GameTree()
+///@param NONE
 LockableGameTree::LockableGameTree()
     : LockableGameTree('W', 0) {
 }
+///Constructor will construct a game tree whose root with specified color and index as 0. See also GameTree::GameTree(char)
+///@param playerscolor is the color for root node.
 LockableGameTree::LockableGameTree(char playerscolor)
     : LockableGameTree(playerscolor, 0) {
 }
@@ -68,10 +78,17 @@ LockableGameTree::LockableGameTree(char playerscolor)
   initGameTree(playerscolor, 0);
 }
 #endif
+///Constructor will construct a game tree whose root with specified color and index as indexofroot. See also GameTree::GameTree(char, size_t)
+///@param playerscolor is the color for root node.
+///@param indexofroot is the index for the root node
 LockableGameTree::LockableGameTree(char playerscolor, size_t indexofroot)
     : lockable_share_type() {
   initGameTree(playerscolor, indexofroot);
 }
+/// Notify all updates are done for a game tree
+///@param unique_lock<LockableGameTree>& is a guard which will lock GameTree against other access
+///@param leaf is the leaf node which will be the starting node to notify update complete via back-propagation
+///@return boolean variable is used to indicate all notification of update complete is done via back-propagation
 bool LockableGameTree::notifyAllUpdateDone(unique_lock<LockableGameTree>&,
                                            vertex_t leaf, int level) {
   int curlevel = level;
@@ -91,6 +108,10 @@ bool LockableGameTree::notifyAllUpdateDone(unique_lock<LockableGameTree>&,
   }
   return true;
 }
+/// Initialize lockable game tree with the root node of the specified color label and index
+///@param playerscolor is the color label which will be assigned to new root node
+///@param indexofroot is the index which will be assigned to the new root node
+///@return NONE
 void LockableGameTree::initGameTree(char playerscolor, size_t indexofroot) {
   //set the root's color label as opponent's color label
   char rootscolor = 'W';
@@ -104,6 +125,9 @@ void LockableGameTree::initGameTree(char playerscolor, size_t indexofroot) {
   countforexpand.store(0);
   isblockingforexpand.store(false);
 }
+/// Add Node to
+///@param
+///@return
 LockableGameTree::vertex_t LockableGameTree::addNode(
     unique_lock<LockableGameTree>&, size_t positionofchild,
     char color) {
@@ -228,7 +252,7 @@ bool LockableGameTree::addEdge(vertex_t source, vertex_t target) {
   pair<edge_t, bool> result = add_edge(source, target, thetree);
   return result.second;
 }
-pair<int,int> LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
+pair<int,size_t> LockableGameTree::selectMaxBalanceNode(unique_lock<LockableGameTree>& guard,
                                            int currentempty, bool isbreaktie) {
   vertex_t parent = _root;
   out_edge_iter viter, viterend;

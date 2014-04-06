@@ -75,25 +75,25 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
     this->countforexpand.store(policy.countforexpand.load());
     return *this;
   }
-  ///See UTCPolicy estimate()
+  ///See UTCPolicy::estimate
   double estimate();
-  ///See UTCPolicy calculate()
+  ///See UTCPolicy::calculate
   double calculate(AbstractUTCPolicy& parent);
-  ///See UTCPolicy update()
+  ///See UTCPolicy::update
   bool update(valuekind indexofkind, int value, int increment = 0);
-  ///See UTCPolicy updateAll()
+  ///See UTCPolicy::updateAll
   bool updateAll(
       valuekind visitcount, int valueofvisit, int increaseofvisit,
       valuekind wincount, int valueofwin, int increaseofwin);
-  ///See UTCPolicy feature()
+  ///See UTCPolicy::feature
   int feature(valuekind indexofkind) {
     return policy.feature(indexofkind);
   }
-  ///See UTCPolicy getValue()
+  ///See UTCPolicy::getValue
   double getValue() const {
     return policy.getValue();
   }
-  ///See UTCPolicy getBalance()
+  ///See UTCPolicy::getBalance
   double getBalance() const {
     return policy.getBalance();
   }
@@ -268,7 +268,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   std::size_t getSizeofEdges(boost::shared_lock<LockableGameTree>&);
   std::size_t getSizeofNodes(boost::shared_lock<LockableGameTree>&);
   void clearAll(boost::unique_lock<LockableGameTree>&);
-  std::pair<int,int> selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
+  std::pair<int,std::size_t> selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
                            int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
       boost::unique_lock<LockableGameTree>&, int indexofnode, std::vector<int>& babywatsons,

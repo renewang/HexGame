@@ -68,11 +68,11 @@ bool UTCPolicy::updateAll(valuekind visitcount, int valueofvisit, int increaseof
   return true;
 }
 #if __cplusplus > 199711L
-///Default constructor which will initiate a Game tree with one root node. The color of root is white and index of root is zero.
+///Default constructor which will initiate a game tree with one root node. The color of root is white and index of root is zero.
 GameTree::GameTree()
     : GameTree('W', 0) {
 }
-///User defined constructor which will initiate a Game tree with one root node. The color of root is the opposite of playerscolor. <br/>
+///User defined constructor which will initiate a game tree with one root node. The color of root is the opposite of playerscolor. <br/>
 ///For example, if playerscolor is 'R', then root's color is 'B'. Conversely, playercolor is 'B', then root's color is 'R'.<br/>
 ///The index of root is initialized as zero.
 GameTree::GameTree(char playerscolor)
@@ -86,12 +86,16 @@ GameTree::GameTree(char playerscolor) {
   initGameTree(playerscolor, 0);
 }
 #endif
-///User defined constructor which will initiate a Game tree with one root node. The color of root is the opposite of playerscolor. <br/>
+///User defined constructor which will initiate a game tree with one root node. The color of root is the opposite of playerscolor. <br/>
 ///For example, if playerscolor is 'R', then root's color is 'B'. Conversely, playercolor is 'B', then root's color is 'R'.<br/>
 ///The index of root is initialized as given indexofroot.
-GameTree::GameTree(char playerscolor, size_t indexofroot) {
+GameTree::GameTree(char playerscolor, std::size_t indexofroot) {
   initGameTree(playerscolor, indexofroot);
 }
+/// Add a new node to the game tree
+///@param positionofchild is the hex board position for the new ndoe
+///@param color is the color label for the new node
+///@return return a newly created vertex
 GameTree::vertex_t GameTree::addNode(std::size_t positionofchild, char color) {
   vertex_t target = add_vertex(thetree);
   //TODO re-factor
@@ -101,10 +105,17 @@ GameTree::vertex_t GameTree::addNode(std::size_t positionofchild, char color) {
   updateNodeName(target);
   return target;
 }
+/// Add a new edge between source node and target node
+///@param source is the source node from which a new edge will be created.
+///@param target is the target node to which a new edge will be created.
+///@return A boolean variable indicates if adding edge is successful or not. True, the new edge is added successfully. False, not successfully.
 bool GameTree::addEdge(vertex_t source, vertex_t target) {
   pair<edge_t, bool> result = add_edge(source, target, thetree);
   return result.second;
 }
+/// Print game tree in parenthesized representation
+///@param index is the index of node whose subtree will be printed
+///@return string representation of game tree in parenthesized format
 string GameTree::printGameTree(int index) {
   stringstream treebuffer;
   ostream_iterator<string> treebufiter(treebuffer);
@@ -118,6 +129,11 @@ string GameTree::printGameTree(int index) {
   return treebuffer.str();
 }
 //if level = -1, then will do back-propagate up to the root, starting from current level = 0
+/// Back propagate the play-out phase result till to the level specified
+///@param leaf is the leaf node or starting node from which a back propagation will be executed
+///@param value is the value used for update via back propagation
+///@param level is the depth from root till which a back propagation will be executed
+///@return NONE
 void GameTree::backpropagate(vertex_t leaf, int value, int level) {
   int curlevel = level;
   vertex_t node = leaf, parent = graph_traits<basegraph>::null_vertex();
@@ -156,6 +172,9 @@ void GameTree::backpropagate(vertex_t leaf, int value, int level) {
   }
 }
 //update name
+/// Update node name
+///@param node is the node whose name will be updated
+///@return NONE
 void GameTree::updateNodeName(vertex_t node) {
   stringstream namebuffer;
   namebuffer << get(vertex_index, thetree, node);
@@ -171,11 +190,18 @@ void GameTree::updateNodeName(vertex_t node) {
   put(vertex_name, thetree, node, namebuffer.str());
 }
 //update value
+/// Update node value
+///@param node is the node whose UTCPolicy value will be updated
+///@return NONDE
 void GameTree::updateNodeValue(vertex_t node) {
   put(vertex_value, thetree, node,
       hexgame::shared_ptr<AbstractUTCPolicy>(new UTCPolicy()));
 }
 //update color
+/// Update node color
+///@param node is the node whose color will be updated
+///@param color is the new color label will be updated
+///@return NONE
 void GameTree::updateNodeColor(vertex_t node, char color) {
   switch (color) {
     case 'R':
@@ -189,13 +215,22 @@ void GameTree::updateNodeColor(vertex_t node, char color) {
   }
 }
 //update position
+/// Update node position on hex board
+///@param node is the node whose position on hex board will be updated
+///@return position is the hex board position will be updated
 void GameTree::updateNodePosition(vertex_t node, std::size_t position) {
   put(vertex_position, thetree, node, position);
 }
+/// Get node position of a given index of node
+///@param indexofnode is the index of the node in query
+///@return return the position on hex board
 size_t GameTree::getNodePosition(size_t indexofnode) {
   vertex_t node = vertex(indexofnode, thetree);
   return get(vertex_position, thetree, node);
 }
+/// Update node from play-out simulation result
+///@param indexofnode is the index of node whose ancestral nodes will be updated during backpropagation phase. See backpropagate(vertex_t,int,int)
+///@return NONE
 void GameTree::updateNodefromSimulation(int indexofnode, int winner, int level) {
   vertex_t node = vertex(indexofnode, thetree);
   int value = 0;
@@ -218,6 +253,11 @@ void GameTree::updateNodefromSimulation(int indexofnode, int winner, int level) 
         AbstractUTCPolicy_wincount, 0, 0);
   backpropagate(node, value, level);
 }
+/// Expand a new node from given source node and update its position and color information
+///@param indexofsource is the index of source node from which a new node will be expanded
+///@param move is the position on hex board for the new expanded node
+///@param color is the color label for the new expanded node
+///@return the index of the new expanded node
 int GameTree::expandNode(int indexofsource, int move, char color) {
   vertex_t source = vertex(indexofsource, thetree);
   int indexofchild = -1;
@@ -238,7 +278,11 @@ int GameTree::expandNode(int indexofsource, int move, char color) {
   return indexofchild;
 }
 //called in MCST selection phase
-pair<int,int> GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
+/// Select the node with the maximal UTC value
+///@param currentempty is the left empty position on the hex board in actual game state
+///@param isbreaktie is the boolean variable which indicates if should break tie by random choice.
+///@return a pair of integer and size_t. The first in pair is the index of selected node with maximal UTC value. The second is the level or depth at which the selected node locates.
+pair<int,size_t> GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) {
   vertex_t parent = _root;
   out_edge_iter viter, viterend;
   size_t numofchildren = out_degree(parent, thetree);
@@ -287,6 +331,9 @@ pair<int,int> GameTree::selectMaxBalanceNode(int currentempty, bool isbreaktie) 
   }
   return make_pair(get(vertex_index, thetree, parent), level);
 }
+/// Get the best move from many play-out simulations via maximizing winning rate
+///@param NONE
+///@return a pair of integer and double. The first is the position on the hex board; while the second is the maximal UTC value calculated.
 pair<int, double> GameTree::getBestMovefromSimulation() {
   //1. examine all children nodes below the root node
   size_t numofchildren = out_degree(_root, thetree);
@@ -308,6 +355,12 @@ pair<int, double> GameTree::getBestMovefromSimulation() {
   assert(maxvalue >= 0.0);
   return make_pair(indexofbestmove, maxvalue);
 }
+/// Reconstruct simulated game history from game tree and return the past moves through collect moves from path starting from given node
+///@param indexofnode is the index of node which will serve as starting point from which the positions of all ancestral nodes will be collected to construct simulated game history
+///@param babywatsons is the vector which stores the moves made by AI player in the simulated game history
+///@param opponents is the vector which stores the moves made by virtual opponents in the simulated game history
+///@param remainingmoves is an auxiliary data structure which will store the remaining moves after reconstructing simulated game history
+///@return NONE
 void GameTree::getMovesfromTreeState(
     int indexofnode, vector<int>& babywatsons, vector<int>& opponents,
     hexgame::unordered_set<int>& remainingmoves) {
@@ -368,11 +421,18 @@ void GameTree::getMovesfromTreeState(
   else
     opponents.push_back(get(vertex_position, thetree, chosenleaf));
 }
+/// Get UTC value according to the specified feature
+///@param indexofnode is the index of node whose UTC value of specified feature will be returned
+///@param indexofkind is one of valuekind which will specify what value of features should be returned. Either wincount or visitcount
+///@return the return UTC value
 int GameTree::getNodeValueFeature(int indexofnode,
                                   AbstractUTCPolicy::valuekind indexofkind) {
   vertex_t node = vertex(indexofnode, thetree);
   return get(vertex_value, thetree, node).get()->feature(indexofkind);
 }
+/// Clear all nodes and edges of a game tree
+///@param NONE
+///@return NONE
 void GameTree::clearAll() {
   char rootscolor = 'W';
   if (get(vertex_color, thetree, _root) == red_color)
@@ -384,14 +444,23 @@ void GameTree::clearAll() {
   vertex_t root = addNode(indexofroot, rootscolor);
   _root = root;
 }
+/// Get the total size of nodes
+///@param NOND
+///@return the total size of nodes
 size_t GameTree::getSizeofNodes() {
   return num_vertices(thetree);
 }
+/// Get the total size of edges
+///@param NOND
+///@return the total size of edges
 size_t GameTree::getSizeofEdges() {
   size_t numofedges = num_edges(thetree);
   assert(numofedges == num_vertices(thetree) - 1);
   return numofedges;
 }
+/// Get the depth of a given node
+///@param indexofnode is the index of node whose depth or level from root will be returned
+///@return the depth or level from root
 size_t GameTree::getNodeDepth(int indexofnode) {
   size_t depth = 0;
   vertex_t node = vertex(indexofnode, thetree);
@@ -407,11 +476,18 @@ size_t GameTree::getNodeDepth(int indexofnode) {
   }
   return depth;
 }
+/// Set the position of node
+///@param indexofnode is the index of node whose position will be updated
+///@param position is the new position on hex board for the given node
+///@return NONE
 void GameTree::setNodePosition(size_t indexofnode, size_t position) {
   vertex_t node = vertex(indexofnode, thetree);
   updateNodePosition(node, position);
   updateNodeName(node);
 }
+/// Get the siblings nodes of a given node
+///@param indexofnode is the index of node whose indices of siblings will be returned
+///@return a vector of size_t which stores the indices of siblings of the given node
 vector<size_t> GameTree::getSiblings(size_t indexofnode) {
   vertex_t node = vertex(indexofnode, thetree), chosenleaf = node;
   vertex_t parent = getParent(node);
@@ -426,6 +502,9 @@ vector<size_t> GameTree::getSiblings(size_t indexofnode) {
   }
   return vector<size_t>(siblings);
 }
+/// Get parental node of a given node
+///@param node is the node whose parent will be returned
+///@return the parental node
 GameTree::vertex_t GameTree::getParent(vertex_t node) {
   in_edge_iter viter, viterend;
   assert(in_degree(node, thetree) == 1);
@@ -436,6 +515,10 @@ GameTree::vertex_t GameTree::getParent(vertex_t node) {
   }
   return parent;
 }
+/// Initialize lockable game tree with the root node of the specified color label and index
+///@param playerscolor is the color label which will be assigned to new root node
+///@param indexofroot is the index which will be assigned to new root node
+///@return NONE
 void GameTree::initGameTree(char playerscolor, size_t indexofroot) {
   //set the root's color label as opponent's color label
   char rootscolor = 'W';
@@ -446,6 +529,9 @@ void GameTree::initGameTree(char playerscolor, size_t indexofroot) {
   vertex_t root = addNode(indexofroot, rootscolor);
   _root = root;
 }
+/// Get the number of children of a given node
+///@param indexofnode is the index of the node whose number of children will be returned
+///@return the number of children nodes
 size_t GameTree::getNumofChildren(size_t indexofnode) {
   vertex_t parent = vertex(indexofnode, thetree);
   return (out_degree(parent, thetree));
