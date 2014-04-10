@@ -19,10 +19,16 @@ class AbstractParser {
 
  protected:
   ///Declare a function to open file
+  ///@param NONE
+  ///@return NONE
   virtual void open() = 0;
   ///Declare a function to parse file
+  ///@param NONE
+  ///@return NONE
   virtual void parse() = 0;
   ///Declare a function to close file
+  ///@param NONE
+  ///@return NONE
   virtual void close() = 0;
 
  public:
@@ -31,6 +37,8 @@ class AbstractParser {
   ///Destructor
   virtual ~AbstractParser() {};
   ///Declares an public method to get parsed data
+  ///@param NONE
+  ///@return Two dimensional vectors which can store data with the row as lines and column as data entries separated by delimiters
   virtual const std::vector<std::vector<std::string> >& getData() const = 0;
 };
 

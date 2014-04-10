@@ -13,53 +13,77 @@
 
 #include "Graph.h"
 
-/* PriorityQueue Class is used to hold the distance from the source node
- * and for the purpose to return the node with minimal distance
+/**
+ *  PriorityQueue Class is used to hold the distance from the source node
+ * and for the purpose to return the node with minimal distance.<br/>
  * The template Val should be consistent with the Graph while N is the object needs to be put in the heap.
- * The template N is not needed to be consistent with the Graph label.
+ * The template N is not needed to be consistent with the Graph label.<br/>
+ *<br/>
+ * Sample Usage:<br/>
  *
- * Sample Usage:
- *
- * Graph<string, double> randomG(5, 0.5, 10);
- * PriorityQueue<int, double> testPQ;
- * for (unsigned i = 0; i < vertices.size(); i++)
- *   testPQ.insert(i, 10 - i);
- * int indexofminnode = testPQ.minPrioirty();
+ *       Graph<string, double> randomG(5, 0.5, 10);
+ *       PriorityQueue<int, double> testPQ;
+ *       for (unsigned i = 0; i < vertices.size(); i++)
+ *         testPQ.insert(i, 10 - i);
+ *       int indexofminnode = testPQ.minPrioirty();
  */
 template<class N, class Val>
 class PriorityQueue {
 
-  //NodePriority structure is used to hold the node and priority of the node.
-  //In shortest path calculation should be the total weight of the path leading to the node.
+  ///NodePriority structure is used to hold the node and priority of the node.
+  ///In shortest path calculation should be the total weight of the path leading to the node.
  private:
   struct NodePriority {
-    N node;
-    Val priority;  //priority of the node or the total weight of the path leading to the node
+    N node; ///<node object which will be assigned a priority for comparison
+    Val priority;  ///<priority of the node or the total weight of the path leading to the node
 
+    ///friend function for NodePriority in order to compare equality
+    ///@param a is a NodePriority whose priority will be compared
+    ///@param b is a NodePriority whose priority will be compared
+    ///@return TRUE if equality is satisfied; FALSE otherwise
     friend bool operator ==(NodePriority& a, NodePriority& b) {
       return (a.node) == (b.node);
     }
+    ///friend function for NodePriority in order to compare inequality
+    ///@param a is a NodePriority whose priority will be compared
+    ///@param b is a NodePriority whose priority will be compared
+    ///@return TRUE if equality is satisfied; FALSE otherwise
     friend bool operator !=(NodePriority& a, NodePriority& b) {
       return (a.node) != (b.node);
     }
+    ///friend function for constant NodePriority in order to compare equality
+    ///@param a is a NodePriority whose priority will be compared
+    ///@param b is a NodePriority whose priority will be compared
+    ///@return TRUE if equality is satisfied; FALSE otherwise
     friend bool operator ==(const NodePriority& a, const NodePriority& b) {
       return (a.node) == (b.node);
     }
+    ///friend function for constant NodePriority in order to compare inequality
+    ///@param a is a NodePriority whose priority will be compared
+    ///@param b is a NodePriority whose priority will be compared
+    ///@return FALSE if equality is satisfied; TRUE otherwise
     friend bool operator !=(const NodePriority& a, const NodePriority& b) {
       return (a.node) != (b.node);
     }
+    ///Overloading << for ostream output NodePriority information
+    ///@param os is an ostream which will be passed into and print out NodePriority information
+    ///@param obj is a NodePriority object whose values will be printed out
+    ///@return ostream for chain call
     friend std::ostream& operator <<(std::ostream& os, const NodePriority& obj){
       os << obj.node << ":" << obj.priority;
       return os;
     }
   };
-  //NodeComparator is used to define how to compare the node object in make_heap function
+  ///NodeComparator is a functional object and used to define how to compare the node object in make_heap function
   struct NodeComparator {
+    ///pass into comparator and perform priority comparison for NodePriority in queue
     bool operator()(NodePriority& a, NodePriority& b) {
       return a.priority > b.priority;  //calls your operator
     }
   };
-  //Find the corresponding element in tracker
+  ///Find the corresponding element in tracker
+  ///@param qelement is the node priority element which can be used for comparison
+  ///@return iterator for NodePriority object
   typename std::vector<NodePriority>::iterator findElement(
       NodePriority& qelement) {
     typename std::vector<NodePriority>::iterator iter = nodetracker.begin();
@@ -73,29 +97,33 @@ class PriorityQueue {
   std::vector<NodePriority> nodetracker;  //the underlying representation of priority queue, is used to hold the elements
 
  public:
+  ///parameterless default constructor
   PriorityQueue() {
   }
-  //Constructor, to reserve size for future constructing
+  ///Constructor, to reserve size for future constructing
+  ///@param reservedsize is the reserved size for priority queue to store node objects
   PriorityQueue(unsigned reservedsize) {
     nodetracker.reserve(reservedsize);
     std::make_heap(nodetracker.begin(), nodetracker.end(), NodeComparator());
   }
   ;
-  //Default destructor, takes no parameters
+  ///destructor, takes no parameters
   virtual ~PriorityQueue() {
   }
   ;
-  //Implement a const_iterator for PrioroityQueue container, non-modifiable
+  /**
+   * Implement a const_iterator for PrioroityQueue container, non-modifiable
+   */
   class const_iterator {
    public:
-    typedef const_iterator self_type;  //define self_type
+    typedef const_iterator self_type;  ///<define self_type
     //define iterator_traits, in order to pass into std algorithms
-    typedef size_t difference_type;
-    typedef NodePriority value_type;
-    typedef const NodePriority* const_pointer;
-    typedef const NodePriority& const_reference;
-    typedef std::random_access_iterator_tag iterator_category;
-    typedef typename std::vector<NodePriority>::const_iterator const_realiter;
+    typedef size_t difference_type; ///< define iterator_traits, difference_type as size_t
+    typedef NodePriority value_type; ///< define iterator_traits, value_type as NodePriority
+    typedef const NodePriority* const_pointer; ///< define iterator_traits, const_pointer as const NodePriority*
+    typedef const NodePriority& const_reference; ///< define iterator_traits, const_reference as const NodePriority&
+    typedef std::random_access_iterator_tag iterator_category; ///< define iterator_category, const_reference as random_access_iterator_tag
+    typedef typename std::vector<NodePriority>::const_iterator const_realiter; ///< define the actual iterator implementation, const_realiter
     const_iterator(const_realiter realiter, size_t pos)
         : _pos(pos),
           _realiter(realiter) {
@@ -115,9 +143,9 @@ class PriorityQueue {
     bool operator==(const self_type&) const;
     bool operator!=(const self_type&) const;
    private:
-    const_pointer _ptr;
-    size_t _pos;
-    const_realiter _realiter;
+    const_pointer _ptr; ///< constant pointer
+    size_t _pos; ///< the offset
+    const_realiter _realiter; ///< define the actual iterator implementation
   };
   //Change the priority or the total weight of the path leading to the specified node
   //Input:

@@ -68,6 +68,10 @@ void PlainParser::close() {
     throw ifstream::failure(e);
   }
 }
+///Split the line according to the delimiter
+///@param line is the desired line to be split by delimiters.
+///@param vecforline is a vector which will store the split results
+///@return NONE
 void PlainParser::split(string line, vector<string>& vecforline) {
   unsigned curpos = 0, foundpos;
   while ((foundpos = line.find(delimiter, curpos)) != string::npos) {
@@ -76,7 +80,9 @@ void PlainParser::split(string line, vector<string>& vecforline) {
   }
   vecforline.push_back(line.substr(curpos));
 }
-
+///Split the line according to the delimiter
+///@param line is the desired line to be trimmed.
+///@return NONE
 void PlainParser::trim(string& line) {
   unsigned foundpos = line.find_first_not_of(delimiter);
   if (foundpos != string::npos)

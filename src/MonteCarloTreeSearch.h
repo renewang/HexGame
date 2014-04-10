@@ -27,7 +27,7 @@
  * as default value (2048) <br/>
  * MonteCarloTreeSearch(const HexBoard* board, const Player* aiplayer, size_t numberoftrials): user defined constructor which
  * takes pointer to a hex board object and pointer to AI player; while parameter used for the number of simulated games
- * (numberoftrials) is provided by user
+ * (numberoftrials) is provided by user <br/>
  * Sample Usage: Please see Strategy (similar way to instantiate)
  */
 class MonteCarloTreeSearch : public AbstractStrategyImpl {

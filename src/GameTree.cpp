@@ -445,13 +445,13 @@ void GameTree::clearAll() {
   _root = root;
 }
 /// Get the total size of nodes
-///@param NOND
+///@param NONE
 ///@return the total size of nodes
 size_t GameTree::getSizeofNodes() {
   return num_vertices(thetree);
 }
 /// Get the total size of edges
-///@param NOND
+///@param NONE
 ///@return the total size of edges
 size_t GameTree::getSizeofEdges() {
   size_t numofedges = num_edges(thetree);
@@ -485,7 +485,7 @@ void GameTree::setNodePosition(size_t indexofnode, size_t position) {
   updateNodePosition(node, position);
   updateNodeName(node);
 }
-/// Get the siblings nodes of a given node
+/// Get the siblings of a given node
 ///@param indexofnode is the index of node whose indices of siblings will be returned
 ///@return a vector of size_t which stores the indices of siblings of the given node
 vector<size_t> GameTree::getSiblings(size_t indexofnode) {
@@ -502,7 +502,7 @@ vector<size_t> GameTree::getSiblings(size_t indexofnode) {
   }
   return vector<size_t>(siblings);
 }
-/// Get parental node of a given node
+/// Get parent of a given node
 ///@param node is the node whose parent will be returned
 ///@return the parental node
 GameTree::vertex_t GameTree::getParent(vertex_t node) {

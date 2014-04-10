@@ -3,6 +3,8 @@
  * This file defines an interface for graph algorithms which can be passed into MinSpanTreeAlgo.calculate()
  * calculate() needs to be implemented the actual algorithm
  *
+ *  Created on:
+ *    Author: renewang
  */
 
 #ifndef ABSTRACTALGORITHM_H_
@@ -10,22 +12,30 @@
 #include <iosfwd>
 #include <string>
 /**
- * AbstractAlgorithm class is used to provide interface for graph algorithm (especially minimum spanning tree).
- * Example:
- * class UnionFind : public AbstractAlgorithm {
- *  private:
- *   MinSpanTreeAlgo& algo;
- *  public:
- *   UnionFind(MinSpanTreeAlgo& algo)
- *       : algo(algo) {
- *   };
+ * AbstractAlgorithm class is used to provide interface for graph algorithm (especially minimum spanning tree).<br/>
+ * Example:<br/>
+ * class UnionFind : public AbstractAlgorithm {<br/>
+ *  private:<br/>
+ *   MinSpanTreeAlgo& algo;<br/>
+ *  public:<br/>
+ *   UnionFind(MinSpanTreeAlgo& algo)<br/>
+ *       : algo(algo) {<br/>
+ *   };<br/>
  */
 class AbstractAlgorithm {
  public:
-  AbstractAlgorithm(){};//default constructor, parameterless
-  virtual ~AbstractAlgorithm(){}; //destructor
-  virtual void calculate() = 0; //provide the interface to define graph algorithm implementation
-  virtual std::string name() = 0; //function to identify the class name
+  ///default constructor, parameterless, shouldn't be called to instantiate any AbstractAlgorithm instance
+  AbstractAlgorithm(){};
+  ///destructor
+  virtual ~AbstractAlgorithm(){};
+  ///provide the interface for graph algorithm implementation
+  ///@param NONE
+  ///@return NONE
+  virtual void calculate() = 0;
+  ///function to identify the class name
+  ///@param NONE
+  ///@return NONE
+  virtual std::string name() = 0;
 };
 
 #endif /* ABSTRACTALGORITHM_H_ */

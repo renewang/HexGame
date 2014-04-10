@@ -109,7 +109,7 @@ class GameTree: public AbstractGameTree{
   virtual void initGameTree(char playerscolor, size_t indexofroot);
   //Propagate the calculation from the leaf up to the root
   void backpropagate(vertex_t leaf, int value, int level);
-  //Getter to return the root node
+  ///Getter to return the root node
   vertex_t getRoot() const {
     return _root;
   }

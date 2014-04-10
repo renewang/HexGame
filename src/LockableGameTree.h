@@ -101,38 +101,55 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   virtual bool waitforupdate();
   //Wait for the update of feature values from back-propagation phase in MCTS
   virtual void notifyupdatedone();
-  //Get the count of threads waiting for expansion
+  ///Get the count of threads waiting for expansion
+  ///@param NONE
+  ///@return the count of threads waiting for expansion
   int getCountforexpand() {
     return countforexpand.load();
   }
-  //Set the count of threads waiting for expansion
+  ///Set the count of threads waiting for expansion
+  ///@param value is the value to be set for the count of threads waiting for expansion
+  ///@return NONE
   void setCountforexpand(int value) {
     this->countforexpand.store(value);
   }
-  //Add the count of threads waiting for expansion
+  ///Add the count of threads waiting for expansion
+  ///@param increment is the increment amount used for self increment
+  ///@return NONE
   void addCountforexpand(int increment) {
     countforexpand.fetch_add(increment);
   }
-  //Subtract the count of threads waiting for expansion
+  ///Subtract the count of threads waiting for expansion
+  ///@param decrement is the decrement amount used for self decrement
+  ///@return NONE
   void subCountforexpand(int decrement) {
     countforexpand.fetch_sub(decrement);
   }
-  //Get the number of future children of the node selected for expansion in selection phase
+  ///Get the number of future children of the node selected for expansion in selection phase
+  ///@param NONE
+  ///@return the number of future children
   int getNumofFutureChildren() {
     return sizeoffuturechildren;
   }
-  //Set the number of future children of the node selected for expansion in selection phase
+  ///Set the number of future children of the node selected for expansion in selection phase
+  ///@param numofchildren is the number of children to be set. When this value is zero, will do increment by the amount of increment specified in the following parameter
+  ///@param increment is the increment amount used for self increment. This parameter only takes effect when numofchildren is zero
+  ///@return NONE
   void setNumofFutureChildren(int numofchildren, int increment) {
     if (numofchildren == 0)
       sizeoffuturechildren += increment;
     else
       sizeoffuturechildren = numofchildren;
   }
-  //Get the boolean indicator which shows
+  ///Get the boolean indicator which shows if UTC policy value of this node has been updated
+  ///@param  NONE
+  ///@return the boolean variable to indicate if UTC policy value of this node has been updated
   bool getIsupdated() const {
     return isupdated.load();
   }
-  //Set the boolean indicator which shows
+  ///Set the boolean indicator which shows if UTC policy value of this node has been updated
+  ///@param isupdated is the new boolean variable to indicate if UTC policy value of this node has been updated
+  ///@return NONE
   void setIsupdated(bool isupdated) {
     this->isupdated.store(isupdated);
   }
@@ -264,6 +281,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   virtual ~LockableGameTree() {
   }
   ;
+
   //implement with global lock, external
   std::size_t getSizeofEdges(boost::shared_lock<LockableGameTree>&);
   std::size_t getSizeofNodes(boost::shared_lock<LockableGameTree>&);
@@ -288,7 +306,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   std::size_t getSizeofNodes();
   void clearAll();
   std::pair<int, double> getBestMovefromSimulation();
-  std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
+  std::pair<int, std::size_t> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
          int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
          hexgame::unordered_set<int>& remainingmoves);
@@ -301,10 +319,10 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   ;
   //implement with local locak, exteranl
   void setNodePosition(boost::unique_lock<LockableUTCPolicy>& guard,
-                                         vertex_t node, size_t position);
+                                         vertex_t node, std::size_t position);
   std::size_t getNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node);
   vertex_t getParent(boost::unique_lock<LockableUTCPolicy>&, vertex_t node);
-  std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&, size_t indexofnode);
+  std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&, std::size_t indexofnode);
 
   //implement with local lock, internal
   void setNodePosition(std::size_t indexofnode, std::size_t position);

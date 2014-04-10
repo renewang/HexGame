@@ -1,3 +1,7 @@
+/*
+ * PythonDef.cpp
+ * This file defines the interface which can be used for python language and also a wrapper for Hex Game
+ */
 #include <boost/python.hpp>
 
 #include "Game.h"
@@ -7,6 +11,10 @@
 #include "AbstractStrategy.h"
 
 using namespace boost::python;
+
+/**
+ * HexGamePyEngine
+ */
 class HexGamePyEngine {
  public:
 #if __cplusplus > 199711L

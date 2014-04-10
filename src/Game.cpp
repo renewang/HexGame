@@ -1,6 +1,8 @@
 /*
  * Game.cpp
  * This file defines the implementation for the Game class.
+ *   Created on:
+ *     Author: renewang
  */
 #include <cstdlib>
 #include <sstream>
@@ -9,23 +11,20 @@
 
 using namespace std;
 
-//To move to the specified location
-//INPUT:
-//player: the player makes the move
-//indexofrow: index of row, starting from 1 to number of hexgon per side
-//indexofcol: index of column, starting from 1 to number of hexgon per side
-//OUTPUT:
-//a boolean variable to indicate if this move is successful or not
+///To move to the specified location
+///@param player is the player makes the move
+///@param indexofrow is index of row, starting from 1 to number of hexgon per side
+///@param indexofcol is index of column, starting from 1 to number of hexgon per side
+///@return  a boolean variable to indicate if this move is successful or not
 bool Game::setMove(Player& player, int indexofrow, int indexofcol) {
   if(board.getNumofemptyhexgons() == 0)//empty, return true
     return true;
   else
     return player.setMove(indexofrow, indexofcol);
 }
-//Show current board view
-//INPUT: NONE
-//OUTPUT:
-//the view of board in string
+///Show current board view
+///@param NONE
+///@return the view of board in string
 string Game::showView(Player& playera, Player& playerb) {
   stringstream strout;
   int side = board.getNumofhexgons();
@@ -84,12 +83,10 @@ string Game::showView(Player& playera, Player& playerb) {
   strout << setw(totoalwide / 2) << ' ' << "SOUTH" << '\n';
   return strout.str();
 }
-//get the winner
-//INPUT:
-//playera: the first player maybe red or blue
-//playerb: the other player with different color with the first one
-//OUTPUT:
-//return the winner's name if there's a winer; otherwise, return "UNKNWON".
+///Get the winner
+///@param playera: the first player maybe red or blue
+///@param playerb: the other player with different color with the first one
+///@return the winner's name if there's a winer; otherwise, return "UNKNWON".
 string Game::getWinner(Player& playera, Player& playerb) {
   if (playera.isArriveOpposite())
     return playera.getPlayername();
@@ -98,16 +95,16 @@ string Game::getWinner(Player& playera, Player& playerb) {
   else
     return "UNKNOWN";
 }
-//Generate an intelligent move for Baby Watson
-//INPUT: a strategy object
-//OUPUT:
-//the index of next move (starting from 1 to number of hexgon per side)
+///Generate an intelligent move for Baby Watson
+///@param a strategy object
+///@return the index of next move (starting from 1 to number of hexgon per side)
 int Game::genMove(AbstractStrategy& aistrategy) {
   return (aistrategy.genMove());
 }
-//Reset board for the next round
-//INPUT: NONE
-//OUTPUT:
+///Reset board for the next round
+///@param playera: the first player maybe red or blue
+///@param playerb: the other player with different color with the first one
+///@return NONE
 void Game::resetGame(Player& playera, Player& playerb){
   board.resetHexBoard(false);
   playera.resetPlayersboard();
