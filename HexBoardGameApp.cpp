@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
       if (aistrategykind < 1 || aistrategykind > 3)
         cout << "Invalid input. Please Try again!" << endl;
       else {
-        ::selectStrategy(static_cast<AIStrategyKind>(aistrategykind - 1),
+        ::selectStrategy(static_cast<AIStrategyKind>(aistrategykind),
                          watsonstrategy, *babywatson, board);
         break;
       }
