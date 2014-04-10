@@ -26,11 +26,10 @@
  */
 class AbstractStrategyImpl : public AbstractStrategy {
  private:
-  //the actual playing board in the game. Need to ensure it not to be modified during the simulation
-  const HexBoard* const ptrtoboard;
-  //the actual player computer plays. Need to ensure it not to be modified during the simulation
-  const Player* const ptrtoplayer;
-  int numofhexgons; //number of hexgons per side. the total board should have numofhexgons*numofhexgons hexgons
+
+  const HexBoard* const ptrtoboard;///<the actual playing board in the game. Need to ensure it not to be modified during the simulation
+  const Player* const ptrtoplayer;  //<the actual player computer plays. Need to ensure it not to be modified during the simulation
+  int numofhexgons; ///<number of hexgons per side. the total board should have numofhexgons*numofhexgons hexgons
 
  protected:
   ///To initialize required containers which store necessary information about game progress

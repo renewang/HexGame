@@ -14,8 +14,8 @@
 
 //TODO template for featureholder
 /**
- * UTCPolicy class is used to provide implementations for UTC Policy calculation
- * UTCPolicy(): is parameterless default constructor which initialize data members
+ * UTCPolicy class is used to provide implementations for UTC Policy calculation <br/>
+ * UTCPolicy(): is parameterless default constructor which initialize data members <br/>
  */
 class UTCPolicy: public AbstractUTCPolicy{
  private:
@@ -52,33 +52,33 @@ class UTCPolicy: public AbstractUTCPolicy{
            << "] ";
     return buffer.str();
   }
-  ///Estimate the winning rate
+  //Estimate the winning rate
   double estimate();
-  ///Calculate the UTC value
+  //Calculate the UTC value
   double calculate(AbstractUTCPolicy& parent);
-  ///Update the value for a given feature
+  //Update the value for a given feature
   bool update(valuekind indexofkind, int value, int increment = 0);
-  ///Update the value for all features
+  //Update the value for all features
   bool updateAll(valuekind visitcount, int valueofvisit, int increaseofvisit,
                  valuekind wincount, int valueofwin, int increaseofwin);
-  ///Get the value of a particular feature
+  //Get the value of a particular feature
   int feature(valuekind indexofkind) {
     return featureholder.at(indexofkind);
   }
-  ///Get the estimated winning rate
+  //Get the estimated winning rate
   double getValue() const {
     return value;
   }
-  ///Get the calculated balance according to UTC policy
+  //Get the calculated balance according to UTC policy
   double getBalance() const {
     return balance;
   }
 };
 /**
- * GameTree class defines the implementations of AbstractGameTree
- * GameTree(); parameterless default constructor which will initiate a game tree with one white root node
- * GameTree(char playerslabel): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel.
- * GameTree(char playerslabel, std::size_t indexofroot): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel and index is indexofroot.
+ * GameTree class defines the implementations of AbstractGameTree <br/>
+ * GameTree(); parameterless default constructor which will initiate a game tree with one white root node <br/>
+ * GameTree(char playerslabel): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel. <br/>
+ * GameTree(char playerslabel, std::size_t indexofroot): User defined constructor which will initiate a game tree with one root node whose color is opposite to playerslabel and index is indexofroot. <br/>
  */
 class GameTree: public AbstractGameTree{
  private:
@@ -90,24 +90,24 @@ class GameTree: public AbstractGameTree{
 #endif
 
  private:
-  ///Add an unconnected node to the game tree with the given position on board or the color of new node
+  //Add an unconnected node to the game tree with the given position on board or the color of new node
   vertex_t addNode(std::size_t positionofchild, char color);
-  ///Get the parent node of given node
+  //Get the parent node of given node
   vertex_t getParent(vertex_t node);
-  ///Add the edge between source node and target node
+  //Add the edge between source node and target node
   bool addEdge(vertex_t source, vertex_t target);
   //void updateNodeName(vertex_t node, std::size_t positionofchild, char color); //TODO modify this, enforce to update node color and position before update node name
-  ///Update name of given node
+  //Update name of given node
   void updateNodeName(vertex_t node);
-  ///Update the value of a given node
+  //Update the value of a given node
   void updateNodeValue(vertex_t node);
-  ///Update the color of a given node
+  //Update the color of a given node
   void updateNodeColor(vertex_t node, char color);
-  ///Update the board position of a given node
+  //Update the board position of a given node
   void updateNodePosition(vertex_t node, std::size_t position);
-  ///Utility function to initialize a game tree with one single node whose color is opponent's color and index is given index
+  //Utility function to initialize a game tree with one single node whose color is opponent's color and index is given index
   virtual void initGameTree(char playerscolor, size_t indexofroot);
-  ///Propagate the calculation from the leaf up to the root
+  //Propagate the calculation from the leaf up to the root
   void backpropagate(vertex_t leaf, int value, int level);
   ///Getter to return the root node
   vertex_t getRoot() const {
@@ -162,11 +162,11 @@ class GameTree: public AbstractGameTree{
   };
 
  public:
-  ///Parameterless default constructor which will initialize a game tree with a single white root node
+  //Parameterless default constructor which will initialize a game tree with a single white root node
   GameTree();
-  ///User defined game tree which will initialize a game tree with a single root node with opponent's color
+  //User defined game tree which will initialize a game tree with a single root node with opponent's color
   GameTree(char playerslabel);
-  ///User defined game tree which will initialize a game tree with a single root node with opponent's color and given indexofroot
+  //User defined game tree which will initialize a game tree with a single root node with opponent's color and given indexofroot
   GameTree(char playerslabel, std::size_t indexofroot);
   ///destructor
   virtual ~GameTree() {
@@ -174,44 +174,44 @@ class GameTree: public AbstractGameTree{
   ;
 
   //for retrieving tree information
-  ///Get the depth from root for a given node
+  //Get the depth from root for a given node
   std::size_t getNodeDepth(int indexofnode);
-  ///Get the size of total nodes
+  //Get the size of total nodes
   std::size_t getSizeofNodes();
-  ///Get the size of total edges
+  //Get the size of total edges
   std::size_t getSizeofEdges();
-  ///Get the position of board given the index of node
+  //Get the position of board given the index of node
   std::size_t getNodePosition(std::size_t indexofnode);
-  ///Get the siblings of a node given the index of node
+  //Get the siblings of a node given the index of node
   std::vector<std::size_t> getSiblings(std::size_t indexofnode);
-  ///Set the position of board given the index of node
+  //Set the position of board given the index of node
   void setNodePosition(std::size_t indexofnode, std::size_t position);
 
   ///Print out the tree
   std::string printGameTree(int key);
   //for tree utility
-  ///Clear out the nodes and edge
+  //Clear out the nodes and edge
   void clearAll();
   //tree expansion
-  ///Expand one node from given node and specify the information of position on board and color
+  //Expand one node from given node and specify the information of position on board and color
   int expandNode(int indexofsource, int move, char color = 'W');
   //for simulation
-  ///Update play-out simulation result for the given index of node called in Monte Carlo Tree Search back-propagation phase
+  //Update play-out simulation result for the given index of node called in Monte Carlo Tree Search back-propagation phase
   void updateNodefromSimulation(int indexofnode, int winner, int level = -1);
-  ///Select the best move with maximal winning rate from the children nodes of the root after a round of play-out simulation
+  //Select the best move with maximal winning rate from the children nodes of the root after a round of play-out simulation
   std::pair<int, double> getBestMovefromSimulation();
-  ///select the node with the maximal UTC value called in Monte Carlo Tree Search selection phase
-  std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
-  ///Get the moves from the given the index of node to root in order to construct the game history from game tree
+  //select the node with the maximal UTC value called in Monte Carlo Tree Search selection phase
+  std::pair<int, std::size_t> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
+  //Get the moves from the given the index of node to root in order to construct the game history from game tree
   void getMovesfromTreeState(
       int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
       hexgame::unordered_set<int>& remainingmoves);
   //node property relevant
-  ///Get the UTC winning count or visit count
+  //Get the UTC winning count or visit count
   int getNodeValueFeature(int indexofnode, AbstractUTCPolicy::valuekind indexofkind);
-  ///Get the number of children for a given index of node
+  //Get the number of children for a given index of node
   std::size_t getNumofChildren(std::size_t indexofnode);
-  ///Return the meaningful class name as "GameTree"
+  //Return the meaningful class name as "GameTree"
   std::string name() {
     return std::string("GameTree");
   }

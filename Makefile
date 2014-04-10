@@ -12,24 +12,24 @@ PREFIX?=	/usr/local
 CHECKFLAG= -v --enable=all
 
 # compile release build
-rel:	CXXFLAGS+= -std=c++11 -DNDEBUG -O3
-rel:	CHECKFLAG+= -std=c++11
-rel:	cppcheck all
+rel:	CXXFLAGS+= --std=c++11 -DNDEBUG -O3
+rel:	CHECKFLAG+= --std=c++11
+rel:	cppcheck all gendoc
 
 relold: CXXFLAGS+= -DNDEBUG -O3
-relold:	CHECKFLAG+= -std=c++03
-relold: cppcheck all
+relold:	CHECKFLAG+= --std=c++03
+relold: cppcheck all gendoc
 
 # compile debug build
 dev:	CXXFLAGS+= -g3 -pg --std=c++11
-dev:	CHECKFLAG+= -std=c++11
+dev:	CHECKFLAG+= --std=c++11
 dev:	OPTINCLUDE= -I./contrib
-dev:	cppcheck all	
+dev:	cppcheck all gendoc
 
 devold:	CXXFLAGS+= -g3 -pg
 devold: CHECKFLAG+= --std=c++03
 devold:	OPTINCLUDE= -I./contrib
-devold: cppcheck all
+devold: cppcheck all gendoc
 
 all:	$(EXEDIR)/DijkstraAlg $(EXEDIR)/KruskalMSTAlg $(EXEDIR)/HexBoardGameApp
 
@@ -51,7 +51,7 @@ cleantest: $(TEST_SUBDIRS)
 tests: buildtest
 tests:
 	for dir in $(TEST_SUBDIRS); do \
-		sh -x ~/Script/GraphAlgoExe_test_auto.sh $(TEST_ROOT)/$$dir; \
+		sh GraphAlgoExe_test_auto.sh $(TEST_ROOT)/$$dir; \
 	done
 
 $(TEST_SUBDIRS):
@@ -63,6 +63,9 @@ $(TEST_SUBDIRS):
 
 cppcheck:
 	cppcheck $(CHECKFLAG) $(SRCDIR) 2&> "/tmp/cppcheck-`date +%Y-%m-%d`.log" 
+
+gendoc:
+	doxygen
 
 #compile DijkstraAlg exe
 $(EXEDIR)/Graph.o: $(SRCDIR)/Graph.h

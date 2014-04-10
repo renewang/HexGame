@@ -18,15 +18,15 @@
 
 namespace boost {
 ///create an additional property
-enum vertex_value_t {///<for storing the calculation result of UTC calculation function
+enum vertex_value_t {  ///<for storing the calculation result of UTC calculation function
   vertex_value
 };
 
-enum vertex_position_t {///<for storing the hex game board position
+enum vertex_position_t {  ///<for storing the hex game board position
   vertex_position
 };
-BOOST_INSTALL_PROPERTY(vertex, value); ///<install vertex_value_t as internal property
-BOOST_INSTALL_PROPERTY(vertex, position); ///<install vertex_position_t as internal property
+BOOST_INSTALL_PROPERTY(vertex, value);  ///<install vertex_value_t as internal property
+BOOST_INSTALL_PROPERTY(vertex, position);///<install vertex_position_t as internal property
 }
 /**
  * AbstractUTCPolicy class is used to provide an abstract interface which stores information for UTC Policy calculation
@@ -35,14 +35,18 @@ BOOST_INSTALL_PROPERTY(vertex, position); ///<install vertex_position_t as inter
 class AbstractUTCPolicy {
  protected:
   ///default constructor which should not be invoked to instantiate AbstractUTCPolicy object
-  AbstractUTCPolicy(){};
+  AbstractUTCPolicy() {
+  }
+  ;
   ///destructor
-  virtual ~AbstractUTCPolicy(){};
+  virtual ~AbstractUTCPolicy() {
+  }
+  ;
  public:
   ///enum type serves as index for stored features in UTC Policy
   enum valuekind {
-    visitcount = 0, ///< enum type serves as index for stored value of visiting count extraction in feature holder
-    wincount        ///< enum type servers as index for stored value of winning statistics extraction in feature holder
+    visitcount = 0,  ///< enum type serves as index for stored value of visiting count extraction in feature holder
+    wincount  ///< enum type servers as index for stored value of winning statistics extraction in feature holder
   };
   ///Print out the features
   virtual std::string print() = 0;
@@ -53,8 +57,9 @@ class AbstractUTCPolicy {
   ///To update feature values of either visitcount or wincount
   virtual bool update(valuekind indexofkind, int value, int increment = 0) = 0;
   ///To update values of visitcount and wincount together
-  virtual bool updateAll(valuekind visitcount, int valueofvisit, int increaseofvisit,
-                 valuekind wincount, int valueofwin, int increaseofwin)  = 0;
+  virtual bool updateAll(valuekind visitcount, int valueofvisit,
+                         int increaseofvisit, valuekind wincount,
+                         int valueofwin, int increaseofwin) = 0;
   ///To access either visitcount or wincount
   virtual int feature(valuekind indexofkind) =0;
   ///Getter for accessing estimated winning statistics (wincount)
@@ -62,6 +67,13 @@ class AbstractUTCPolicy {
   ///Getter for accessing calculated UTC balance
   virtual double getBalance() const = 0;
 };
+#if __cplusplus > 199711L
+#define AbstractUTCPolicy_visitcount AbstractUTCPolicy::valuekind::visitcount
+#define AbstractUTCPolicy_wincount AbstractUTCPolicy::valuekind::wincount
+#else
+#define AbstractUTCPolicy_visitcount AbstractUTCPolicy::visitcount
+#define AbstractUTCPolicy_wincount AbstractUTCPolicy::wincount
+#endif
 /**
  * AbstractGameTree class is used to provide abstract interface for GameTree and LockableGameTree class
  * AbstractGameTree(): default constructor which should not be called any time to instantiate AbstractGameTree object due to the abstract nature of this class
@@ -78,7 +90,8 @@ class AbstractGameTree {
   ///Getter to get the position of hex board storing in the given node
   virtual std::size_t getNodePosition(std::size_t indexofnode) = 0;
   ///Setter to set the position of hex board storing in the given node
-  virtual void setNodePosition(std::size_t indexofnode, std::size_t position) = 0;
+  virtual void setNodePosition(std::size_t indexofnode,
+                               std::size_t position) = 0;
   ///Getter to get the siblings of a given node
   virtual std::vector<std::size_t> getSiblings(std::size_t indexofnode) = 0;
   ///Getter to get the number of children of a given node
@@ -96,32 +109,40 @@ class AbstractGameTree {
 
   //for game simulation
   ///To update UTC value according to the simulation (play-out) result
-  virtual void updateNodefromSimulation(int indexofnode, int winner, int level) = 0;
+  virtual void updateNodefromSimulation(int indexofnode, int winner,
+                                        int level) = 0;
   ///To get the best move by maximizing simulated winning statistics
   virtual std::pair<int, double> getBestMovefromSimulation() = 0;
   ///To select the node with maximal UTC balance value
-  virtual std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie) = 0;
+  virtual std::pair<int, std::size_t> selectMaxBalanceNode(int currentempty,
+                                                   bool isbreaktie) = 0;
   ///To get past moves (with the position information on the hex board)
   virtual void getMovesfromTreeState(
-      int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
+      int indexofnode, std::vector<int>& babywatsons,
+      std::vector<int>& opponents,
       hexgame::unordered_set<int>& remainingmoves) = 0;
   //node property relevant
   ///To get feature of UTC Policy from a given node
   virtual int getNodeValueFeature(int indexofnode,
-                          AbstractUTCPolicy::valuekind indexofkind) = 0;
+                                  AbstractUTCPolicy::valuekind indexofkind) = 0;
   ///Utility function to print out poly-morphic name
   virtual std::string name() = 0;
 
  protected:
   ///default constructor, should not be invoked to instantiate object under any circumstances
-  AbstractGameTree() {};
+  AbstractGameTree() {
+  }
+  ;
   ///destructor
-  virtual ~AbstractGameTree() {};
+  virtual ~AbstractGameTree() {
+  }
+  ;
 
  protected:
   //setting up internal composite property for boost graph
   ///Value is use to store UTC values and features
-  typedef boost::property<boost::vertex_value_t, hexgame::shared_ptr< AbstractUTCPolicy > > vertex_value_prop;
+  typedef boost::property<boost::vertex_value_t,
+      hexgame::shared_ptr<AbstractUTCPolicy> > vertex_value_prop;
   ///Color is used to indicate the move made by which player (RED or BLUE)
   typedef boost::property<boost::vertex_color_t, boost::default_color_type,
       vertex_value_prop> vertex_color_prop;

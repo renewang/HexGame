@@ -9,6 +9,7 @@
 #define LOCKABLEGAMETREE_H_
 
 #include "Global.h"
+#include "GameTree.h"
 #include "AbstractGameTree.h"
 
 #ifndef NDEBUG
@@ -20,6 +21,7 @@
 #include <iostream>
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/externally_locked.hpp>
@@ -29,17 +31,13 @@
 typedef boost::lockable_adapter<boost::mutex> lockable_base_type; ///< Define boost lockable_adapter as lockable_base_type
 typedef boost::shared_lockable_adapter<boost::shared_mutex> lockable_share_type;///< Define boost shared_lockable_adapter as lockable_base_type
 /**
- * LockableUTCPolicy class is used to provide the implementations of lockable AbstractUTCPolicy for the parallelization
- * LockableUTCPolicy(): default constructor which will initialize data members with default values
+ * LockableUTCPolicy class is used to provide the implementations of lockable AbstractUTCPolicy for the parallelization <br/>
+ * LockableUTCPolicy(): default constructor which will initialize data members with default values <br/>
  *
  */
 class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
  private:
-  double value;  ///< this value is calculated by a value function (estimate) across simulated sample and needs to be maximized to get the best move
-  double balance;  ///< this value is calculated by search policy, usually U (calculate) to balance exploration (random) and exploitation (greedy choice) and needs to be maximized to get the potential candidate
-  const double coefficient; ///< this constant value is used in UTC Policy to strike a balance between exploration and exploitation
-  std::size_t numoffeatures; ///< this value is used to specify how many features are used for UTC value calculation
-  std::vector<int> featureholder; ///< this vector is used to hold the values of features
+  UTCPolicy policy; ///< UTCPolicy project object which will provide actual implementations of UTCPolicy
   hexgame::atomic<int> countforexpand;///< vertex property, semaphore for local lock to wait for expansion
   hexgame::atomic<bool> isupdated; ///< vertex property, mutex-like atomic variable for local lock to wait for expansion
   int sizeoffuturechildren; ///< this value is to record the future expandable children
@@ -49,15 +47,9 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   ///default constructor which will initialize data members with default values
   LockableUTCPolicy()
       : lockable_share_type(),
-        value(0.0),
-        balance(value),
-        coefficient(2.0),
-        numoffeatures(2),
-        featureholder(std::vector<int>(numoffeatures)),
         countforexpand(0),
         isupdated(false),
         sizeoffuturechildren(0) {
-    std::fill(featureholder.begin(), featureholder.end(), 0);
   }
   ;
   ///destructor
@@ -65,20 +57,12 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   }
   ///Print the values of Lockable UTC object, debug purpose
   std::string print() {
-    std::stringstream buffer;
-    buffer << " [" << value << "|" << balance << "|"
-           << featureholder.at(wincount) << "|" << featureholder.at(visitcount)
-           << "] ";
-    return buffer.str();
+    return policy.print();
   }
   ///Copy constructor which should do deep copy
   LockableUTCPolicy(const LockableUTCPolicy& policy)
-      : lockable_share_type(),
-        coefficient(2.0) {
-    this->value = policy.value;
-    this->balance = policy.balance;
-    this->numoffeatures = policy.numoffeatures;
-    this->featureholder = policy.featureholder;
+      : lockable_share_type() {
+    this->policy = policy.policy;
     this->sizeoffuturechildren = policy.sizeoffuturechildren;
     this->countforexpand.store(policy.countforexpand.load());
   }
@@ -86,57 +70,86 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
   //for the purpose to construct graph property
   ///Copy assignment operator which should do deep copy
   LockableUTCPolicy& operator=(const LockableUTCPolicy& policy) {
-    this->value = policy.value;
-    this->balance = policy.balance;
-    this->numoffeatures = policy.numoffeatures;
-    this->featureholder = policy.featureholder;
+    this->policy = policy.policy;
     this->sizeoffuturechildren = policy.sizeoffuturechildren;
     this->countforexpand.store(policy.countforexpand.load());
     return *this;
   }
-  virtual bool waitforupdate();
+  ///See UTCPolicy::estimate
   double estimate();
+  ///See UTCPolicy::calculate
   double calculate(AbstractUTCPolicy& parent);
-  virtual void notifyupdatedone();
+  ///See UTCPolicy::update
   bool update(valuekind indexofkind, int value, int increment = 0);
+  ///See UTCPolicy::updateAll
   bool updateAll(
       valuekind visitcount, int valueofvisit, int increaseofvisit,
       valuekind wincount, int valueofwin, int increaseofwin);
+  ///See UTCPolicy::feature
   int feature(valuekind indexofkind) {
-    return featureholder.at(indexofkind);
+    return policy.feature(indexofkind);
   }
+  ///See UTCPolicy::getValue
   double getValue() const {
-    return value;
+    return policy.getValue();
   }
-
+  ///See UTCPolicy::getBalance
   double getBalance() const {
-    return balance;
+    return policy.getBalance();
   }
-
+  //Wait for the update of feature values from back-propagation phase in MCTS
+  virtual bool waitforupdate();
+  //Wait for the update of feature values from back-propagation phase in MCTS
+  virtual void notifyupdatedone();
+  ///Get the count of threads waiting for expansion
+  ///@param NONE
+  ///@return the count of threads waiting for expansion
   int getCountforexpand() {
     return countforexpand.load();
   }
+  ///Set the count of threads waiting for expansion
+  ///@param value is the value to be set for the count of threads waiting for expansion
+  ///@return NONE
   void setCountforexpand(int value) {
     this->countforexpand.store(value);
   }
+  ///Add the count of threads waiting for expansion
+  ///@param increment is the increment amount used for self increment
+  ///@return NONE
   void addCountforexpand(int increment) {
     countforexpand.fetch_add(increment);
   }
+  ///Subtract the count of threads waiting for expansion
+  ///@param decrement is the decrement amount used for self decrement
+  ///@return NONE
   void subCountforexpand(int decrement) {
     countforexpand.fetch_sub(decrement);
   }
+  ///Get the number of future children of the node selected for expansion in selection phase
+  ///@param NONE
+  ///@return the number of future children
   int getNumofFutureChildren() {
     return sizeoffuturechildren;
   }
+  ///Set the number of future children of the node selected for expansion in selection phase
+  ///@param numofchildren is the number of children to be set. When this value is zero, will do increment by the amount of increment specified in the following parameter
+  ///@param increment is the increment amount used for self increment. This parameter only takes effect when numofchildren is zero
+  ///@return NONE
   void setNumofFutureChildren(int numofchildren, int increment) {
     if (numofchildren == 0)
       sizeoffuturechildren += increment;
     else
       sizeoffuturechildren = numofchildren;
   }
+  ///Get the boolean indicator which shows if UTC policy value of this node has been updated
+  ///@param  NONE
+  ///@return the boolean variable to indicate if UTC policy value of this node has been updated
   bool getIsupdated() const {
     return isupdated.load();
   }
+  ///Set the boolean indicator which shows if UTC policy value of this node has been updated
+  ///@param isupdated is the new boolean variable to indicate if UTC policy value of this node has been updated
+  ///@return NONE
   void setIsupdated(bool isupdated) {
     this->isupdated.store(isupdated);
   }
@@ -145,6 +158,7 @@ class LockableUTCPolicy : public lockable_share_type, public AbstractUTCPolicy {
 class LockableGameTree : public lockable_share_type, public AbstractGameTree {
  private:
   //for property
+  //TODO remove redundancy
   typedef boost::property<boost::vertex_value_t,
       hexgame::shared_ptr<LockableUTCPolicy> > vertex_value_prop;
   typedef boost::property<boost::vertex_color_t, boost::default_color_type,
@@ -195,7 +209,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   void backpropagate(boost::unique_lock<LockableGameTree>&, vertex_t leaf,
                      int value, int level);bool notifyAllUpdateDone(
       boost::unique_lock<LockableGameTree>&, vertex_t leaf, int level);
-  void updateNodeValue(boost::unique_lock<LockableGameTree>&, vertex_t node);  //update the color of a given node
+  void updateNodeValue(vertex_t node);  //update the value of a given node
 
   //implement with global lock, internal
   vertex_t addNode(std::size_t positionofchild, char color);
@@ -210,11 +224,10 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
                        char color);  //update the board position of a given node
   void updateNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node,
                           std::size_t position);
-  size_t getNumofChildren(boost::unique_lock<LockableUTCPolicy>&, vertex_t parent);
+  size_t getNumofChildren(boost::shared_lock<LockableUTCPolicy>&, vertex_t parent);
 
   //implement with local lock, internal
   bool addEdge(vertex_t source, vertex_t target);
-  vertex_t getParent(vertex_t node);
 
   //no lock
   void updateNodeName(vertex_t node);  //update the value of a given node
@@ -273,7 +286,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   std::size_t getSizeofEdges(boost::shared_lock<LockableGameTree>&);
   std::size_t getSizeofNodes(boost::shared_lock<LockableGameTree>&);
   void clearAll(boost::unique_lock<LockableGameTree>&);
-  std::pair<int,int> selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
+  std::pair<int,std::size_t> selectMaxBalanceNode(boost::unique_lock<LockableGameTree>&,
                            int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
       boost::unique_lock<LockableGameTree>&, int indexofnode, std::vector<int>& babywatsons,
@@ -293,7 +306,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   std::size_t getSizeofNodes();
   void clearAll();
   std::pair<int, double> getBestMovefromSimulation();
-  std::pair<int, int> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
+  std::pair<int, std::size_t> selectMaxBalanceNode(int currentempty, bool isbreaktie = true);
   void getMovesfromTreeState(
          int indexofnode, std::vector<int>& babywatsons, std::vector<int>& opponents,
          hexgame::unordered_set<int>& remainingmoves);
@@ -304,14 +317,12 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
     return std::string("LockableGameTree");
   }
   ;
-
-
   //implement with local locak, exteranl
   void setNodePosition(boost::unique_lock<LockableUTCPolicy>& guard,
-                                         vertex_t node, size_t position);
+                                         vertex_t node, std::size_t position);
   std::size_t getNodePosition(boost::unique_lock<LockableUTCPolicy>&, vertex_t node);
   vertex_t getParent(boost::unique_lock<LockableUTCPolicy>&, vertex_t node);
-  std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&, size_t indexofnode);
+  std::vector<std::size_t> getSiblings(boost::unique_lock<LockableGameTree>&, std::size_t indexofnode);
 
   //implement with local lock, internal
   void setNodePosition(std::size_t indexofnode, std::size_t position);
@@ -319,7 +330,7 @@ class LockableGameTree : public lockable_share_type, public AbstractGameTree {
   std::vector<std::size_t> getSiblings(std::size_t indexofnode);
   std::size_t getNodePosition(std::size_t indexofnode);
   std::size_t getNumofChildren(std::size_t indexofnode);
-  std::size_t getParent(std::size_t indexofchild, bool);
+  std::size_t getParent(std::size_t indexofchild);
   bool getIsupdated(int indexofnode);
   bool getIsupdatedBackpropagation(int indexofleaf);
   int getNodeValueFeature(int indexofnode, AbstractUTCPolicy::valuekind indexofkind);

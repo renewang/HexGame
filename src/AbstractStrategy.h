@@ -71,22 +71,24 @@ class AbstractStrategy {
   virtual int genMove() = 0;
   ///To return polymorphic class name
   virtual std::string name() = 0;
+  ///destructor
   virtual ~AbstractStrategy() {
   }
   ;
-  //destructor
 };
 //utility and non-class functions
+///used by client to choose different AI strategies
 void selectStrategy(
     AIStrategyKind strategykind,
     hexgame::unique_ptr<AbstractStrategy,
         hexgame::default_delete<AbstractStrategy> >& watsonstrategy,
-    Player& player, HexBoard& board);  //used by client to choose different AI strategies
+    Player& player, HexBoard& board);
+///used by client to simulate a game in which two AI players might employ the same or different AI strategies
 void simulations(
     hexgame::unique_ptr<AbstractStrategy,
         hexgame::default_delete<AbstractStrategy> >& strategyred,
     hexgame::unique_ptr<AbstractStrategy,
         hexgame::default_delete<AbstractStrategy> >& strategyblue,
     AIStrategyKind redstrategykind, AIStrategyKind bluestrategykind,
-    int numofhexgon = 11);  //used by client to simulate a game in which two AI players might employ the same or different AI strategies
+    int numofhexgon = 11);
 #endif /* ABSTRACTSTRATEGY_H_ */

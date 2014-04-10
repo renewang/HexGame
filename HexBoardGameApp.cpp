@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
         hexgame::default_delete<AbstractStrategy> > ptrtostrategyforblue(
         nullptr);
 
-    simulations(ptrtostrategyforred, ptrtostrategyforblue, AIStrategyKind_NAIVE, AIStrategyKind_MCST, numofhexgon);
+    simulations(ptrtostrategyforred, ptrtostrategyforblue, AIStrategyKind_NAIVE, AIStrategyKind_MCTS, numofhexgon);
     return 0;
   }
   cout << printHeader() << "\n\n";
